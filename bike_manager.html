@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Bike Manager — Local</title>
+  <meta name="description" content="Manage second-hand bike inventory locally on your phone. Exports to Excel/CSV." />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass: rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;color:#e6eef6;background:linear-gradient(180deg,#071024 0%,var(--bg) 100%);-webkit-font-smoothing:antialiased}
+    .wrap{max-width:980px;margin:18px auto;padding:16px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    h1{font-size:20px;margin:0}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    form{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input,select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .full{grid-column:1/-1}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    button{padding:10px 12px;border-radius:10px;border:0;background:var(--accent);color:#042027;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+    th{font-size:12px;color:var(--muted)}
+    tr.selected{background:linear-gradient(90deg, rgba(6,182,212,0.06), rgba(6,182,212,0.02))}
+    .small{font-size:12px;padding:6px 8px}
+    .controls{display:flex;gap:8px;align-items:center}
+    @media(max-width:720px){form{grid-template-columns:1fr} .wrap{padding:10px;margin:10px}}
+    .note{font-size:12px;color:var(--muted);margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Bike Manager — Local (PWA-ready)</h1>
+        <div class="note">Stores data in your phone's localStorage. Works offline after first load. Export to Excel.</div>
+      </div>
+      <div class="controls">
+        <button id="btnSave">Save (.xlsx)</button>
+        <button id="btnSaveAs" class="ghost">Save As</button>
+        <button id="btnClear" class="ghost">Clear All</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <form id="bikeForm">
+        <div>
+          <label for="colNo">No.</label>
+          <input id="colNo" type="number" min="1" required />
+        </div>
+        <div>
+          <label for="owner">Owner name</label>
+          <input id="owner" type="text" required />
+        </div>
+        <div>
+          <label for="purchasePrice">Purchase price</label>
+          <input id="purchasePrice" type="number" step="0.01" required />
+        </div>
+        <div>
+          <label for="repairCost">Repair cost</label>
+          <input id="repairCost" type="number" step="0.01" value="0" required />
+        </div>
+        <div>
+          <label for="sellingPrice">Selling price</label>
+          <input id="sellingPrice" type="number" step="0.01" required />
+        </div>
+        <div>
+          <label for="netProfit">Net profit (auto)</label>
+          <input id="netProfit" type="number" step="0.01" readonly />
+        </div>
+        <div>
+          <label for="datePurchase">Date of purchase</label>
+          <input id="datePurchase" type="date" />
+        </div>
+        <div>
+          <label for="dateSelling">Date of selling</label>
+          <input id="dateSelling" type="date" />
+        </div>
+
+        <div class="full actions">
+          <button id="btnAdd" type="button">Add</button>
+          <button id="btnUpdate" type="button" class="ghost">Update</button>
+          <button id="btnDelete" type="button" class="ghost">Delete</button>
+          <button id="btnExportCSV" type="button" class="ghost">Export CSV</button>
+          <div style="flex:1"></div>
+        </div>
+      </form>
+
+      <table id="table" aria-describedby="tableDesc">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Owner</th>
+            <th>Purchase</th>
+            <th>Repair</th>
+            <th>Selling</th>
+            <th>Net</th>
+            <th>Purchased</th>
+            <th>Sold</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="tableDesc" class="note">Tap a row to select it for update/delete.</div>
+    </section>
+
+    <div class="note">Tip: open this file in Chrome on Android, tap the browser menu → Add to Home screen to install as an app. The data stays in localStorage.</div>
+  </div>
+
+  <!-- SheetJS (xlsx) CDN for .xlsx export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    // Single-file Local PWA + LocalStorage bike manager
+    const STORAGE_KEY = 'bikes_db_v1';
+    let db = [];
+    let selectedIndex = -1;
+
+    // form elements
+    const els = {
+      colNo: document.getElementById('colNo'),
+      owner: document.getElementById('owner'),
+      purchasePrice: document.getElementById('purchasePrice'),
+      repairCost: document.getElementById('repairCost'),
+      sellingPrice: document.getElementById('sellingPrice'),
+      netProfit: document.getElementById('netProfit'),
+      datePurchase: document.getElementById('datePurchase'),
+      dateSelling: document.getElementById('dateSelling'),
+      btnAdd: document.getElementById('btnAdd'),
+      btnUpdate: document.getElementById('btnUpdate'),
+      btnDelete: document.getElementById('btnDelete'),
+      btnSave: document.getElementById('btnSave'),
+      btnSaveAs: document.getElementById('btnSaveAs'),
+      btnExportCSV: document.getElementById('btnExportCSV'),
+      btnClear: document.getElementById('btnClear'),
+      tbody: document.querySelector('#table tbody')
+    };
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        db = raw ? JSON.parse(raw) : [];
+      }catch(e){db=[]}
+      render();
+    }
+
+    function saveLocal(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
+
+    function render(){
+      els.tbody.innerHTML = '';
+      db.forEach((r,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.no}</td>
+          <td>${escapeHtml(r.owner)}</td>
+          <td>${formatNum(r.purchasePrice)}</td>
+          <td>${formatNum(r.repairCost)}</td>
+          <td>${formatNum(r.sellingPrice)}</td>
+          <td>${formatNum(r.netProfit)}</td>
+          <td>${r.datePurchase||''}</td>
+          <td>${r.dateSelling||''}</td>
+        `;
+        tr.addEventListener('click', ()=>selectRow(i, tr));
+        if(i===selectedIndex) tr.classList.add('selected');
+        els.tbody.appendChild(tr);
+      });
+    }
+
+    function selectRow(i, tr){
+      selectedIndex = i;
+      // fill form
+      const r = db[i];
+      els.colNo.value = r.no;
+      els.owner.value = r.owner;
+      els.purchasePrice.value = r.purchasePrice;
+      els.repairCost.value = r.repairCost;
+      els.sellingPrice.value = r.sellingPrice;
+      els.netProfit.value = r.netProfit;
+      els.datePurchase.value = r.datePurchase||'';
+      els.dateSelling.value = r.dateSelling||'';
+      // highlight
+      Array.from(els.tbody.children).forEach((row,idx)=>row.classList.toggle('selected', idx===i));
+    }
+
+    function addRecord(){
+      const rec = readForm();
+      if(!rec) return;
+      db.push(rec);
+      saveLocal();
+      render();
+      clearForm();
+    }
+
+    function updateRecord(){
+      if(selectedIndex<0 || selectedIndex>=db.length) return alert('Select a row first');
+      const rec = readForm();
+      if(!rec) return;
+      db[selectedIndex] = rec;
+      saveLocal();
+      render();
+    }
+
+    function deleteRecord(){
+      if(selectedIndex<0 || selectedIndex>=db.length) return alert('Select a row first');
+      if(!confirm('Delete selected record?')) return;
+      db.splice(selectedIndex,1);
+      selectedIndex=-1;
+      saveLocal();
+      render();
+      clearForm();
+    }
+
+    function readForm(){
+      const no = Number(els.colNo.value);
+      const owner = els.owner.value.trim();
+      const purchasePrice = Number(els.purchasePrice.value) || 0;
+      const repairCost = Number(els.repairCost.value) || 0;
+      const sellingPrice = Number(els.sellingPrice.value) || 0;
+      const netProfit = round2(sellingPrice - (purchasePrice + repairCost));
+      if(!no || !owner) { alert('Please provide at least No. and Owner name'); return null }
+      return { no, owner, purchasePrice, repairCost, sellingPrice, netProfit, datePurchase: els.datePurchase.value, dateSelling: els.dateSelling.value };
+    }
+
+    function clearForm(){
+      els.colNo.value=''; els.owner.value=''; els.purchasePrice.value=''; els.repairCost.value='0'; els.sellingPrice.value=''; els.netProfit.value=''; els.datePurchase.value=''; els.dateSelling.value=''; selectedIndex=-1; render();
+    }
+
+    function computeNet(){
+      const p = Number(els.purchasePrice.value)||0;
+      const r = Number(els.repairCost.value)||0;
+      const s = Number(els.sellingPrice.value)||0;
+      els.netProfit.value = round2(s - (p + r));
+    }
+
+    function downloadExcel(filename='bikes_export.xlsx'){
+      if(typeof XLSX === 'undefined'){return alert('SheetJS not loaded — require internet connection for .xlsx export')}
+      if(db.length===0) return alert('Nothing to export');
+      const ws = XLSX.utils.json_to_sheet(db.map(r=>({
+        No: r.no, Owner: r.owner, Purchase: r.purchasePrice, Repair: r.repairCost, Selling: r.sellingPrice, Net: r.netProfit, DatePurchase: r.datePurchase||'', DateSelling: r.dateSelling||''
+      })));
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
+      XLSX.writeFile(wb, filename);
+    }
+
+    function downloadCSV(filename='bikes_export.csv'){
+      if(db.length===0) return alert('Nothing to export');
+      const header = ['No','Owner','Purchase','Repair','Selling','Net','DatePurchase','DateSelling'];
+      const lines = [header.join(',')];
+      db.forEach(r=>{
+        const vals = [r.no, quoteCsv(r.owner), r.purchasePrice, r.repairCost, r.sellingPrice, r.netProfit, r.datePurchase||'', r.dateSelling||''];
+        lines.push(vals.join(','));
+      });
+      const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function exportSaveAs(){
+      const name = prompt('Filename (with .xlsx or .csv)', 'bikes_export.xlsx');
+      if(!name) return;
+      if(name.toLowerCase().endsWith('.csv')) downloadCSV(name);
+      else downloadExcel(name);
+    }
+
+    // utilities
+    function round2(v){return Math.round((v+Number.EPSILON)*100)/100}
+    function formatNum(n){return Number(n).toLocaleString(undefined, {minimumFractionDigits:0,maximumFractionDigits:2})}
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c])}
+    function quoteCsv(s){if(typeof s!=='string') return s; if(s.includes(',')||s.includes('"')||s.includes('\n')) return '"'+s.replace(/"/g,'""')+'"'; return s }
+
+    // events
+    els.purchasePrice.addEventListener('input', computeNet);
+    els.repairCost.addEventListener('input', computeNet);
+    els.sellingPrice.addEventListener('input', computeNet);
+    els.btnAdd.addEventListener('click', addRecord);
+    els.btnUpdate.addEventListener('click', updateRecord);
+    els.btnDelete.addEventListener('click', deleteRecord);
+    els.btnSave.addEventListener('click', ()=>downloadExcel());
+    els.btnSaveAs.addEventListener('click', exportSaveAs);
+    els.btnExportCSV.addEventListener('click', ()=>downloadCSV());
+    els.btnClear.addEventListener('click', ()=>{ if(confirm('Clear all saved records?')){ db=[]; saveLocal(); render(); clearForm(); } });
+
+    // init
+    load();
+
+    // PWA: dynamic manifest + service worker blob (keeps single file)
+    (function registerPWA(){
+      try{
+        const manifest = { name: 'Bike Manager', short_name: 'Bikes', start_url: '.', display: 'standalone', background_color: '#071024', theme_color: '#06b6d4', icons: [] };
+        const mblob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
+        const murl = URL.createObjectURL(mblob);
+        const link = document.createElement('link'); link.rel='manifest'; link.href = murl; document.head.appendChild(link);
+
+        if('serviceWorker' in navigator){
+          const swCode = `self.addEventListener('install', e=>self.skipWaiting()); self.addEventListener('activate', e=>self.clients.claim()); self.addEventListener('fetch', e=>{});`;
+          const swBlob = new Blob([swCode], {type:'application/javascript'});
+          const swUrl = URL.createObjectURL(swBlob);
+          navigator.serviceWorker.register(swUrl).catch(()=>{});
+        }
+      }catch(e){}
+    })();
+  </script>
+</body>
+</html>
