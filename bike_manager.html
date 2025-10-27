@@ -7,36 +7,179 @@
   <meta name="description" content="Manage second-hand bike inventory locally on your phone. Exports to Excel/CSV." />
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass: rgba(255,255,255,0.03)}
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;color:#e6eef6;background:linear-gradient(180deg,#071024 0%,var(--bg) 100%);-webkit-font-smoothing:antialiased}
-    .wrap{max-width:980px;margin:18px auto;padding:16px}
-    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
-    h1{font-size:20px;margin:0}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-    form{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    input,select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
-    .full{grid-column:1/-1}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    button{padding:10px 12px;border-radius:10px;border:0;background:var(--accent);color:#042027;font-weight:600}
-    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
-    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
-    th{font-size:12px;color:var(--muted)}
-    tr.selected{background:linear-gradient(90deg, rgba(6,182,212,0.06), rgba(6,182,212,0.02))}
-    .small{font-size:12px;padding:6px 8px}
-    .controls{display:flex;gap:8px;align-items:center}
-    @media(max-width:720px){form{grid-template-columns:1fr} .wrap{padding:10px;margin:10px}}
-    .note{font-size:12px;color:var(--muted);margin-top:8px}
+    :root {
+      --bg: #0a1120;
+      --card: #111b2e;
+      --accent: #00d0ff;
+      --muted: #a0aec0;
+      --text: #f1f5f9;
+      --radius: 14px;
+      --shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #0d1a2b, #050912 70%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 950px;
+      padding: 20px;
+      animation: fadeIn 0.8s ease;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0;
+      background: linear-gradient(to right, #00d0ff, #38bdf8);
+      -webkit-background-clip: text;
+      color: transparent;
+      font-weight: 600;
+    }
+
+    .note {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: #031520;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 208, 255, 0.4);
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    section.card {
+      background: rgba(255,255,255,0.03);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      grid-column: 1 / -1;
+      justify-content: space-between;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.9rem;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+      background: rgba(255,255,255,0.04);
+    }
+
+    tr.selected {
+      background: linear-gradient(90deg, rgba(0,208,255,0.08), rgba(0,208,255,0.03));
+    }
+
+    tr:hover {
+      background: rgba(255,255,255,0.05);
+      cursor: pointer;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.3rem; }
+      button { flex: 1; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div>
-        <h1>Bike Manager — Local (PWA-ready)</h1>
-        <div class="note">Stores data in your phone's localStorage. Works offline after first load. Export to Excel.</div>
+        <h1>Bike Manager — Local</h1>
+        <div class="note">Offline-ready. Stores data in your phone. Export anytime.</div>
       </div>
       <div class="controls">
         <button id="btnSave">Save (.xlsx)</button>
@@ -48,8 +191,8 @@
     <section class="card">
       <form id="bikeForm">
         <div>
-          <label for="colNo">No.</label>
-          <input id="colNo" type="number" min="1" required />
+          <label for="colNo">Bike Number (e.g. GJ05AB1234)</label>
+          <input id="colNo" type="text" pattern="[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{1,4}" placeholder="Enter full number plate" required />
         </div>
         <div>
           <label for="owner">Owner name</label>
@@ -80,12 +223,13 @@
           <input id="dateSelling" type="date" />
         </div>
 
-        <div class="full actions">
-          <button id="btnAdd" type="button">Add</button>
-          <button id="btnUpdate" type="button" class="ghost">Update</button>
-          <button id="btnDelete" type="button" class="ghost">Delete</button>
-          <button id="btnExportCSV" type="button" class="ghost">Export CSV</button>
-          <div style="flex:1"></div>
+        <div class="actions">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btnAdd" type="button">Add</button>
+            <button id="btnUpdate" type="button" class="ghost">Update</button>
+            <button id="btnDelete" type="button" class="ghost">Delete</button>
+            <button id="btnExportCSV" type="button" class="ghost">Export CSV</button>
+          </div>
         </div>
       </form>
 
@@ -107,18 +251,15 @@
       <div id="tableDesc" class="note">Tap a row to select it for update/delete.</div>
     </section>
 
-    <div class="note">Tip: open this file in Chrome on Android, tap the browser menu → Add to Home screen to install as an app. The data stays in localStorage.</div>
+    <div class="note" style="margin-top:16px;">Tip: Add to home screen for app-like experience.</div>
   </div>
 
-  <!-- SheetJS (xlsx) CDN for .xlsx export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
-    // Single-file Local PWA + LocalStorage bike manager
     const STORAGE_KEY = 'bikes_db_v1';
     let db = [];
     let selectedIndex = -1;
 
-    // form elements
     const els = {
       colNo: document.getElementById('colNo'),
       owner: document.getElementById('owner'),
@@ -139,16 +280,11 @@
     };
 
     function load(){
-      try{
-        const raw = localStorage.getItem(STORAGE_KEY);
-        db = raw ? JSON.parse(raw) : [];
-      }catch(e){db=[]}
+      try{ db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ db=[] }
       render();
     }
 
-    function saveLocal(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    }
+    function saveLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
 
     function render(){
       els.tbody.innerHTML = '';
@@ -162,8 +298,7 @@
           <td>${formatNum(r.sellingPrice)}</td>
           <td>${formatNum(r.netProfit)}</td>
           <td>${r.datePurchase||''}</td>
-          <td>${r.dateSelling||''}</td>
-        `;
+          <td>${r.dateSelling||''}</td>`;
         tr.addEventListener('click', ()=>selectRow(i, tr));
         if(i===selectedIndex) tr.classList.add('selected');
         els.tbody.appendChild(tr);
@@ -172,7 +307,6 @@
 
     function selectRow(i, tr){
       selectedIndex = i;
-      // fill form
       const r = db[i];
       els.colNo.value = r.no;
       els.owner.value = r.owner;
@@ -182,51 +316,45 @@
       els.netProfit.value = r.netProfit;
       els.datePurchase.value = r.datePurchase||'';
       els.dateSelling.value = r.dateSelling||'';
-      // highlight
       Array.from(els.tbody.children).forEach((row,idx)=>row.classList.toggle('selected', idx===i));
+    }
+
+    function readForm(){
+      const no = els.colNo.value.trim().toUpperCase();
+      const owner = els.owner.value.trim();
+      if(!no.match(/^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{1,4}$/)){ alert('Enter valid Indian bike number (e.g. GJ05AB1234)'); return null; }
+      const purchasePrice = Number(els.purchasePrice.value)||0;
+      const repairCost = Number(els.repairCost.value)||0;
+      const sellingPrice = Number(els.sellingPrice.value)||0;
+      const netProfit = round2(sellingPrice - (purchasePrice + repairCost));
+      if(!owner){ alert('Owner name required'); return null; }
+      return { no, owner, purchasePrice, repairCost, sellingPrice, netProfit, datePurchase: els.datePurchase.value, dateSelling: els.dateSelling.value };
     }
 
     function addRecord(){
       const rec = readForm();
       if(!rec) return;
-      db.push(rec);
-      saveLocal();
-      render();
-      clearForm();
+      db.push(rec); saveLocal(); render(); clearForm();
     }
 
     function updateRecord(){
-      if(selectedIndex<0 || selectedIndex>=db.length) return alert('Select a row first');
+      if(selectedIndex<0) return alert('Select a record first');
       const rec = readForm();
       if(!rec) return;
-      db[selectedIndex] = rec;
-      saveLocal();
-      render();
+      db[selectedIndex] = rec; saveLocal(); render();
     }
 
     function deleteRecord(){
-      if(selectedIndex<0 || selectedIndex>=db.length) return alert('Select a row first');
+      if(selectedIndex<0) return alert('Select a record first');
       if(!confirm('Delete selected record?')) return;
       db.splice(selectedIndex,1);
-      selectedIndex=-1;
-      saveLocal();
-      render();
-      clearForm();
-    }
-
-    function readForm(){
-      const no = Number(els.colNo.value);
-      const owner = els.owner.value.trim();
-      const purchasePrice = Number(els.purchasePrice.value) || 0;
-      const repairCost = Number(els.repairCost.value) || 0;
-      const sellingPrice = Number(els.sellingPrice.value) || 0;
-      const netProfit = round2(sellingPrice - (purchasePrice + repairCost));
-      if(!no || !owner) { alert('Please provide at least No. and Owner name'); return null }
-      return { no, owner, purchasePrice, repairCost, sellingPrice, netProfit, datePurchase: els.datePurchase.value, dateSelling: els.dateSelling.value };
+      selectedIndex=-1; saveLocal(); render(); clearForm();
     }
 
     function clearForm(){
-      els.colNo.value=''; els.owner.value=''; els.purchasePrice.value=''; els.repairCost.value='0'; els.sellingPrice.value=''; els.netProfit.value=''; els.datePurchase.value=''; els.dateSelling.value=''; selectedIndex=-1; render();
+      els.colNo.value=''; els.owner.value=''; els.purchasePrice.value=''; els.repairCost.value='0';
+      els.sellingPrice.value=''; els.netProfit.value=''; els.datePurchase.value=''; els.dateSelling.value='';
+      selectedIndex=-1;
     }
 
     function computeNet(){
@@ -237,45 +365,35 @@
     }
 
     function downloadExcel(filename='bikes_export.xlsx'){
-      if(typeof XLSX === 'undefined'){return alert('SheetJS not loaded — require internet connection for .xlsx export')}
       if(db.length===0) return alert('Nothing to export');
-      const ws = XLSX.utils.json_to_sheet(db.map(r=>({
-        No: r.no, Owner: r.owner, Purchase: r.purchasePrice, Repair: r.repairCost, Selling: r.sellingPrice, Net: r.netProfit, DatePurchase: r.datePurchase||'', DateSelling: r.dateSelling||''
-      })));
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
+      const ws = XLSX.utils.json_to_sheet(db);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
       XLSX.writeFile(wb, filename);
     }
 
     function downloadCSV(filename='bikes_export.csv'){
       if(db.length===0) return alert('Nothing to export');
-      const header = ['No','Owner','Purchase','Repair','Selling','Net','DatePurchase','DateSelling'];
-      const lines = [header.join(',')];
-      db.forEach(r=>{
-        const vals = [r.no, quoteCsv(r.owner), r.purchasePrice, r.repairCost, r.sellingPrice, r.netProfit, r.datePurchase||'', r.dateSelling||''];
-        lines.push(vals.join(','));
-      });
-      const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+      const header = Object.keys(db[0]||{}).join(',')+'\n';
+      const rows = db.map(r=>Object.values(r).join(',')).join('\n');
+      const blob = new Blob([header+rows], {type:'text/csv'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = filename;
       a.click();
-      URL.revokeObjectURL(a.href);
     }
 
     function exportSaveAs(){
-      const name = prompt('Filename (with .xlsx or .csv)', 'bikes_export.xlsx');
+      const name = prompt('Filename (.xlsx or .csv)', 'bikes_export.xlsx');
       if(!name) return;
-      if(name.toLowerCase().endsWith('.csv')) downloadCSV(name);
+      if(name.endsWith('.csv')) downloadCSV(name);
       else downloadExcel(name);
     }
 
-    // utilities
     function round2(v){return Math.round((v+Number.EPSILON)*100)/100}
-    function formatNum(n){return Number(n).toLocaleString(undefined, {minimumFractionDigits:0,maximumFractionDigits:2})}
-    function escapeHtml(s){return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c])}
-    function quoteCsv(s){if(typeof s!=='string') return s; if(s.includes(',')||s.includes('"')||s.includes('\n')) return '"'+s.replace(/"/g,'""')+'"'; return s }
+    function formatNum(n){return Number(n).toLocaleString(undefined,{maximumFractionDigits:2})}
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c])}
 
-    // events
     els.purchasePrice.addEventListener('input', computeNet);
     els.repairCost.addEventListener('input', computeNet);
     els.sellingPrice.addEventListener('input', computeNet);
@@ -285,27 +403,9 @@
     els.btnSave.addEventListener('click', ()=>downloadExcel());
     els.btnSaveAs.addEventListener('click', exportSaveAs);
     els.btnExportCSV.addEventListener('click', ()=>downloadCSV());
-    els.btnClear.addEventListener('click', ()=>{ if(confirm('Clear all saved records?')){ db=[]; saveLocal(); render(); clearForm(); } });
+    els.btnClear.addEventListener('click', ()=>{if(confirm('Clear all data?')){db=[];saveLocal();render();clearForm();}});
 
-    // init
     load();
-
-    // PWA: dynamic manifest + service worker blob (keeps single file)
-    (function registerPWA(){
-      try{
-        const manifest = { name: 'Bike Manager', short_name: 'Bikes', start_url: '.', display: 'standalone', background_color: '#071024', theme_color: '#06b6d4', icons: [] };
-        const mblob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
-        const murl = URL.createObjectURL(mblob);
-        const link = document.createElement('link'); link.rel='manifest'; link.href = murl; document.head.appendChild(link);
-
-        if('serviceWorker' in navigator){
-          const swCode = `self.addEventListener('install', e=>self.skipWaiting()); self.addEventListener('activate', e=>self.clients.claim()); self.addEventListener('fetch', e=>{});`;
-          const swBlob = new Blob([swCode], {type:'application/javascript'});
-          const swUrl = URL.createObjectURL(swBlob);
-          navigator.serviceWorker.register(swUrl).catch(()=>{});
-        }
-      }catch(e){}
-    })();
   </script>
 </body>
 </html>
