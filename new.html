@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Manager v8.0</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for animations and specific elements */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        /* Style for the active filter button */
+        .filter-active {
+            background-color: #2563eb; /* bg-blue-600 */
+            color: white;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; /* bg-gray-100 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8; /* bg-gray-400 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* bg-gray-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <!-- Main Application Wrapper -->
+    <div id="app" class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 class="text-3xl font-bold text-blue-700">Bike Manager v8.0</h1>
+            <div class="flex items-center gap-3">
+                <button id="settings-button" class="p-2 rounded-full text-gray-600 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Open settings">
+                    <!-- Settings Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button id="sync-button" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <!-- Sync Icon -->
+                    <svg id="sync-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/></svg>
+                    <span id="sync-text">Sync Now</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Stats Dashboard -->
+            <section id="stats-dashboard" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" aria-live="polite">
+                <div class="bg-white p-5 rounded-lg shadow">
+                    <h2 class="text-sm font-medium text-gray-500 mb-1">Total Profit (Sold)</h2>
+                    <p id="stat-profit" class="text-3xl font-bold text-green-600">₹ 0</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow">
+                    <h2 class="text-sm font-medium text-gray-500 mb-1">Unsold Investment</h2>
+                    <p id="stat-investment" class="text-3xl font-bold text-yellow-600">₹ 0</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow">
+                    <h2 class="text-sm font-medium text-gray-500 mb-1">Bikes Sold</h2>
+                    <p id="stat-sold" class="text-3xl font-bold text-gray-800">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow">
+                    <h2 class="text-sm font-medium text-gray-500 mb-1">Bikes Unsold</h2>
+                    <p id="stat-unsold" class="text-3xl font-bold text-gray-800">0</p>
+                </div>
+            </section>
+
+            <!-- Controls: Search, Filter, Actions -->
+            <section class="bg-white p-4 rounded-lg shadow mb-6 space-y-4">
+                <!-- Row 1: Search and Filters -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <!-- Search -->
+                    <div class="relative w-full md:w-1/3">
+                        <label for="search-bikes" class="sr-only">Search bikes</label>
+                        <input type="search" id="search-bikes" placeholder="Search bikes by name or model..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <!-- Search Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        </div>
+                    </div>
+                    <!-- Filters -->
+                    <div id="filter-buttons" class="flex flex-wrap gap-2">
+                        <button data-filter="all" class="filter-btn filter-active px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">All</button>
+                        <button data-filter="latest" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">Latest</button>
+                        <button data-filter="sold" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">Sold</button>
+                        <button data-filter="unsold" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">Unsold</button>
+                    </div>
+                </div>
+                <!-- Row 2: Actions -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex flex-wrap gap-2">
+                        <button id="mark-sold-button" class="action-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <!-- Check Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                            Mark Sold
+                        </button>
+                        <button id="export-button" class="action-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <!-- Download Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            Export
+                        </button>
+                        <button id="delete-button" class="action-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <!-- Trash Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                            Delete
+                        </button>
+                        <span id="selection-count" class="flex items-center text-sm text-gray-600 px-3">0 selected</span>
+                    </div>
+                    <button id="add-bike-button" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-auto">
+                        <!-- Plus Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        Buy New Bike
+                    </button>
+                </div>
+            </section>
+
+            <!-- Bike List Table -->
+            <section id="bike-list-section" class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-max">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="p-4 w-12">
+                                    <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                </th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bike Name</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Buy Price</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sell Price</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Added</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bike-list-tbody" class="divide-y divide-gray-200">
+                            <!-- Rows will be injected here by JavaScript -->
+                            <!-- Empty State -->
+                            <tr id="empty-state-row" class="hidden">
+                                <td colspan="7" class="text-center p-16">
+                                    <h3 class="text-xl font-medium text-gray-700">No bikes found.</h3>
+                                    <p class="text-gray-500 mt-2">Click "Buy New Bike" to add your first one!</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <!-- Spinner Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader-2 spinner text-blue-600"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <p class="text-lg font-medium text-gray-700 mt-4">Loading application...</p>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg relative">
+            <button id="close-settings-button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close settings">
+                <!-- X Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <h2 class="text-2xl font-semibold mb-4">Settings</h2>
+            <p class="text-sm text-gray-600 mb-4">
+                This app uses a GitHub Gist to store your data. Please provide a Gist ID and a Personal Access Token (PAT) to continue.
+            </p>
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <!-- Alert Triangle Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle text-yellow-500"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            <strong>Security Warning:</strong> Your Personal Access Token will be stored in your browser's local storage. This is not secure for production use. Use a token with only `gist` scope and only for personal, demonstration purposes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <form id="settings-form">
+                <div class="mb-4">
+                    <label for="gist-id" class="block text-sm font-medium text-gray-700 mb-1">Gist ID</label>
+                    <input type="text" id="gist-id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., a1b2c3d4e5f6a7b8c9d0">
+                    <p class="text-xs text-gray-500 mt-1">The ID of your Gist (from the URL).</p>
+                </div>
+                <div class="mb-6">
+                    <label for="github-token" class="block text-sm font-medium text-gray-700 mb-1">GitHub Personal Access Token</label>
+                    <input type="password" id="github-token" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ghp_...">
+                    <p class="text-xs text-gray-500 mt-1">Requires `gist` scope. <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Create one here</a>.</p>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Save and Load Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add New Bike Modal -->
+    <div id="add-bike-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg relative">
+            <button id="close-add-bike-button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add bike form">
+                <!-- X Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <h2 class="text-2xl font-semibold mb-4">Buy New Bike</h2>
+            <form id="add-bike-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="bike-name" class="block text-sm font-medium text-gray-700 mb-1">Bike Name</label>
+                        <input type="text" id="bike-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label for="bike-model" class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                        <input type="text" id="bike-model" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label for="buy-price" class="block text-sm font-medium text-gray-700 mb-1">Buy Price (₹)</label>
+                    <input type="number" id="buy-price" min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Add Bike</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification / Toast Area -->
+    <div id="notification-area" class="fixed bottom-4 right-4 z-50 space-y-2">
+        <!-- Notifications will be injected here -->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- STATE MANAGEMENT ---
+            
+            /**
+             * The central state object for the application.
+             * All UI updates are driven by changes to this state.
+             */
+            let state = {
+                bikes: [],
+                isLoading: true,
+                filter: 'all', // 'all', 'sold', 'unsold', 'latest'
+                searchTerm: '',
+                selectedBikeIds: new Set(),
+                gistId: '',
+                githubToken: '',
+                isSettingsModalOpen: false,
+                isAddBikeModalOpen: false,
+                lastSyncStatus: 'idle', // 'idle', 'syncing', 'success', 'error'
+            };
+
+            /**
+             * A simple state setter function.
+             * Merges the newState with the current state and triggers a re-render.
+             * @param {object} newState - An object of state properties to update.
+             */
+            function setState(newState) {
+                // Merge new state into the old state
+                Object.assign(state, newState);
+                // Re-render the entire application UI
+                renderApp();
+            }
+
+            // --- DOM ELEMENT SELECTORS ---
+            // Using a simple $ helper for brevity
+            const $ = (selector) => document.querySelector(selector);
+            const $$ = (selector) => document.querySelectorAll(selector);
+
+            const dom = {
+                app: $('#app'),
+                mainContent: $('#main-content'),
+                loadingOverlay: $('#loading-overlay'),
+                
+                // Header
+                settingsButton: $('#settings-button'),
+                syncButton: $('#sync-button'),
+                syncIcon: $('#sync-icon'),
+                syncText: $('#sync-text'),
+
+                // Stats
+                statProfit: $('#stat-profit'),
+                statInvestment: $('#stat-investment'),
+                statSold: $('#stat-sold'),
+                statUnsold: $('#stat-unsold'),
+
+                // Controls
+                searchBikesInput: $('#search-bikes'),
+                filterButtonsContainer: $('#filter-buttons'),
+                markSoldButton: $('#mark-sold-button'),
+                exportButton: $('#export-button'),
+                deleteButton: $('#delete-button'),
+                selectionCount: $('#selection-count'),
+                addBikeButton: $('#add-bike-button'),
+
+                // Bike List
+                bikeListSection: $('#bike-list-section'),
+                bikeListTbody: $('#bike-list-tbody'),
+                selectAllCheckbox: $('#select-all-checkbox'),
+                emptyStateRow: $('#empty-state-row'),
+
+                // Settings Modal
+                settingsModal: $('#settings-modal'),
+                closeSettingsButton: $('#close-settings-button'),
+                settingsForm: $('#settings-form'),
+                gistIdInput: $('#gist-id'),
+                githubTokenInput: $('#github-token'),
+
+                // Add Bike Modal
+                addBikeModal: $('#add-bike-modal'),
+                closeAddBikeButton: $('#close-add-bike-button'),
+                addBikeForm: $('#add-bike-form'),
+                bikeNameInput: $('#bike-name'),
+                bikeModelInput: $('#bike-model'),
+                buyPriceInput: $('#buy-price'),
+
+                // Notifications
+                notificationArea: $('#notification-area'),
+            };
+
+            // --- CONSTANTS ---
+            const GIST_FILENAME = 'bikemanager.json';
+
+            // --- GIST API FUNCTIONS ---
+
+            /**
+             * Gets the API URL for the configured Gist.
+             * @returns {string} The GitHub API URL.
+             */
+            function getGistUrl() {
+                return `https://api.github.com/gists/${state.gistId}`;
+            }
+
+            /**
+             * Loads the bike data from the configured GitHub Gist.
+             */
+            async function loadBikesFromGist() {
+                if (!state.gistId || !state.githubToken) {
+                    showNotification('Gist ID and Token are not set.', 'error');
+                    setState({ isLoading: false, isSettingsModalOpen: true });
+                    return;
+                }
+
+                setState({ isLoading: true, lastSyncStatus: 'syncing' });
+
+                try {
+                    const response = await fetch(getGistUrl(), {
+                        headers: {
+                            'Authorization': `token ${state.githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error('Gist not found. Please check your Gist ID.');
+                        } else if (response.status === 401) {
+                            throw new Error('Invalid GitHub Token. Please check your token.');
+                        } else {
+                            throw new Error(`Failed to load data. Status: ${response.status}`);
+                        }
+                    }
+
+                    const gist = await response.json();
+
+                    if (gist.files && gist.files[GIST_FILENAME]) {
+                        const content = gist.files[GIST_FILENAME].content;
+                        const data = JSON.parse(content);
+                        setState({
+                            bikes: data.bikes || [],
+                            isLoading: false,
+                            lastSyncStatus: 'success',
+                        });
+                        showNotification('Data loaded successfully!', 'success');
+                    } else {
+                        // File doesn't exist, let's create it on the first save.
+                        // For now, just load an empty array.
+                        setState({
+                            bikes: [],
+                            isLoading: false,
+                            lastSyncStatus: 'success',
+                        });
+                        showNotification(`Gist loaded. File '${GIST_FILENAME}' will be created on first save.`, 'info');
+                    }
+                } catch (error) {
+                    console.error('Error loading bikes:', error);
+                    setState({ isLoading: false, lastSyncStatus: 'error' });
+                    showNotification(error.message, 'error');
+                }
+            }
+
+            /**
+             * Saves the current bike data state to the GitHub Gist.
+             */
+            async function saveBikesToGist() {
+                if (!state.gistId || !state.githubToken) {
+                    showNotification('Cannot save. Gist ID and Token are not set.', 'error');
+                    return;
+                }
+
+                setState({ lastSyncStatus: 'syncing' });
+
+                try {
+                    const contentToSave = JSON.stringify({ bikes: state.bikes }, null, 2);
+
+                    const response = await fetch(getGistUrl(), {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `token ${state.githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            files: {
+                                [GIST_FILENAME]: {
+                                    content: contentToSave,
+                                },
+                            },
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to save data. Status: ${response.status}`);
+                    }
+
+                    setState({ lastSyncStatus: 'success' });
+                    showNotification('Data saved successfully!', 'success');
+                } catch (error) {
+                    console.error('Error saving bikes:', error);
+                    setState({ lastSyncStatus: 'error' });
+                    showNotification(`Error saving data: ${error.message}`, 'error');
+                }
+            }
+
+            // --- RENDER & UI FUNCTIONS ---
+
+            /**
+             * Main render function.
+             * Updates the entire UI based on the current state.
+             */
+            function renderApp() {
+                // Render Loading State
+                dom.loadingOverlay.classList.toggle('hidden', !state.isLoading);
+                dom.mainContent.classList.toggle('hidden', state.isLoading);
+
+                // Render Sync Button
+                renderSyncButton();
+
+                // Render Modals
+                dom.settingsModal.classList.toggle('hidden', !state.isSettingsModalOpen);
+                dom.addBikeModal.classList.toggle('hidden', !state.isAddBikeModalOpen);
+
+                // Don't render the rest if we're loading
+                if (state.isLoading) return;
+
+                // Calculate stats and filter bikes
+                const stats = calculateStats();
+                const visibleBikes = getFilteredBikes();
+
+                // Render Stats
+                dom.statProfit.textContent = formatCurrency(stats.totalProfit);
+                dom.statInvestment.textContent = formatCurrency(stats.unsoldInvestment);
+                dom.statSold.textContent = stats.soldCount;
+                dom.statUnsold.textContent = stats.unsoldCount;
+
+                // Render Filters
+                $$('.filter-btn').forEach(btn => {
+                    btn.classList.toggle('filter-active', btn.dataset.filter === state.filter);
+                });
+
+                // Render Search
+                dom.searchBikesInput.value = state.searchTerm;
+
+                // Render Action Buttons
+                const hasSelection = state.selectedBikeIds.size > 0;
+                dom.markSoldButton.disabled = !hasSelection;
+                dom.exportButton.disabled = !hasSelection;
+                dom.deleteButton.disabled = !hasSelection;
+                dom.selectionCount.textContent = `${state.selectedBikeIds.size} selected`;
+
+                // Render Bike List
+                renderBikeList(visibleBikes);
+            }
+
+            /**
+             * Updates the Sync button's appearance based on sync status.
+             */
+            function renderSyncButton() {
+                const icon = dom.syncIcon;
+                icon.classList.remove('spinner', 'text-green-500', 'text-red-500');
+
+                switch (state.lastSyncStatus) {
+                    case 'syncing':
+                        dom.syncText.textContent = 'Syncing...';
+                        icon.classList.add('spinner');
+                        break;
+                    case 'success':
+                        dom.syncText.textContent = 'Synced';
+                        icon.classList.add('text-green-500');
+                        break;
+                    case 'error':
+                        dom.syncText.textContent = 'Sync Failed';
+                        icon.classList.add('text-red-500');
+                        break;
+                    case 'idle':
+                    default:
+                        dom.syncText.textContent = 'Sync Now';
+                        break;
+                }
+            }
+
+            /**
+             * Renders the list of bikes into the table.
+             * @param {Array} bikesToRender - The filtered and sorted list of bikes.
+             */
+            function renderBikeList(bikesToRender) {
+                // Clear the table body
+                dom.bikeListTbody.innerHTML = '';
+
+                // Show empty state if no bikes
+                if (bikesToRender.length === 0) {
+                    dom.emptyStateRow.classList.remove('hidden');
+                    dom.bikeListTbody.appendChild(dom.emptyStateRow);
+                    dom.selectAllCheckbox.checked = false;
+                    dom.selectAllCheckbox.disabled = true;
+                    return;
+                }
+
+                dom.emptyStateRow.classList.add('hidden');
+                dom.selectAllCheckbox.disabled = false;
+
+                // Create and append rows
+                const fragment = document.createDocumentFragment();
+                bikesToRender.forEach(bike => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50';
+                    tr.dataset.id = bike.id;
+                    const isSelected = state.selectedBikeIds.has(bike.id);
+
+                    tr.innerHTML = `
+                        <td class="p-4 w-12">
+                            <input type="checkbox" data-id="${bike.id}" class="bike-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isSelected ? 'checked' : ''}>
+                        </td>
+                        <td class="p-4 text-sm font-medium">
+                            ${bike.isSold
+                                ? '<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs">Sold</span>'
+                                : '<span class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs">Unsold</span>'
+                            }
+                        </td>
+                        <td class="p-4 text-sm text-gray-800 font-medium">${escapeHTML(bike.name)}</td>
+                        <td class="p-4 text-sm text-gray-600">${escapeHTML(bike.model)}</td>
+                        <td class="p-4 text-sm text-gray-600">${formatCurrency(bike.buyPrice)}</td>
+                        <td class="p-4 text-sm text-gray-600">${bike.isSold ? formatCurrency(bike.sellPrice) : 'N/A'}</td>
+                        <td class="p-4 text-sm text-gray-600">${new Date(bike.dateAdded).toLocaleDateString()}</td>
+                    `;
+                    fragment.appendChild(tr);
+                });
+                dom.bikeListTbody.appendChild(fragment);
+
+                // Update "Select All" checkbox
+                dom.selectAllCheckbox.checked = bikesToRender.length > 0 &&
+                    bikesToRender.every(bike => state.selectedBikeIds.has(bike.id));
+            }
+
+            /**
+             * Displays a toast notification.
+             * @param {string} message - The message to display.
+             * @param {'info' | 'success' | 'error'} type - The type of notification.
+             */
+            function showNotification(message, type = 'info') {
+                const toast = document.createElement('div');
+                let bgColor, textColor, icon;
+
+                switch (type) {
+                    case 'success':
+                        bgColor = 'bg-green-500'; textColor = 'text-white';
+                        icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`;
+                        break;
+                    case 'error':
+                        bgColor = 'bg-red-500'; textColor = 'text-white';
+                        icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-circle"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+                        break;
+                    default:
+                        bgColor = 'bg-blue-500'; textColor = 'text-white';
+                        icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`;
+                        break;
+                }
+
+                toast.className = `flex items-center gap-3 p-4 rounded-lg shadow-lg ${bgColor} ${textColor} transform transition-all duration-300 opacity-0 translate-y-2`;
+                toast.setAttribute('role', 'status');
+                toast.innerHTML = `
+                    <div class="flex-shrink-0">${icon}</div>
+                    <p class="font-medium">${escapeHTML(message)}</p>
+                `;
+                dom.notificationArea.appendChild(toast);
+
+                // Animate in
+                setTimeout(() => {
+                    toast.classList.remove('opacity-0', 'translate-y-2');
+                    toast.classList.add('opacity-100', 'translate-y-0');
+                }, 10);
+
+                // Animate out and remove
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            }
+
+            // --- DATA & HELPER FUNCTIONS ---
+
+            /**
+             * Calculates all dashboard stats from the state.
+             * @returns {object} An object with all calculated stats.
+             */
+            function calculateStats() {
+                const soldBikes = state.bikes.filter(b => b.isSold);
+                const unsoldBikes = state.bikes.filter(b => !b.isSold);
+
+                const totalProfit = soldBikes.reduce((acc, b) => {
+                    const sellPrice = b.sellPrice || 0;
+                    const buyPrice = b.buyPrice || 0;
+                    return acc + (sellPrice - buyPrice);
+                }, 0);
+
+                const unsoldInvestment = unsoldBikes.reduce((acc, b) => acc + (b.buyPrice || 0), 0);
+
+                return {
+                    totalProfit,
+                    unsoldInvestment,
+                    soldCount: soldBikes.length,
+                    unsoldCount: unsoldBikes.length,
+                };
+            }
+
+            /**
+             * Filters and sorts the bikes based on current state.
+             * @returns {Array} The filtered and sorted list of bikes.
+             */
+            function getFilteredBikes() {
+                const searchTerm = state.searchTerm.toLowerCase();
+                
+                return state.bikes
+                    .filter(bike => {
+                        // Filter by search term
+                        const matchesSearch = searchTerm === '' ||
+                            bike.name.toLowerCase().includes(searchTerm) ||
+                            bike.model.toLowerCase().includes(searchTerm);
+
+                        // Filter by status
+                        const matchesFilter = state.filter === 'all' ||
+                            (state.filter === 'sold' && bike.isSold) ||
+                            (state.filter === 'unsold' && !bike.isSold) ||
+                            state.filter === 'latest'; // Sorting for 'latest' is handled next
+
+                        return matchesSearch && matchesFilter;
+                    })
+                    .sort((a, b) => {
+                        // Sort by date for 'latest'
+                        if (state.filter === 'latest') {
+                            return new Date(b.dateAdded) - new Date(a.dateAdded);
+                        }
+                        // Default sort
+                        return new Date(a.dateAdded) - new Date(b.dateAdded);
+                    });
+            }
+
+            /**
+             * Formats a number as Indian Rupees (INR).
+             * @param {number} amount - The number to format.
+             * @returns {string} The formatted currency string.
+             */
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('en-IN', {
+                    style: 'currency',
+                    currency: 'INR',
+                }).format(amount || 0);
+            }
+
+            /**
+             * A simple HTML escaper to prevent XSS.
+             * @param {string} str - The string to escape.
+             * @returns {string} The escaped string.
+             */
+            function escapeHTML(str) {
+                if (typeof str !== 'string') return '';
+                return str.replace(/[&<>"']/g, (match) => {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;',
+                    }[match];
+                });
+            }
+
+            // --- EVENT HANDLERS ---
+
+            // Settings Handlers
+            function handleOpenSettings() {
+                dom.gistIdInput.value = state.gistId;
+                dom.githubTokenInput.value = state.githubToken;
+                setState({ isSettingsModalOpen: true });
+            }
+
+            function handleCloseSettings() {
+                setState({ isSettingsModalOpen: false });
+            }
+
+            function handleSaveSettings(e) {
+                e.preventDefault();
+                const gistId = dom.gistIdInput.value.trim();
+                const githubToken = dom.githubTokenInput.value.trim();
+
+                if (!gistId || !githubToken) {
+                    showNotification('Please fill in both Gist ID and Token.', 'error');
+                    return;
+                }
+
+                localStorage.setItem('gistId', gistId);
+                localStorage.setItem('githubToken', githubToken);
+
+                setState({
+                    gistId,
+                    githubToken,
+                    isSettingsModalOpen: false,
+                });
+
+                loadBikesFromGist();
+            }
+
+            // Add Bike Handlers
+            function handleOpenAddBike() {
+                setState({ isAddBikeModalOpen: true });
+            }
+
+            function handleCloseAddBike() {
+                dom.addBikeForm.reset();
+                setState({ isAddBikeModalOpen: false });
+            }
+
+            function handleAddBikeSubmit(e) {
+                e.preventDefault();
+                const name = dom.bikeNameInput.value.trim();
+                const model = dom.bikeModelInput.value.trim();
+                const buyPrice = parseFloat(dom.buyPriceInput.value);
+
+                if (!name || isNaN(buyPrice) || buyPrice < 0) {
+                    showNotification('Please enter a valid name and buy price.', 'error');
+                    return;
+                }
+
+                const newBike = {
+                    id: crypto.randomUUID(),
+                    name,
+                    model,
+                    buyPrice,
+                    sellPrice: null,
+                    isSold: false,
+                    dateAdded: new Date().toISOString(),
+                };
+
+                setState({
+                    bikes: [...state.bikes, newBike],
+                    isAddBikeModalOpen: false,
+                });
+                dom.addBikeForm.reset();
+                saveBikesToGist(); // Auto-save
+            }
+
+            // Filter & Search Handlers
+            function handleFilterClick(e) {
+                const button = e.target.closest('.filter-btn');
+                if (button && button.dataset.filter) {
+                    setState({ filter: button.dataset.filter });
+                }
+            }
+
+            function handleSearchInput(e) {
+                setState({ searchTerm: e.target.value });
+            }
+
+            // Bike List & Action Handlers
+            function handleSelectAll(e) {
+                const isChecked = e.target.checked;
+                const visibleBikeIds = getFilteredBikes().map(b => b.id);
+                const newSelectedIds = new Set(state.selectedBikeIds);
+
+                if (isChecked) {
+                    visibleBikeIds.forEach(id => newSelectedIds.add(id));
+                } else {
+                    visibleBikeIds.forEach(id => newSelectedIds.delete(id));
+                }
+                setState({ selectedBikeIds: newSelectedIds });
+            }
+
+            function handleBikeCheckboxClick(e) {
+                if (e.target.classList.contains('bike-checkbox')) {
+                    const id = e.target.dataset.id;
+                    const isChecked = e.target.checked;
+                    const newSelectedIds = new Set(state.selectedBikeIds);
+
+                    if (isChecked) {
+                        newSelectedIds.add(id);
+                    } else {
+                        newSelectedIds.delete(id);
+                    }
+                    setState({ selectedBikeIds: newSelectedIds });
+                }
+            }
+
+            function handleMarkSold() {
+                if (state.selectedBikeIds.size === 0) return;
+
+                const newBikes = state.bikes.map(bike => {
+                    if (state.selectedBikeIds.has(bike.id) && !bike.isSold) {
+                        // Prompt for sell price, or use a default
+                        let sellPrice = prompt(`Enter sell price for ${bike.name} (Buy Price: ${formatCurrency(bike.buyPrice)}):`, bike.buyPrice);
+                        sellPrice = parseFloat(sellPrice);
+                        if (isNaN(sellPrice) || sellPrice < 0) {
+                            sellPrice = bike.buyPrice; // Default to buy price if invalid
+                        }
+
+                        return { ...bike, isSold: true, sellPrice: sellPrice };
+                    }
+                    return bike;
+                });
+
+                setState({ bikes: newBikes, selectedBikeIds: new Set() });
+                saveBikesToGist();
+            }
+
+            function handleDeleteSelected() {
+                if (state.selectedBikeIds.size === 0) return;
+
+                // Simple confirm, as window.confirm is allowed and easier than a custom modal
+                if (confirm(`Are you sure you want to delete ${state.selectedBikeIds.size} bike(s)? This action cannot be undone.`)) {
+                    const newBikes = state.bikes.filter(bike => !state.selectedBikeIds.has(bike.id));
+                    setState({ bikes: newBikes, selectedBikeIds: new Set() });
+                    saveBikesToGist();
+                }
+            }
+
+            function handleExportSelected() {
+                if (state.selectedBikeIds.size === 0) return;
+
+                const bikesToExport = state.bikes.filter(bike => state.selectedBikeIds.has(bike.id));
+                
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "ID,Name,Model,BuyPrice,SellPrice,IsSold,DateAdded\n";
+
+                bikesToExport.forEach(bike => {
+                    const row = [
+                        bike.id,
+                        `"${bike.name.replace(/"/g, '""')}"`,
+                        `"${bike.model.replace(/"/g, '""')}"`,
+                        bike.buyPrice,
+                        bike.sellPrice || '',
+                        bike.isSold,
+                        bike.dateAdded
+                    ].join(',');
+                    csvContent += row + "\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "bike_export.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // --- INITIALIZATION ---
+
+            /**
+             * Initializes the application.
+             * Loads settings from localStorage and attaches all event listeners.
+             */
+            function init() {
+                // Attach all event listeners
+                dom.settingsButton.addEventListener('click', handleOpenSettings);
+                dom.closeSettingsButton.addEventListener('click', handleCloseSettings);
+                dom.settingsForm.addEventListener('submit', handleSaveSettings);
+
+                dom.syncButton.addEventListener('click', loadBikesFromGist);
+
+                dom.addBikeButton.addEventListener('click', handleOpenAddBike);
+                dom.closeAddBikeButton.addEventListener('click', handleCloseAddBike);
+                dom.addBikeForm.addEventListener('submit', handleAddBikeSubmit);
+
+                dom.filterButtonsContainer.addEventListener('click', handleFilterClick);
+                dom.searchBikesInput.addEventListener('input', handleSearchInput);
+
+                dom.selectAllCheckbox.addEventListener('change', handleSelectAll);
+                dom.bikeListTbody.addEventListener('change', handleBikeCheckboxClick);
+                
+                dom.markSoldButton.addEventListener('click', handleMarkSold);
+                dom.deleteButton.addEventListener('click', handleDeleteSelected);
+                dom.exportButton.addEventListener('click', handleExportSelected);
+                
+                // Load settings from localStorage
+                const gistId = localStorage.getItem('gistId') || '';
+                const githubToken = localStorage.getItem('githubToken') || '';
+
+                if (gistId && githubToken) {
+                    setState({ gistId, githubToken, isLoading: true });
+                    loadBikesFromGist(); // Auto-load data if settings are found
+                } else {
+                    // No settings found, open the settings modal
+                    setState({ isLoading: false, isSettingsModalOpen: true });
+                }
+            }
+
+            // Start the application
+            init();
+        });
+    </script>
+</body>
+</html>

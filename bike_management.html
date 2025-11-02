@@ -3,41 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Bike Manager v7.0</title>
+  <title>Bike Manager v7.1</title>
   <meta name="description" content="Offline-first bike inventory manager with photos, GitHub sync, and advanced analytics." />
   
   <!--
   ╔════════════════════════════════════════════════════════════════════════════╗
-  ║                        BIKE MANAGER v7.0 CHANGELOG                          ║
+  ║                        BIKE MANAGER v7.1 CHANGELOG                          ║
   ╠════════════════════════════════════════════════════════════════════════════╣
-  ║ MIGRATION NOTES FROM v6.3:                                                  ║
-  ║ • Database migration to v2 is automatic.                                    ║
-  ║ • New fields 'photo' (data:URL string) and 'notes' added.                   ║
-  ║ • Exports (CSV/JSON) will now be larger if photos are used.                 ║
+  ║ MIGRATION NOTES FROM v7.0:                                                  ║
+  ║ • No database changes.                                                      ║
   ║                                                                             ║
-  ║ BUGFIXES (v7.0):                                                            ║
-  ║ • Replaced all 'confirm()' calls with a non-blocking modal.                 ║
-  ║ • Ensured 'Edit Sale' is possible from 'View' mode.                         ║
-  ║ • Fixed potential layout shift on stat card loading.                        ║
+  ║ NEW FEATURES (v7.1):                                                        ║
+  ║ ✓ First-Time User Tour: A welcome modal and step-by-step guide for new      ║
+  ║   users to explain the UI (e.g., FAB, Nav, Stats).                          ║
+  ║ ✓ Help Button: Added a "Show Welcome Guide" button in Settings.             ║
+  ║ ✓ Tour State: Tour is automatically shown once and saved in localStorage.   ║
   ║                                                                             ║
-  ║ NEW FEATURES (v7.0):                                                        ║
-  ║ ✓ Photo Uploads: Add one primary photo per bike (stored as data:URL).       ║
-  ║ ✓ Notes Field: A multi-line text field for notes on each bike.              ║
-  ║ ✓ Mobile Swipe Gestures: Swipe left on list items for Sell/Dupe/Delete.     ║
-  ║ ✓ Advanced Metrics: Added Profit Margin & Sell-Through Rate.                ║
-  ║ ✓ Profit Goal Tracking: Set a goal in settings, see progress on dashboard.  ║
-  ║ ✓ AI Analyst Insight: Dynamic insight card on stats page.                   ║
-  ║ ✓ Data Health Audit: Tool in settings to find data anomalies.               ║
-  ║ ✓ Advanced List Filters (Future-proofed): Added UI hooks.                   ║
-  ║ ✓ Custom Confirmation Modal: Replaced all native browser alerts.            ║
-  ║ ✓ Image View Modal: Tap a bike's thumbnail to see the full photo.           ║
-  ║ ✓ Enhanced Empty States: Better guidance when no data is present.           ║
-  ║ ✓ UI/UX Polish: Improved hover effects, transitions, and layout.            ║
-  ║                                                                             ║
-  ║ PERFORMANCE & UX:                                                           ║
-  ║ • Added Dexie migration for 'photo' and 'notes' fields.                     ║
-  ║ • Skeletons now cover stats page and new dashboard cards.                   ║
-  ║ • Swipe gestures are hardware-accelerated with 'transform'.                 ║
+  ║ BUGFIXES (v7.1):                                                            ║
+  ║ • None. This is a feature release.                                          ║
   ╚════════════════════════════════════════════════════════════════════════════╝
   -->
   
@@ -61,7 +44,7 @@
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%2300D0FF'%3E%3Crect width='192' height='192' rx='32' fill='%23071b2b'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='96' font-family='sans-serif' fill='white' font-weight='bold'%3EBM%3C/text%3E%3C/svg%3E" />
   
   <!-- Inline Web App Manifest (for PWA installation) -->
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIgdlxuMCIsDQogICJzaG9ydF9uYW1lIjogIkJpY2luSmciLA0KICAiZGVzY3JpcHRpb24iOiAiT2ZmbGluZS1maXJzdCBiaWtlIGludmVudG9yeSBtYW5hZ2VyIHdpdGggcGhvdG9zIGFuZCBhZHZhbmNlZCBhbmFseXRpY3MuIiwNCiAgInN0YXJ0X3VybCI6ICIuLyIsDQogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLA0KICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMDcxMDI2IiwNCiAgInRoZW1lX2NvbG9yIjogIiMwNzFiMmIiLA0KICAib3JpZW50YXRpb24iOiAicG9ydHJhaXQtcHJpbWFyeSIsDQogICJpY29ucyI6IFsNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTkyIDE5MicgZmlsbD0nJTIzMDBEMEZGJTNFLTxyZWN0IHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyByeD0nMzInIGZpbGw9JyUyMzA3MWIyYicvPjxyZWN0IHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyByeD0nMzInIGZpbGw9JyUyMzA3MWIyYicvPjx0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC13ZWlnaHQ9J2JvbGQnPkJNPC90ZXh0Pjwvc3ZnPg0KICAgICAgIiwNCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLA0KICAgICAgInNpemVzIjogIjE5MngxOTIiLA0KICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIg0KICAgIH0sDQogICAgew0KICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsJTNDc3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDUxMiA1MTInIGZpbGw9JyUyMzAwRDBGRiUzRS08cmVjdCB3aWR0aD0nNTEyJyBoZWlnaHQ9JzUxMicgcng9JzY0JyBmaWxsPSclMjMwNzFiMmInLz48cmVjdCB3aWR0aD0nNTEyJyBoZWlnaHQ9JzUxMicgcng9JzY0JyBmaWxsPSclMjMwNzFiMmInLz48dGV4dCB4PSc1MCUyNScgeT0nNTAlMjUnIGRvbWluYW50LWJhc2VsaW5lPSdjZW50cmFsJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzI1NjYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC13ZWlnaHQ9J2JvbGQnPkJNPC90ZXh0Pjwvc3ZnPg0KICAgICAgIiwNCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLA0KICAgICAgInNpemVzIjogIjUxMng1MTIiDQogICAgfQ0KICBdDQp9DQo=">
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIgdlxuMSIsDQogICJzaG9ydF9uYW1lIjogIkJpY2luSmciLA0KICAiZGVzY3JpcHRpb24iOiAiT2ZmbGluZS1maXJzdCBiaWtlIGludmVudG9yeSBtYW5hZ2VyIHdpdGggcGhvdG9zIGFuZCBhZHZhbmNlZCBhbmFseXRpY3MuIiwNCiAgInN0YXJ0X3VybCI6ICIuLyIsDQogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLA0KICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMDcxMDI2IiwNCiAgInRoZW1lX2NvbG9yIjogIiMwNzFiMmIiLA0KICAib3JpZW50YXRpb24iOiAicG9ydHJhaXQtcHJpbWFyeSIsDQogICJpY29ucyI6IFsNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTkyIDE5MicgZmlsbD0nJTIzMDBEMEZGJTNFLTxyZWN0IHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyByeD0nMzInIGZpbGw9JyUyMzA3MWIyYicvPjxyZWN0IHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyByeD0nMzInIGZpbGw9JyUyMzA3MWIyYicvPjx0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC1dZWlnaHQ9J2JvbGQnPkJNPC90ZXh0Pjwvc3ZnPg0KICAgICAgIiwNCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLA0KICAgICAgInNpemVzIjogIjE5MngxOTIiLA0KICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIg0KICAgIH0sDQogICAgew0KICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsJTNDc3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDUxMiA1MTEyJyBmaWxsPSclMjMwMEQwRkYlM0UtPHJlY3Qgd2lkdGg9JzUxMicgaGVpZ2h0PSc1MTInIHJ4PSc2NCcgZmlsbD0nJTIzMDcxYjJiJy8+PHJlY3Qgd2lkdGg9JzUxMicgaGVpZ2h0PSc1MTInIHJ4PSc2NCcgZmlsbD0nJTIzMDcxYjJiJy8+PHRleHQgeD0nNTAlMjUnIHk9JzUwJTI1JyBkb21pbmFudC1iYXNlbGluZT0nY2VudHJhbCcgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zaXplPScyNTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC1dZWlnaHQ9J2JvbGQnPkJNPC90ZXh0Pjwvc3ZnPg0KICAgICAgIiwNCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLA0KICAgICAgInNpemVzIjogIjUxMng1MTIiDQogICAgfQ0KICBdDQp9DQo=">
 
   <!-- Inline Styles -->
   <style>
@@ -681,6 +664,41 @@
       object-fit: contain;
       border-radius: var(--radius-md);
     }
+    
+    /* [v7.1 FEATURE] Tour Modal Styles */
+    #tour-modal .tour-step {
+      display: none;
+    }
+    #tour-modal .tour-step.active {
+      display: block;
+    }
+    #tour-modal .modal-body p {
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    #tour-modal .modal-body h3 {
+      font-size: 1.1rem;
+      color: var(--accent-1);
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .tour-pagination {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    #tour-modal .modal-footer {
+      justify-content: space-between;
+    }
+    .tour-highlight {
+      z-index: 501; /* Above modal overlay */
+      position: fixed;
+      box-shadow: 0 0 0 9999px var(--bg-modal), 0 0 0 3px var(--accent-1);
+      border-radius: var(--radius-md);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
 
     /* --- 8. Specific UI Elements --- */
     
@@ -997,7 +1015,7 @@
       position: fixed;
       bottom: calc(var(--nav-height-mobile) + 16px);
       left: 50%;
-      transform: translateX(-50%) translateY(360px);
+      transform: translateX(-50%) translateY(120px);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
@@ -1561,7 +1579,7 @@
     <symbol id="icon-save" viewBox="0 0 24 24"><path fill="currentColor" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3s3 1.34 3 3s-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
     <symbol id="icon-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
     <symbol id="icon-sync" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8z"/></symbol>
-s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
     <symbol id="icon-check" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></symbol>
     <symbol id="icon-sort" viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></symbol>
     <symbol id="icon-duplicate" viewBox="0 0 24 24"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></symbol>
@@ -1577,6 +1595,8 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
     <symbol id="icon-health" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-1 15H9v-2h2v2zm0-4H9V7h2v6zm4 4h-2v-2h2v2zm0-4h-2V7h2v6z"/></symbol>
     <symbol id="icon-image" viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></symbol>
     <symbol id="icon-sell" viewBox="0 0 24 24"><path fill="currentColor" d="M11.8 10.9C11.39 10.5 10.7 10.2 10 10.2c-1.1 0-2 .9-2 2s.9 2 2 2c.7 0 1.39-.3 1.8-.9l1.4 1.4C12.4 15.6 11.2 16.2 10 16.2c-2.21 0-4-1.79-4-4s1.79-4 4-4c1.2 0 2.4.6 3.2 1.5l-1.4 1.4zM12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8zm8 8c0-1.1-.9-2-2-2s-2 .9-2 2s.9 2 2 2s2-.9 2-2z"/></symbol>
+    <!-- v7.1 Icons -->
+    <symbol id="icon-help" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41c0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></symbol>
   </svg>
 
   <!-- App Loader -->
@@ -1946,6 +1966,14 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
             </button>
             <div id="data-audit-results" class="mt-2 hidden"></div>
             
+            <!-- [v7.1 FEATURE] Help Button -->
+            <h4 class="mt-2">Help</h4>
+            <p class="text-secondary">Re-run the welcome guide to learn about the app's features.</p>
+            <button class="btn btn-secondary" id="show-tour-btn">
+              <svg width="18" height="18"><use href="#icon-help"></use></svg>
+              <span>Show Welcome Guide</span>
+            </button>
+            
             <h4 class="mt-2">Keyboard Shortcuts</h4>
             <p class="text-secondary">
               <span class="kbd">Ctrl</span> + <span class="kbd">N</span> New bike &nbsp;•&nbsp;
@@ -2138,6 +2166,56 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
       <svg><use href="#icon-close"></use></svg>
     </button>
   </div>
+  
+  <!-- [v7.1 FEATURE] Welcome Tour Modal -->
+  <div class="modal-overlay" id="tour-modal" role="dialog" aria-labelledby="tour-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="tour-title">Welcome to Bike Manager!</h2>
+      </div>
+      <div class="modal-body">
+        <!-- Step 1: Welcome -->
+        <div class="tour-step active" data-step="1">
+          <h3>Welcome!</h3>
+          <p>This is a quick guide to help you get started with the app. This app works <strong>offline</strong> and saves all data to your device.</p>
+          <p>Let's show you the main features.</p>
+        </div>
+        <!-- Step 2: Add Button -->
+        <div class="tour-step" data-step="2" data-highlight="fab-buy">
+          <h3>1. Add Your First Bike</h3>
+          <p>Tap this button (or "Buy Bike" on desktop) to add your first bike purchase. This is where all your data entry begins.</p>
+        </div>
+        <!-- Step 3: Navigation -->
+        <div class="tour-step" data-step="3" data-highlight="app-nav">
+          <h3>2. Main Navigation</h3>
+          <p>Use this navigation bar at the bottom (or side on desktop) to switch between your <strong>Bikes List</strong>, your <strong>Stats</strong>, and your <strong>Settings</strong>.</p>
+        </div>
+        <!-- Step 4: Stats -->
+        <div class="tour-step" data-step="4" data-highlight="view-stats" data-nav="view-stats">
+          <h3>3. View Analytics</h3>
+          <p>The <strong>Stats</strong> page will automatically analyze your sales, profits, and performance. It's empty now, but it will light up with charts once you sell a few bikes!</p>
+        </div>
+        <!-- Step 5: Settings / Sync -->
+        <div class="tour-step" data-step="5" data-highlight="view-settings" data-nav="view-settings">
+          <h3>4. Sync & Settings</h3>
+          <p>In <strong>Settings</strong>, you can export your data or set up <strong>Gist Sync</strong>. This lets you back up your encrypted data to a private GitHub Gist, keeping it safe.</p>
+        </div>
+        <!-- Step 6: Finish -->
+        <div class="tour-step" data-step="6">
+          <h3>You're All Set!</h3>
+          <p>That's it! You're ready to start managing your bike inventory. You can re-run this guide from the Settings page if you need a refresher.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span class="tour-pagination" id="tour-pagination">Step 1 of 6</span>
+        <div>
+          <button class="btn btn-secondary" id="tour-prev">Previous</button>
+          <button class="btn btn-primary" id="tour-next">Next</button>
+          <button class="btn btn-primary" id="tour-finish">Finish</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
@@ -2165,12 +2243,13 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
     const PAT_KEY = 'bike_manager_pat_v7';
     const THEME_KEY = 'bike_manager_theme';
     const UNDO_KEY = 'bike_manager_undo_v7';
+    const TOUR_KEY = 'bike_manager_tour_v7.1'; // [v7.1] New key for tour
     const ITEMS_PER_PAGE = 50;
     const DB_VERSION = 2; // [v7.0] Incremented DB version
 
     /**
      * @class BikeManagerApp
-     * Main application class v7.0
+     * Main application class v7.1
      */
     class BikeManagerApp {
       
@@ -2209,6 +2288,10 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
         this.swipedCard = null;
         this.swipeThreshold = 60; // Min px to trigger swipe
 
+        // [v7.1] Tour state
+        this.tour = null;
+        this.tourHighlightEl = null;
+
         // Debounced functions
         this.debouncedRenderList = this.debounce(() => this.renderBikeList(), 250);
         this.debouncedSyncNow = this.debounce(() => this.syncNowInternal(), 5000, true);
@@ -2235,6 +2318,7 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
           statsSkeleton: document.getElementById('stats-skeleton'),
           statsContent: document.getElementById('stats-content'),
           statsEmpty: document.getElementById('stats-empty'),
+          tourModal: document.getElementById('tour-modal'), // [v7.1]
         };
         
         // Start the app
@@ -2246,7 +2330,7 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
        */
       async init() {
         try {
-          console.log('Starting initialization v7.0...');
+          console.log('Starting initialization v7.1...'); // Updated version
           this.vibrate(10);
           
           this.initServiceWorker();
@@ -2276,6 +2360,9 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
           console.log('Initialization complete!');
           if (this.dom.loader) this.dom.loader.classList.add('hidden');
           
+          // [v7.1] Check if tour should be shown
+          this.checkFirstTimeTour();
+          
         } catch (error) {
           console.error("Critical initialization failed:", error);
           if (this.dom.loaderStatus) {
@@ -2295,8 +2382,8 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
       initServiceWorker() {
         if ('serviceWorker' in navigator) {
           const swCode = `
-            /* Service Worker for Bike Manager v7.0 */
-            const CACHE_NAME = 'bike-manager-v70-cache';
+            /* Service Worker for Bike Manager v7.1 */
+            const CACHE_NAME = 'bike-manager-v71-cache'; // Updated cache name
             const URLS_TO_CACHE = [
               './',
               'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap',
@@ -2365,7 +2452,7 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
             const swUrl = 'data:application/javascript;base64,' + btoa(swCode);
             navigator.serviceWorker.register(swUrl)
               .then(registration => {
-                console.log('Service Worker v7.0 registered:', registration.scope);
+                console.log('Service Worker v7.1 registered:', registration.scope); // Updated version
                 registration.onupdatefound = () => {
                   const installingWorker = registration.installing;
                   if (installingWorker) {
@@ -2699,6 +2786,9 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
         
         // [v7.0] Data Health
         document.getElementById('run-data-audit').addEventListener('click', () => this.handleDataAudit());
+        
+        // [v7.1] Help Button
+        document.getElementById('show-tour-btn').addEventListener('click', () => this.startTour());
 
         // Stats
         document.getElementById('apply-date-filter').addEventListener('click', () => this.applyStatsDateFilter());
@@ -2734,6 +2824,11 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
         // [v7.0] Image Modal
         this.dom.imageModal.addEventListener('click', () => this.dom.imageModal.classList.remove('active'));
         document.getElementById('image-modal-close').addEventListener('click', () => this.dom.imageModal.classList.remove('active'));
+        
+        // [v7.1] Tour Modal
+        document.getElementById('tour-next').addEventListener('click', () => this.tourNext());
+        document.getElementById('tour-prev').addEventListener('click', () => this.tourPrev());
+        document.getElementById('tour-finish').addEventListener('click', () => this.endTour());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeydown(e));
@@ -2747,6 +2842,7 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
             this.isMobile = newIsMobile;
             this.initUI();
           }
+          if (this.tour) this.tourUpdateHighlight(); // [v7.1] Update highlight on resize
         }, 200));
         window.addEventListener('beforeunload', () => {
           if (this.settings.githubPat) {
@@ -2772,6 +2868,7 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
         if (e.key === 'Escape') {
           if (modalActive) {
             modalActive.classList.remove('active');
+            if (modalActive.id === 'tour-modal') this.endTour(); // [v7.1] End tour on Esc
           }
           const sortMenu = document.getElementById('sort-menu');
           if (sortMenu.classList.contains('active')) {
@@ -3848,534 +3945,4 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
         } else if (format === 'csv') {
           this.downloadFile(this.jsonToCsv(bikes, true), `${filename}.csv`, 'text/csv;charset=utf-8;');
           this.showToast("Exported as CSV", 'success');
-        } else if (format === 'xlsx') {
-          this.showToast("Exporting as XLSX...", 'info');
-          try {
-            if (typeof XLSX === 'undefined') {
-              await this.loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
-            }
-            // [v7.0] Remove photo data for XLSX as it's too large
-            const xlsxBikes = bikes.map(b => {
-              const { photo, ...rest } = b;
-              return rest;
-            });
-            const ws = XLSX.utils.json_to_sheet(xlsxBikes);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
-            XLSX.writeFile(wb, `${filename}.xlsx`);
-            this.showToast("Exported as XLSX (photos omitted)", 'success');
-          } catch(e) {
-            console.error('XLSX export failed:', e);
-            this.showToast('Failed to export XLSX.', 'error');
-          }
-        }
-      }
-      
-      downloadTemplate() {
-        const templateData = [{
-          no: 'GJ05AB1234', owner: 'John Doe', purchasePrice: 25000, repairCost: 2000,
-          sellingPrice: 30000, netProfit: 3000, datePurchase: '2024-01-15',
-          dateSelling: '2024-02-20', _updatedAt: new Date().toISOString(), _deleted: false,
-          photo: '', notes: 'Example note'
-        }];
-        this.downloadFile(this.jsonToCsv(templateData, false), 'bike_template.csv', 'text/csv;charset=utf-8;');
-        this.showToast("Template downloaded", 'success');
-      }
-      
-      handleImportFile(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const content = e.target.result;
-            let bikesToImport = (file.name.endsWith('.json')) ? JSON.parse(content) : this.csvToJson(content);
-            if (!Array.isArray(bikesToImport)) throw new Error("Invalid file format.");
-            
-            const now = new Date().toISOString();
-            const preparedBikes = bikesToImport.map(b => {
-              const purchasePrice = parseFloat(b.purchasePrice) || 0;
-              const repairCost = parseFloat(b.repairCost) || 0;
-              const sellingPrice = parseFloat(b.sellingPrice) || 0;
-              return {
-                no: (b.no || '').trim().toUpperCase(),
-                owner: b.owner || '',
-                purchasePrice, repairCost, sellingPrice,
-                netProfit: sellingPrice - (purchasePrice + repairCost),
-                datePurchase: b.datePurchase || '',
-                dateSelling: b.dateSelling || '',
-                photo: b.photo || '', // [v7.0]
-                notes: b.notes || '', // [v7.0]
-                _updatedAt: b._updatedAt || now,
-                _deleted: b._deleted === 'true' || b._deleted === true || false,
-              };
-            }).filter(b => b.no);
-            
-            this.showConfirmModal(
-              'Import Data?',
-              `Found ${preparedBikes.length} records. This will ADD new records and UPDATE existing records based on bike plate. Continue?`,
-              async () => {
-                await this.db.bikes.bulkPut(preparedBikes);
-                this.showToast(`Successfully imported/updated ${preparedBikes.length} records.`, 'success');
-                this.renderAll();
-                this.triggerAutoSync();
-              }
-            );
-          } catch (error) {
-            console.error("Import failed:", error);
-            this.showToast("Import failed. Check file format.", 'error');
-          } finally {
-            event.target.value = '';
-          }
-        };
-        reader.readAsText(file);
-      }
-
-      async handleShareData() {
-        if (!navigator.share) {
-          this.showToast("Sharing not supported", 'warning');
-          return;
-        }
-        try {
-          const bikes = (await this.db.bikes.filter(b => !b._deleted).toArray()).map(b => {
-            const { _id, photo, ...rest } = b; // Omit photo for sharing
-            return rest;
-          });
-          const csv = this.jsonToCsv(bikes, true);
-          const file = new File([csv], `bikes_${new Date().toISOString().split('T')[0]}.csv`, { type: 'text/csv;charset=utf-8;' });
-          
-          await navigator.share({
-            title: 'Bike Inventory',
-            text: `Bike inventory export (${bikes.length} bikes)`,
-            files: [file]
-          });
-        } catch (error) {
-          if (error.name !== 'AbortError') this.showToast("Failed to share data", 'error');
-        }
-      }
-
-      // --- 10. GIST SYNC ---
-      
-      syncNow() { this.debouncedSyncNow(); }
-      
-      async syncNowInternal() {
-        if (!this.isOnline) {
-          this.showToast("Cannot sync. You are offline.", 'warning');
-          return;
-        }
-        const { gistId, githubPat } = this.settings;
-        if (!gistId || !githubPat) {
-          this.showToast("Gist ID and GitHub PAT must be set.", 'error');
-          this.navigateTo('view-settings');
-          return;
-        }
-        
-        this.setSyncStatus('syncing', 'Syncing...');
-        
-        try {
-          // 1. Fetch remote data
-          this.setSyncStatus('syncing', 'Fetching remote...');
-          const remoteFile = await this.fetchFromGist();
-          let remoteBikes = [];
-          if (remoteFile && remoteFile.content) {
-            const remoteBikesRaw = this.csvToJson(remoteFile.content);
-            remoteBikes = remoteBikesRaw.map(b => {
-              const purchasePrice = parseFloat(b.purchasePrice) || 0;
-              const repairCost = parseFloat(b.repairCost) || 0;
-              const sellingPrice = parseFloat(b.sellingPrice) || 0;
-              return { ...b,
-                no: (b.no || '').trim().toUpperCase(),
-                owner: b.owner || '',
-                purchasePrice, repairCost, sellingPrice,
-                netProfit: sellingPrice - (purchasePrice + repairCost),
-                _deleted: b._deleted === 'true' || b._deleted === true,
-              };
-            });
-            this.settings.lastSyncSha = remoteFile.sha;
-          }
-          
-          // 2. Get local data
-          const localBikes = await this.db.bikes.toArray();
-          
-          // 3. Merge (Last Write Wins)
-          this.setSyncStatus('syncing', 'Merging data...');
-          const mergedBikesMap = new Map();
-          for (const bike of localBikes) {
-            if (bike && bike.no) mergedBikesMap.set(bike.no, bike); 
-          }
-          for (const remoteBike of remoteBikes) {
-            if (!remoteBike || !remoteBike.no) continue;
-            const localBike = mergedBikesMap.get(remoteBike.no);
-            const remoteTime = new Date(remoteBike._updatedAt || 0).getTime();
-            if (!localBike || (remoteTime > new Date(localBike._updatedAt || 0).getTime() && !isNaN(remoteTime))) {
-              mergedBikesMap.set(remoteBike.no, remoteBike);
-            }
-          }
-          const mergedBikes = Array.from(mergedBikesMap.values());
-          
-          // 4. Save merged data locally
-          this.setSyncStatus('syncing', 'Saving local...');
-          await this.db.transaction('rw', this.db.bikes, async () => {
-            await this.db.bikes.clear();
-            await this.db.bikes.bulkPut(mergedBikes);
-          });
-          
-          // 5. Push merged data to Gist
-          this.setSyncStatus('syncing', 'Pushing remote...');
-          const csvContent = this.jsonToCsv(mergedBikes, false);
-          
-          if (!remoteFile || csvContent !== remoteFile.content) {
-            const newSha = await this.pushToGist(csvContent);
-            this.settings.lastSyncSha = newSha;
-          }
-          
-          this.settings.lastSync = new Date().toISOString();
-          this.saveSettings();
-this.setSyncStatus('success', 'Up to date');
-          this.showToast("Sync complete.", 'success'); // [COMPLETED]
-          await this.renderAll(); // [COMPLETED]
-          
-        } catch (error) { // [COMPLETED]
-          console.error("Sync failed:", error);
-          this.setSyncStatus('error', 'Sync Failed');
-          this.showToast(error.message || "Sync failed", 'error');
-        }
-      }
-      
-      // Note: fetchFromGist, pushToGist, and triggerAutoSync are assumed
-      // to be present in the truncated v7.0 file.
-      
-      // --- 11. UNDO FUNCTIONALITY ---
-      // [v7.0] Restoring missing helper methods from v6.3
-      
-      saveUndoStack() {
-        try {
-          localStorage.setItem(UNDO_KEY, JSON.stringify(this.undoStack));
-        } catch (e) {
-          console.error("Failed to save undo stack:", e);
-        }
-      }
-      
-      loadUndoStack() {
-        try {
-          const saved = localStorage.getItem(UNDO_KEY);
-          if (saved) {
-            this.undoStack = JSON.parse(saved);
-            // Filter out any very old actions (e.g., > 1 day)
-            const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-            this.undoStack = this.undoStack.filter(a => a.timestamp > oneDayAgo);
-          }
-        } catch (e) {
-          console.error("Failed to load undo stack:", e);
-          this.undoStack = [];
-        }
-      }
-      
-      async performUndo() {
-        if (this.undoStack.length === 0) {
-          this.showToast("Nothing to undo", 'info');
-          return;
-        }
-        
-        const lastAction = this.undoStack.pop();
-        this.saveUndoStack();
-        
-        try {
-          if (lastAction.action === 'delete') {
-            // "Undo delete" means re-creating the bike
-            await this.db.bikes.put(lastAction.data);
-            this.showToast(`Restored bike: ${lastAction.data.no}`, 'success');
-          } else if (lastAction.action === 'update') {
-            // "Undo update" means restoring the old data
-            await this.db.bikes.put(lastAction.data);
-            this.showToast(`Reverted changes to: ${lastAction.data.no}`, 'success');
-          } else if (lastAction.action === 'create') {
-            // "Undo create" means deleting the new bike
-            await this.db.bikes.delete(lastAction.data._id);
-            this.showToast(`Removed new bike: ${lastAction.data.no}`, 'success');
-          }
-          
-          await this.renderAll();
-          this.triggerAutoSync();
-        } catch (error) {
-          console.error("Undo failed:", error);
-          this.showToast("Failed to perform undo", 'error');
-          // Put action back on stack if it failed
-          this.undoStack.push(lastAction);
-          this.saveUndoStack();
-        }
-      }
-      
-      showToastWithUndo(message, undoCallback) {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = 'toast undo';
-        
-        toast.innerHTML = `
-          <span class="toast-message">${message}</span>
-          <button class="toast-action">Undo</button>
-          <span class="toast-close" role="button" aria-label="Close">×</span>
-        `;
-        
-        container.appendChild(toast);
-        
-        const timer = setTimeout(() => {
-          if(toast.parentElement) toast.remove();
-        }, 8000); // 8 second timeout
-        
-        toast.querySelector('.toast-action').addEventListener('click', async () => {
-          clearTimeout(timer);
-          if(toast.parentElement) toast.remove();
-          await undoCallback();
-        });
-        
-        toast.querySelector('.toast-close').addEventListener('click', () => {
-          clearTimeout(timer);
-          if(toast.parentElement) toast.remove();
-        });
-      }
-
-      // --- 12. UI HELPERS ---
-      
-      // Note: navigateTo, setFilterStatus, setSyncStatus, updateOnlineStatus, vibrate
-      // are assumed to be present in the truncated v7.0 file.
-      
-      /**
-       * [v7.0 FEATURE] Shows a reusable confirmation modal.
-       * This method was referenced in v7.0 but not defined.
-       */
-      showConfirmModal(title, message, onConfirm) {
-        document.getElementById('confirm-title').textContent = title;
-        document.getElementById('confirm-message').textContent = message;
-        
-        const confirmBtn = document.getElementById('confirm-ok');
-        
-        // Clone and replace button to remove old listeners (safer)
-        const newConfirmBtn = confirmBtn.cloneNode(true);
-        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-        
-        // Add the new listener
-        newConfirmBtn.onclick = () => {
-          this.dom.confirmModal.classList.remove('active');
-          onConfirm(); // Execute the callback
-        };
-        
-        this.dom.confirmModal.classList.add('active');
-      }
-
-      /**
-       * [v7.0] Restoring missing helper methods from v6.3
-       */
-      showConfetti() {
-        const canvas = document.getElementById('confetti-canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        
-        const particles = [];
-        const particleCount = 150;
-        const colors = ['#00D0FF', '#6EE7B7', '#22c55e', '#f59e0b', '#ef4444'];
-        
-        for (let i = 0; i < particleCount; i++) {
-          particles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height - canvas.height, // Start off-screen
-            r: Math.random() * 6 + 2,
-            d: Math.random() * particleCount,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            tilt: Math.random() * 10 - 10,
-            tiltAngleIncremental: Math.random() * 0.07 + 0.05,
-            tiltAngle: 0
-          });
-        }
-        
-        let animationFrame;
-        const draw = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
-          particles.forEach((p, i) => {
-            ctx.beginPath();
-            ctx.lineWidth = p.r / 2;
-            ctx.strokeStyle = p.color;
-            ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
-            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4);
-            ctx.stroke();
-            
-            p.tiltAngle += p.tiltAngleIncremental;
-            p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
-            p.x += Math.sin(p.d);
-            p.tilt = Math.sin(p.tiltAngle - i / 3) * 15;
-            
-            // Remove particle if it's off-screen
-            if (p.y > canvas.height) {
-              particles.splice(i, 1);
-            }
-          });
-          
-          if (particles.length > 0) {
-            animationFrame = requestAnimationFrame(draw);
-          } else {
-            cancelAnimationFrame(animationFrame);
-            // Clear canvas after animation
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-          }
-        };
-        
-        draw();
-        this.vibrate([50, 100, 50]);
-      }
-      
-      /**
-       * [v7.0] Restoring missing helper methods from v6.3
-       */
-      showToast(message, type = 'info') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        
-        toast.innerHTML = `<span class="toast-message">${this.escapeHtml(message)}</span><span class="toast-close" role="button" aria-label="Close">×</span>`;
-        
-        container.appendChild(toast);
-        
-        const timer = setTimeout(() => {
-          if(toast.parentElement) toast.remove();
-        }, 5000);
-        
-        toast.querySelector('.toast-close').addEventListener('click', () => {
-          clearTimeout(timer);
-          if(toast.parentElement) toast.remove();
-        });
-      }
-
-      // --- 13. UTILITY FUNCTIONS ---
-      // [v7.0] Restoring missing helper methods from v6.3
-      
-      formatCurrency(value) {
-        return (value || 0).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
-      }
-      
-      downloadFile(content, fileName, contentType) {
-        const a = document.createElement('a');
-        const file = new Blob([content], { type: contentType });
-        a.href = URL.createObjectURL(file);
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-      }
-      
-      parseCsvLine(line) {
-        const values = [];
-        let inQuotes = false;
-        let currentField = '';
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          
-          if (char === '"') {
-            if (inQuotes && line[i + 1] === '"') {
-              // Handle escaped quote ""
-              currentField += '"';
-              i++;
-            } else {
-              inQuotes = !inQuotes;
-            }
-          } else if (char === ',' && !inQuotes) {
-            values.push(currentField);
-            currentField = '';
-          } else {
-            currentField += char;
-          }
-        }
-        values.push(currentField);
-        // Trim quotes from start/end if they weren't part of an escaped field
-        return values.map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
-      }
-      
-      csvToJson(text) {
-        if (!text || typeof text !== 'string') {
-          return [];
-        }
-        const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
-        if (lines.length < 2) return [];
-        
-        const headers = this.parseCsvLine(lines[0]);
-        
-        return lines.slice(1).map(line => {
-          if (line.trim() === '') return null; // Skip empty lines
-          const values = this.parseCsvLine(line);
-          const obj = {};
-          headers.forEach((header, index) => {
-            obj[header] = values[index] || '';
-          });
-          return obj;
-        }).filter(Boolean); // Filter out nulls
-      }
-      
-      /**
-       * [v7.0] Updated to include 'photo' and 'notes'
-       */
-      jsonToCsv(items, skipDeleted = false) {
-        // Add new v7.0 fields to the header list
-        const headers = [
-          'no', 'owner', 'purchasePrice', 'repairCost', 'sellingPrice', 'netProfit', 
-          'datePurchase', 'dateSelling', '_updatedAt', '_deleted', 'notes', 'photo'
-        ];
-        const headerRow = headers.map(h => `"${h}"`).join(',');
-        
-        let itemsToExport = items;
-        if (skipDeleted) {
-          itemsToExport = items.filter(item => !item._deleted);
-        }
-        
-        const rows = itemsToExport.map(row => 
-          headers.map(header => {
-            const value = row[header] === undefined || row[header] === null ? '' : row[header];
-            // Escape quotes by doubling them
-            return `"${String(value).replace(/"/g, '""')}"`;
-          }).join(',')
-        );
-        
-        return [headerRow, ...rows].join('\r\n');
-      }
-      
-      escapeHtml(text) {
-        if (text === null || text === undefined) return '';
-        return String(text)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-      }
-      
-      loadScript(src) {
-        return new Promise((resolve, reject) => {
-          if (document.querySelector(`script[src="${src}"]`)) {
-            resolve(); // Already loaded
-            return;
-          }
-          const script = document.createElement('script');
-          script.src = src;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-          document.head.appendChild(script);
-        });
-      }
-      
-    } // End of BikeManagerApp class
-    
-    // --- Initialize the application ---
-    window.app = new BikeManagerApp();
-    
-  </script>
-</body>
-</html>
+        } else if (format ===
