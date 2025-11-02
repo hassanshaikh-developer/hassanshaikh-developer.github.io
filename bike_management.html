@@ -3707,10 +3707,6 @@ s    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d=
         // Only allow swiping left
         if (deltaX > 0) deltaX = 0;
         
-        // Prevent scrolling while swiping
-        if (Math.abs(deltaX) > 10) {
-          e.preventDefault();
-        }
         
         // Clamp swipe distance (e.g., 3 actions * 70px)
         const maxSwipe = -210;
