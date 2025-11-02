@@ -3,24 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Bike Manager v4</title>
-  <meta name="description" content="Offline-first bike inventory with GitHub sync, analytics, and invoices." />
+  <title>Bike Manager v3</title>
+  <meta name="description" content="Offline-first bike inventory manager with GitHub sync and analytics." />
   
-  <!-- PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Bike Manager" />
   <meta name="theme-color" content="#071b2b" />
-  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiQmlrZSBNYW5hZ2VyIiwic2hvcnRfbmFtZSI6IkJpa2VNZ3IiLCJzdGFydF91cmwiOiIuIiwic3R5bGUiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwNzEwMjYiLCJ0aGVtZV9jb2xvciI6IiMwNzFiMmIiLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImljb25zIjpbeyJzcmMiOiJodHRwc2ltZy1hcHBsZS5wbmciLCJzaXplcyI6IjE5MngxOTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dfQ==">
-  <link rel="apple-touch-icon" href="httpsimg-apple.png" />
-
-  <!-- Security -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.github.com;">
-
-  <style>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="httpsimg-apple.png" /> <style>
+    /* --- 1. Fonts & Root Variables --- */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
     :root {
+      /* Base Dark Theme (Default) */
       --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       --bg-gradient-start: #071026;
       --bg-gradient-end: #020511;
@@ -34,35 +30,43 @@
       --bg-hover: rgba(255, 255, 255, 0.05);
       --bg-active: rgba(255, 255, 255, 0.08);
       --bg-nav: var(--bg-header);
+
       --accent-gradient: linear-gradient(90deg, #00D0FF, #6EE7B7);
       --accent-1: #00D0FF;
       --accent-2: #6EE7B7;
       --accent-text: #00242f;
+
       --text-primary: #e6f6ff;
       --text-secondary: #9fb0c2;
       --text-disabled: #6a7f96;
       --text-placeholder: #6a7f96;
+
       --border-color: rgba(255, 255, 255, 0.1);
       --border-color-subtle: rgba(255, 255, 255, 0.04);
       --border-focus: var(--accent-1);
+      
       --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.6);
       --shadow-nav: 0 -4px 12px rgba(0, 0, 0, 0.3);
       --shadow-fab: 0 6px 16px rgba(0, 208, 255, 0.3);
       --shadow-btn: 0 2px 8px rgba(0, 0, 0, 0.3);
+
       --success: #22c55e;
       --warning: #f59e0b;
       --error: #ef4444;
+
       --radius-sm: 6px;
       --radius-md: 10px;
       --radius-lg: 14px;
       --radius-xl: 20px;
       --radius-full: 9999px;
+      
       --nav-height-mobile: 60px;
       --header-height: 60px;
       --tap-target: 44px;
       --transition-speed: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    /* --- 2. Light Mode (via System Preference) --- */
     @media (prefers-color-scheme: light) {
       :root {
         --bg-gradient-start: #f4f7fa;
@@ -75,16 +79,22 @@
         --bg-input-focus: rgba(0, 0, 0, 0.02);
         --bg-hover: rgba(0, 0, 0, 0.05);
         --bg-active: rgba(0, 0, 0, 0.08);
+        --bg-nav: var(--bg-header);
+
         --text-primary: #071026;
         --text-secondary: #4a5a70;
         --text-disabled: #9fb0c2;
+        --text-placeholder: #9fb0c2;
+
         --border-color: rgba(0, 0, 0, 0.1);
         --border-color-subtle: rgba(0, 0, 0, 0.04);
+
         --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.08);
         --shadow-nav: 0 -4px 12px rgba(0, 0, 0, 0.05);
       }
     }
 
+    /* --- 3. Base & Reset --- */
     *, *::before, *::after { box-sizing: border-box; }
     html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
     body {
@@ -109,6 +119,7 @@
     svg { display: block; }
     ::placeholder { color: var(--text-placeholder); }
 
+    /* --- 4. Main App Layout --- */
     .app-container {
       display: flex;
       flex-direction: column;
@@ -143,7 +154,7 @@
     .app-main {
       flex-grow: 1;
       padding: 16px;
-      padding-bottom: calc(var(--nav-height-mobile) + 32px);
+      padding-bottom: calc(var(--nav-height-mobile) + 32px); /* Space for bottom nav + FAB */
     }
 
     .app-bottom-nav {
@@ -173,15 +184,17 @@
       transition: var(--transition-speed);
     }
     .nav-btn svg { width: 22px; height: 22px; }
-    .nav-btn.active, .nav-btn:focus-visible {
+    .nav-btn.active {
       color: var(--accent-1);
-      outline: 2px solid var(--accent-1);
-      outline-offset: 2px;
     }
 
+    /* Desktop layout */
     @media (min-width: 768px) {
-      .app-container { flex-direction: row; }
+      .app-container {
+        flex-direction: row;
+      }
       .app-bottom-nav {
+        /* Becomes a side nav */
         position: sticky;
         top: 0;
         left: 0;
@@ -194,14 +207,33 @@
         justify-content: flex-start;
         padding-top: var(--header-height);
       }
-      .nav-btn { width: 100%; height: 70px; font-size: 0.75rem; }
-      .app-header { width: calc(100% - 80px); left: 80px; }
-      .app-main { width: calc(100% - 80px); padding-bottom: 32px; }
+      .nav-btn {
+        width: 100%;
+        height: 70px;
+        font-size: 0.75rem;
+      }
+      .app-header {
+        /* Header becomes part of the main content area */
+        width: calc(100% - 80px);
+        position: sticky;
+        left: 80px;
+        border-bottom: 1px solid var(--border-color-subtle);
+      }
+      .app-main {
+        width: calc(100% - 80px);
+        padding-bottom: 32px; /* Reset mobile padding */
+      }
     }
 
-    .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.3s ease; }
-
+    /* --- 5. Core Components --- */
+    .view {
+      display: none; /* Hidden by default, JS toggles */
+    }
+    .view.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
     .btn {
       display: inline-flex;
       align-items: center;
@@ -216,14 +248,33 @@
       transition: var(--transition-speed);
       box-shadow: var(--shadow-btn);
     }
-    .btn:focus-visible { outline: 2px solid var(--accent-1); outline-offset: 2px; }
-    .btn-primary { background: var(--accent-gradient); color: var(--accent-text); }
-    .btn-primary:hover { opacity: 0.9; }
-    .btn-secondary { background: var(--bg-card-subtle); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: var(--accent-text);
+    }
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+    .btn-secondary {
+      background: var(--bg-card-subtle);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
     .btn-secondary:hover { background: var(--bg-hover); }
-    .btn-ghost { background: transparent; color: var(--text-secondary); box-shadow: none; }
-    .btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
-    .btn-danger { background: var(--error); color: #fff; }
+    
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      box-shadow: none;
+    }
+    .btn-ghost:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .btn-danger {
+      background: var(--error);
+      color: #fff;
+    }
     .btn-icon {
       padding: 10px;
       min-height: var(--tap-target);
@@ -232,7 +283,7 @@
       box-shadow: none;
     }
     .btn-icon svg { width: 24px; height: 24px; }
-
+    
     .fab {
       position: fixed;
       bottom: calc(var(--nav-height-mobile) + 16px);
@@ -249,9 +300,13 @@
       z-index: 200;
       transition: transform 0.3s ease;
     }
-    .fab:active { transform: scale(0.95); }
+    .fab:active {
+      transform: scale(0.95);
+    }
     .fab svg { width: 28px; height: 28px; }
-    @media (min-width: 768px) { .fab { display: none; } }
+    @media (min-width: 768px) {
+      .fab { display: none; } /* Hide FAB on desktop, use header button */
+    }
 
     .card {
       background: var(--bg-card);
@@ -262,7 +317,10 @@
       border: 1px solid var(--border-color-subtle);
     }
 
-    .form-group { margin-bottom: 16px; }
+    /* --- 6. Form & Input Elements --- */
+    .form-group {
+      margin-bottom: 16px;
+    }
     .form-group label {
       display: block;
       font-size: 0.85rem;
@@ -270,7 +328,8 @@
       color: var(--text-secondary);
       margin-bottom: 6px;
     }
-    .form-input, .form-select {
+    .form-input,
+    .form-select {
       width: 100%;
       padding: 12px;
       border-radius: var(--radius-md);
@@ -280,19 +339,24 @@
       transition: var(--transition-speed);
       appearance: none;
     }
-    .form-input:focus, .form-select:focus {
+    .form-input:focus,
+    .form-select:focus {
       outline: none;
       border-color: var(--border-focus);
       background: var(--bg-input-focus);
       box-shadow: 0 0 0 2px rgba(0, 208, 255, 0.3);
     }
-    .form-input[readonly] { background: rgba(0,0,0,0.1); color: var(--text-secondary); }
+    .form-input[readonly] {
+      background: rgba(0,0,0,0.1);
+      color: var(--text-secondary);
+    }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
     }
 
+    /* --- 7. Modals & Panels --- */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -322,12 +386,29 @@
       transform: scale(0.95);
       transition: transform 0.3s;
     }
-    .modal-overlay.active .modal-content { transform: scale(1); }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-overlay.active .modal-content {
+      transform: scale(1);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
     .modal-header h2 { font-size: 1.25rem; }
-    .modal-body { max-height: 70vh; overflow-y: auto; }
-    .modal-footer { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    .modal-body {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
 
+    /* --- 8. Specific UI Elements --- */
+    /* App Loader (Splash Screen) */
     .app-loader {
       position: fixed;
       inset: 0;
@@ -340,7 +421,10 @@
       gap: 20px;
       transition: opacity 0.5s ease;
     }
-    .app-loader.hidden { opacity: 0; pointer-events: none; }
+    .app-loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
     .app-loader .spinner {
       width: 48px;
       height: 48px;
@@ -356,6 +440,7 @@
       font-size: 1.5rem;
     }
 
+    /* Sync Status */
     .sync-status {
       display: flex;
       align-items: center;
@@ -369,12 +454,22 @@
       color: var(--text-secondary);
       transition: var(--transition-speed);
     }
-    .sync-status.syncing .status-dot { background: var(--warning); animation: pulse 1.5s infinite; }
+    .sync-status.syncing .status-dot {
+      background: var(--warning);
+      animation: pulse 1.5s infinite;
+    }
     .sync-status.success .status-dot { background: var(--success); }
     .sync-status.error .status-dot { background: var(--error); }
     .sync-status.offline .status-dot { background: var(--text-disabled); }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-secondary); }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+    }
 
+    /* Toast Notifications */
     .toast-container {
       position: fixed;
       bottom: calc(var(--nav-height-mobile) + 20px);
@@ -396,22 +491,23 @@
       border-radius: var(--radius-md);
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       animation: toast-in 0.3s ease;
-      position: relative;
     }
     .toast.success { background: var(--success); color: #fff; }
     .toast.error { background: var(--error); color: #fff; }
-    .toast-close {
-      margin-left: auto;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 1.2rem;
-      opacity: 0.7;
-    }
     @media (min-width: 768px) {
-      .toast-container { bottom: 20px; left: auto; right: 20px; align-items: flex-end; }
+      .toast-container {
+        bottom: 20px;
+        left: auto;
+        right: 20px;
+        align-items: flex-end;
+      }
     }
 
-    .bike-list { display: grid; gap: 12px; }
+    /* Bike List */
+    .bike-list {
+      display: grid;
+      gap: 12px;
+    }
     .bike-card {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -420,35 +516,63 @@
       border-radius: var(--radius-md);
       border: 1px solid var(--border-color-subtle);
       transition: var(--transition-speed);
-      position: relative;
     }
-    .bike-card:hover { background: var(--bg-hover); border-color: var(--border-color); }
-    .bike-card-main { display: flex; flex-direction: column; gap: 4px; }
-    .bike-card-plate { font-weight: 700; font-size: 1.1rem; color: var(--text-primary); }
-    .bike-card-owner { font-size: 0.9rem; color: var(--text-secondary); }
-    .bike-card-profit { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
-    .profit-value { font-size: 1.25rem; font-weight: 700; color: var(--success); }
-    .profit-value.unrealized { color: var(--text-secondary); font-style: italic; }
-    .profit-value.loss { color: var(--error); }
+    .bike-card:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-color);
+    }
+    .bike-card-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .bike-card-plate {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+    }
+    .bike-card-owner {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .bike-card-profit {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .profit-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--success);
+    }
+    .profit-value.unrealized {
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+    .profit-value.loss {
+      color: var(--error);
+    }
 
+    /* Search/Filter Bar */
     .filter-bar {
       display: flex;
       gap: 8px;
       margin-bottom: 16px;
       align-items: center;
-      position: relative;
     }
-    #search-input { flex-grow: 1; border-radius: var(--radius-full); padding-left: 16px; padding-right: 40px; }
-    #search-clear {
-      position: absolute;
-      right: 8px;
-      top: 6px;
-      display: none;
-      background: transparent;
-      color: var(--text-secondary);
+    #search-input {
+      flex-grow: 1;
+      border-radius: var(--radius-full);
+      padding-left: 16px;
+      padding-right: 16px;
     }
-
-    .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
     .chip {
       display: flex;
       align-items: center;
@@ -460,26 +584,80 @@
       font-size: 0.85rem;
       border: 1px solid var(--border-color-subtle);
     }
-    .chip.active, .chip:focus-visible {
+    .chip.active {
       background: var(--accent-1);
       color: var(--accent-text);
       font-weight: 600;
       border-color: var(--accent-1);
-      outline: 2px solid var(--accent-1);
-      outline-offset: 2px;
+    }
+    .chip.clearable .chip-close {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.2);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: bold;
     }
 
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (min-width: 1024px) { .stats-grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
-    .stat-card { background: var(--bg-card-subtle); padding: 16px; border-radius: var(--radius-md); }
-    .stat-card-title { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; }
-    .stat-card-value { font-size: 1.75rem; font-weight: 700; }
-    .stat-card-value .currency { font-size: 1.25rem; font-weight: 600; color: var(--text-secondary); }
+    /* Stats Dashboard */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 1024px) {
+      .stats-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    .stat-card {
+      background: var(--bg-card-subtle);
+      padding: 16px;
+      border-radius: var(--radius-md);
+    }
+    .stat-card-title {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .stat-card-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .stat-card-value .currency {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .chart-container {
+      margin-top: 24px;
+    }
+    .chart-container h3 {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+    }
 
-    .settings-section { border-bottom: 1px solid var(--border-color); padding-bottom: 24px; margin-bottom: 24px; }
-    .settings-section h2 { font-size: 1.25rem; margin-bottom: 16px; }
-    .settings-section p { font-size: 0.9rem; color: var(--text-secondary); margin-top: -12px; margin-bottom: 16px; }
-
+    /* Settings Page */
+    .settings-section {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+      margin-bottom: 24px;
+    }
+    .settings-section h2 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+    }
+    .settings-section p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: -12px;
+      margin-bottom: 16px;
+    }
+    
+    /* --- 9. Utility & Animations --- */
     .hidden { display: none !important; }
     .text-success { color: var(--success); }
     .text-error { color: var(--error); }
@@ -490,18 +668,23 @@
     .mt-2 { margin-top: 16px; }
     .mb-2 { margin-bottom: 16px; }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    @keyframes toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-    /* Skeleton */
-    .skeleton {
-      background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-hover) 50%, var(--bg-input) 75%);
-      background-size: 200% 100%;
-      animation: skeleton-loading 1.5s infinite;
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
-    @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    @keyframes toast-in {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
   </style>
 </head>
 <body>
@@ -513,91 +696,127 @@
     <symbol id="icon-add" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
     <symbol id="icon-close" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/></symbol>
     <symbol id="icon-search" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/></symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24"><path fill="currentColor" d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></symbol>
+    <symbol id="icon-more" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2z"/></symbol>
     <symbol id="icon-save" viewBox="0 0 24 24"><path fill="currentColor" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3s3 1.34 3 3s-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
     <symbol id="icon-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+    <symbol id="icon-edit" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"/></symbol>
     <symbol id="icon-sync" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8z"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19L21 7l-1.41-1.41L9 16.17z"/></symbol>
   </svg>
 
   <div class="app-loader" id="app-loader">
     <div class="spinner"></div>
-    <h2>Bike Manager</h2>
-    <p class="text-secondary" id="app-loader-status">Initializing...</p>
+    <h2 id="app-loader-title">Bike Manager</h2>
+    <p class="text-secondary" id="app-loader-status">Loading application...</p>
   </div>
 
   <div class="app-container">
+    
     <nav class="app-bottom-nav" id="app-nav">
-      <button class="nav-btn active" data-view="view-list" aria-label="Bikes">
+      <button class="nav-btn active" data-view="view-list">
         <svg><use href="#icon-list"></use></svg>
         <span>Bikes</span>
       </button>
-      <button class="nav-btn" data-view="view-stats" aria-label="Stats">
+      <button class="nav-btn" data-view="view-stats">
         <svg><use href="#icon-chart"></use></svg>
         <span>Stats</span>
       </button>
-      <button class="nav-btn" data-view="view-settings" aria-label="Settings">
+      <button class="nav-btn" data-view="view-settings">
         <svg><use href="#icon-settings"></use></svg>
         <span>Settings</span>
       </button>
     </nav>
-
+    
     <div style="flex-grow: 1; display: flex; flex-direction: column;">
+      
       <header class="app-header">
         <h1 id="header-title">Bike Manager</h1>
         <div id="sync-status" class="sync-status">
           <div class="status-dot"></div>
           <span id="sync-status-text">Offline</span>
         </div>
-        <button class="btn-icon btn-ghost" id="sync-now-btn" title="Sync Now" aria-label="Sync">
+        <button class="btn-icon btn-ghost" id="sync-now-btn" title="Sync Now">
           <svg><use href="#icon-sync"></use></svg>
         </button>
       </header>
-
+      
       <main class="app-main">
+        
         <section id="view-list" class="view active">
+          
           <div class="stats-grid mb-2">
-            <div class="stat-card"><div class="stat-card-title">Total Profit</div><div class="stat-card-value"><span class="currency">₹</span> <span id="stat-total-profit">0</span></div></div>
-            <div class="stat-card"><div class="stat-card-title">Unsold Stock</div><div class="stat-card-value"><span class="currency">₹</span> <span id="stat-unsold-value">0</span></div></div>
-            <div class="stat-card"><div class="stat-card-title">Sold</div><div class="stat-card-value" id="stat-sold-count">0</div></div>
-            <div class="stat-card"><div class="stat-card-title">Unsold</div><div class="stat-card-value" id="stat-unsold-count">0</div></div>
+            <div class="stat-card">
+              <div class="stat-card-title">Total Profit</div>
+              <div class="stat-card-value"><span class="currency" id="currency-symbol-1">₹</span> <span id="stat-total-profit">0</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-title">Unsold Stock</div>
+              <div class="stat-card-value"><span class="currency" id="currency-symbol-2">₹</span> <span id="stat-unsold-value">0</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-title">Sold</div>
+              <div class="stat-card-value" id="stat-sold-count">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-title">Unsold</div>
+              <div class="stat-card-value" id="stat-unsold-count">0</div>
+            </div>
           </div>
-
+          
           <div class="filter-bar">
-            <input type="text" class="form-input" id="search-input" placeholder="Search plate or owner..." aria-label="Search">
-            <button id="search-clear" class="btn-icon btn-ghost" aria-label="Clear search">
-              <svg><use href="#icon-close"></use></svg>
-            </button>
+            <input type="text" class="form-input" id="search-input" placeholder="Search plate or owner..." />
             <button class="btn btn-primary" id="add-bike-desktop" style="display: none;">
               <svg width="20" height="20"><use href="#icon-add"></use></svg>
               <span>Add Bike</span>
             </button>
           </div>
-
+          
           <div class="filter-chips">
-            <button class="chip active" id="filter-all" data-filter="all">All</button>
+            <button class="chip" id="filter-all" data-filter="all">All</button>
             <button class="chip" id="filter-sold" data-filter="sold">Sold</button>
             <button class="chip" id="filter-unsold" data-filter="unsold">Unsold</button>
-          </div>
+            </div>
 
           <div class="bike-list" id="bike-list">
             <p id="bike-list-empty" class="text-secondary text-center mt-2">No bikes found. Try adding one!</p>
           </div>
+          
         </section>
-
+        
         <section id="view-stats" class="view">
           <h2>Analytics Dashboard</h2>
           <p class="text-secondary mb-2">Live insights from your local data.</p>
-          <div class="card"><h3>Quick Insights</h3><p id="auto-insight-text" class="text-secondary">Calculating...</p></div>
-          <div class="chart-container card"><h3>Monthly Profit</h3><canvas id="chart-profit-trend"></canvas></div>
-          <div class="chart-container card"><h3>Profit Distribution</h3><canvas id="chart-profit-pie"></canvas></div>
-          <div class="chart-container card"><h3>Top 5 Profitable Bikes</h3><canvas id="chart-top-bikes"></canvas></div>
-        </section>
+          
+          <div class="card">
+            <h3>Quick Insights</h3>
+            <p id="auto-insight-text" class="text-secondary">Calculating insights...</p>
+          </div>
+          
+          <div class="chart-container card">
+            <h3>Monthly Profit</h3>
+            <canvas id="chart-profit-trend"></canvas>
+          </div>
+          
+          <div class="chart-container card">
+            <h3>Profit Distribution</h3>
+            <canvas id="chart-profit-pie"></canvas>
+          </div>
+          
+          <div class="chart-container card">
+            <h3>Top 5 Profitable Bikes</h3>
+            <canvas id="chart-top-bikes"></canvas>
+          </div>
 
+        </section>
+        
         <section id="view-settings" class="view">
           <h2>Settings</h2>
-
+          
           <div class="settings-section">
             <h3>GitHub Gist Sync</h3>
             <p>Syncs your data to a private GitHub Gist as a CSV backup.</p>
+            
             <div class="form-group">
               <label for="setting-gist-id">Gist ID</label>
               <input type="text" class="form-input" id="setting-gist-id" placeholder="e.g., a1b2c3d4e5f6a7b8c9d0" />
@@ -607,13 +826,18 @@
               <input type="text" class="form-input" id="setting-gist-filename" value="bikes_inventory.csv" />
             </div>
             <div class="form-group">
-              <label for="setting-github-pat">GitHub PAT (gist scope)</label>
-              <input type="password" class="form-input" id="setting-github-pat" placeholder="Enter on first use" />
-              <p class="text-secondary" style="font-size:0.8rem;margin-top:6px;">Stored only in memory. Re-enter on new device.</p>
+              <label for="setting-github-pat">GitHub Personal Access Token (PAT)</label>
+              <input type="password" class="form-input" id="setting-github-pat" placeholder="ghp_... (stored locally)" />
+              <p class="text-secondary" style="font-size: 0.8rem; margin-top: 6px;">
+                Requires `gist` scope. This token is stored **only** in your browser.
+              </p>
             </div>
-            <button class="btn btn-secondary" id="save-sync-settings">Save Sync Settings</button>
+            <button class="btn btn-secondary" id="save-sync-settings">
+              <svg width="20" height="20"><use href="#icon-save"></use></svg>
+              <span>Save Sync Settings</span>
+            </button>
           </div>
-
+          
           <div class="settings-section">
             <h3>Personalization</h3>
             <div class="form-group">
@@ -622,46 +846,44 @@
             </div>
             <div class="form-group">
               <label for="setting-currency">Currency Symbol</label>
-              <input type="text" class="form-input" id="setting-currency" placeholder="₹" style="width:100px;" />
-            </div>
-            <div class="form-group">
-              <label for="setting-theme">Theme</label>
-              <select class="form-select" id="setting-theme">
-                <option value="auto">Auto (System)</option>
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-              </select>
+              <input type="text" class="form-input" id="setting-currency" placeholder="₹" style="width: 100px;" />
             </div>
             <button class="btn btn-secondary" id="save-display-settings">Save Display Settings</button>
           </div>
-
+          
           <div class="settings-section">
             <h3>Data Management</h3>
-            <div class="form-grid" style="gap:12px;">
-              <button class="btn btn-secondary" id="export-csv">Export CSV</button>
-              <button class="btn btn-secondary" id="export-json">Export JSON</button>
-              <button class="btn btn-secondary" id="export-xlsx">Export XLSX</button>
-              <button class="btn btn-secondary" id="download-template">CSV Template</button>
+            <p>Manage your local and remote data.</p>
+            <div class="form-grid" style="gap: 12px;">
+              <button class="btn btn-secondary" id="export-csv">Export as CSV</button>
+              <button class="btn btn-secondary" id="export-json">Export as JSON</button>
+              <button class="btn btn-secondary" id="export-xlsx">Export as XLSX</button>
               <button class="btn btn-secondary" id="import-csv">Import CSV/JSON</button>
             </div>
             <input type="file" id="import-file-input" class="hidden" accept=".csv,.json" />
+            
             <h4 class="mt-2">Danger Zone</h4>
-            <button class="btn btn-danger" id="wipe-data-btn">Wipe All Local Data</button>
+            <button class="btn btn-danger" id="wipe-data-btn">
+              <svg width="20" height="20"><use href="#icon-delete"></use></svg>
+              <span>Wipe All Local Data</span>
+            </button>
           </div>
+
         </section>
+        
       </main>
     </div>
   </div>
 
-  <button class="fab" id="fab-add" title="Add New Bike" aria-label="Add Bike">
+  <button class="fab" id="fab-add" title="Add New Bike">
     <svg><use href="#icon-add"></use></svg>
   </button>
-
+  
   <div class="modal-overlay" id="form-modal">
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="form-title">Add New Bike</h2>
-        <button class="btn-icon btn-ghost" id="close-form-modal" aria-label="Close">
+        <button class="btn-icon btn-ghost" id="close-form-modal">
           <svg><use href="#icon-close"></use></svg>
         </button>
       </div>
@@ -705,37 +927,75 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-danger hidden" id="delete-bike-btn">Delete</button>
+        <button class="btn btn-danger" id="delete-bike-btn" style="margin-right: auto;">
+          <svg width="20" height="20"><use href="#icon-delete"></use></svg>
+          <span>Delete</span>
+        </button>
         <button class="btn btn-secondary" id="cancel-form-btn">Cancel</button>
-        <button class="btn btn-primary" id="save-form-btn">Save</button>
+        <button class="btn btn-primary" id="save-form-btn">
+          <svg width="20" height="20"><use href="#icon-save"></use></svg>
+          <span>Save</span>
+        </button>
       </div>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="update-modal">
+    <div class="modal-content text-center">
+      <h2>Update Available</h2>
+      <p class="text-secondary mb-2">A new version of Bike Manager is ready. Refresh to get the latest features.</p>
+      <button class="btn btn-primary" id="update-refresh-btn">Refresh Now</button>
     </div>
   </div>
 
   <div class="toast-container" id="toast-container"></div>
+  
   <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9998;"></canvas>
 
+
   <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
+  
+  
   <script>
-    const SETTINGS_KEY = 'bike_manager_settings_v4';
-    const VIEWS = { LIST: 'view-list', STATS: 'view-stats', SETTINGS: 'view-settings' };
-
+    // --- APP CONSTANTS ---
+    const OLD_STORAGE_KEY = 'bikes_db_v2';
+    const SETTINGS_KEY = 'bike_manager_settings_v3';
+    
+    /**
+     * @class BikeManagerApp
+     * Main application class. Manages all components,
+     * views, database, and sync logic.
+     */
     class BikeManagerApp {
+      
       constructor() {
         this.db = null;
         this.charts = {};
-        this.currentFilters = { search: '', status: 'all' };
-        this.settings = { businessName: 'Bike Manager', currency: '₹', gistId: '', gistFilename: 'bikes_inventory.csv', githubPat: '', theme: 'auto' };
-        this.currentView = VIEWS.LIST;
+        this.currentFilters = {
+          search: '',
+          status: 'all', // 'all', 'sold', 'unsold'
+        };
+        this.settings = {
+          businessName: 'Bike Manager',
+          currency: '₹',
+          gistId: '',
+          gistFilename: 'bikes_inventory.csv',
+          githubPat: '',
+          lastSync: null,
+        };
+        this.currentView = 'view-list';
         this.isMobile = window.innerWidth < 768;
         this.isOnline = navigator.onLine;
-        this.debouncedRenderList = this.debounce(this.renderBikeList.bind(this), 250);
-        this.syncNow = this.debounce(this._syncNow.bind(this), 5000);
 
+        // Debounce search input to avoid constant re-renders
+        this.debouncedRenderList = this.debounce(this.renderBikeList, 250);
+        
+        // DOM element cache
         this.dom = {
           loader: document.getElementById('app-loader'),
           loaderStatus: document.getElementById('app-loader-status'),
@@ -745,580 +1005,1121 @@
           syncStatus: document.getElementById('sync-status'),
           syncStatusText: document.getElementById('sync-status-text'),
           syncNowBtn: document.getElementById('sync-now-btn'),
-          searchInput: document.getElementById('search-input'),
-          searchClear: document.getElementById('search-clear'),
-          bikeList: document.getElementById('bike-list'),
-          bikeListEmpty: document.getElementById('bike-list-empty'),
-          modalOverlay: document.getElementById('form-modal'),
+          // ... (add more as needed)
         };
-
-        document.addEventListener('DOMContentLoaded', () => this.init());
+        
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+          this.init();
+        });
       }
-
+      
+      /**
+       * Primary initialization function.
+       * Runs in order: Service Worker, DB, Settings, UI, Listeners.
+       */
       async init() {
         try {
-          this.updateLoaderStatus('Initializing...');
+          this.vibrate(10);
           this.initServiceWorker();
+          
+          this.updateLoaderStatus('Initializing database...');
           await this.initDatabase();
+          
+          this.updateLoaderStatus('Loading settings...');
           await this.loadSettings();
-          this.migrateFromLocalStorage();
+          
+          this.updateLoaderStatus('Migrating old data (if any)...');
+          await this.migrateFromLocalStorage();
+          
+          this.updateLoaderStatus('Preparing UI...');
           this.initUI();
           this.initEventListeners();
+          
+          this.updateLoaderStatus('Rendering data...');
           await this.renderAll();
+          
+          // App is ready, hide loader
           this.dom.loader.classList.add('hidden');
-        } catch (err) {
-          console.error(err);
-          this.dom.loaderStatus.textContent = 'Failed to load. Refresh.';
+          
+        } catch (error) {
+          console.error("Critical initialization failed:", error);
+          this.dom.loaderStatus.textContent = "Error loading app. Please refresh.";
           this.dom.loaderStatus.classList.add('text-error');
         }
       }
+      
+      updateLoaderStatus(text) {
+        this.dom.loaderStatus.textContent = text;
+      }
 
+      // --- 1. PWA & SERVICE WORKER ---
+      
       initServiceWorker() {
         if ('serviceWorker' in navigator) {
-          const swCode = `
-            const CACHE = 'bm-v4';
-            const ASSETS = ['.', 'https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js'];
-            self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())));
-            self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-            self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
-            self.addEventListener('message', e => { if (e.data.type === 'SKIP_WAITING') self.skipWaiting(); });
-          `;
-          navigator.serviceWorker.register('data:application/javascript,' + encodeURIComponent(swCode));
+          navigator.serviceWorker.register('sw.js')
+            .then(registration => {
+              console.log('Service Worker registered with scope:', registration.scope);
+              
+              // Handle updates: Show "Update Available" modal
+              registration.onupdatefound = () => {
+                const installingWorker = registration.installing;
+                if (installingWorker) {
+                  installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      this.showUpdateModal();
+                    }
+                  };
+                }
+              };
+            })
+            .catch(error => {
+              console.error('Service Worker registration failed:', error);
+            });
+          
+          // Handle controller change (app updated)
+          navigator.serviceWorker.oncontrollerchange = () => {
+            window.location.reload();
+          };
         }
       }
+      
+      showUpdateModal() {
+        const modal = document.getElementById('update-modal');
+        modal.classList.add('active');
+        document.getElementById('update-refresh-btn').onclick = () => {
+          // Send message to SW to skip waiting
+          navigator.serviceWorker.getRegistration().then(reg => {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          });
+        };
+      }
+      
+      // --- 2. DATABASE & DATA MIGRATION ---
 
       async initDatabase() {
-        this.db = new Dexie('BikeDB_v4');
-        this.db.version(1).stores({ bikes: '++_id, &no, owner, _updatedAt, dateSelling' });
+        // Dexie.js makes IndexedDB simple
+        this.db = new Dexie('BikeDB_v3');
+        
+        // Schema definition
+        this.db.version(1).stores({
+          bikes: '++_id, &no, owner, _updatedAt, dateSelling',
+          // ++_id = Auto-incrementing primary key
+          // &no = Unique index for bike plate
+          // _updatedAt = Timestamp for sync
+          // dateSelling = Indexed for 'sold'/'unsold' filter
+        });
+        
         await this.db.open();
+        console.log("Database initialized.");
       }
-
-      async loadSettings() {
-        const saved = localStorage.getItem(SETTINGS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          this.settings = { ...this.settings, ...parsed, githubPat: '' };
-        }
-        if (!this.settings.githubPat) {
-          const pat = prompt('Enter GitHub PAT (gist scope):');
-          if (pat) this.settings.githubPat = pat.trim();
-        }
-        this.applySettings();
-      }
-
-      async saveSettings() {
-        const { githubPat, ...safe } = this.settings;
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(safe));
-        this.applySettings();
-      }
-
-      applySettings() {
-        this.dom.headerTitle.textContent = this.settings.businessName;
-        document.title = this.settings.businessName;
-        document.querySelectorAll('.currency').forEach(el => el.textContent = this.settings.currency);
-        document.getElementById('setting-gist-id').value = this.settings.gistId;
-        document.getElementById('setting-gist-filename').value = this.settings.gistFilename;
-        document.getElementById('setting-business-name').value = this.settings.businessName;
-        document.getElementById('setting-currency').value = this.settings.currency;
-        document.getElementById('setting-theme').value = this.settings.theme;
-
-        const isLight = this.settings.theme === 'light' || (this.settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: light)').matches);
-        document.documentElement.classList.toggle('light', isLight);
-        document.documentElement.classList.toggle('dark', !isLight);
-      }
-
+      
+      /**
+       * Checks for data from the old v2 app in localStorage.
+       * If found, migrates it to IndexedDB and clears the old key.
+       */
       async migrateFromLocalStorage() {
-        const old = localStorage.getItem('bikes_db_v2');
-        if (!old) return;
+        const oldDataRaw = localStorage.getItem(OLD_STORAGE_KEY);
+        if (!oldDataRaw) {
+          console.log("No old v2 data found to migrate.");
+          return;
+        }
+        
         try {
-          const data = JSON.parse(old);
-          if (Array.isArray(data)) {
-            const now = new Date().toISOString();
-            await this.db.bikes.bulkPut(data.map(b => ({ ...b, _updatedAt: b._updatedAt || now })));
-            localStorage.removeItem('bikes_db_v2');
-            this.showToast('Migrated old data.', 'success');
+          const oldDb = JSON.parse(oldDataRaw);
+          if (!Array.isArray(oldDb) || oldDb.length === 0) {
+            localStorage.removeItem(OLD_STORAGE_KEY);
+            return;
           }
-        } catch (e) { console.error(e); }
+          
+          console.log(`Migrating ${oldDb.length} records from localStorage...`);
+          
+          const now = new Date().toISOString();
+          const recordsToMigrate = oldDb.map(record => ({
+            ...record,
+            purchasePrice: Number(record.purchasePrice) || 0,
+            repairCost: Number(record.repairCost) || 0,
+            sellingPrice: Number(record.sellingPrice) || 0,
+            netProfit: Number(record.netProfit) || 0,
+            _updatedAt: now, // Assign a standard "migrated" timestamp
+          }));
+          
+          // Use bulkPut to add all, overwriting any conflicts (by 'no')
+          await this.db.bikes.bulkPut(recordsToMigrate);
+          
+          // Success! Remove old data.
+          localStorage.removeItem(OLD_STORAGE_KEY);
+          this.showToast(`Successfully migrated ${oldDb.length} records from v2.`, 'success');
+          
+        } catch (error) {
+          console.error("Migration failed:", error);
+          this.showToast("Failed to migrate old data.", 'error');
+        }
       }
 
+      // --- 3. SETTINGS & PERSONALIZATION ---
+      
+      async loadSettings() {
+        const savedSettings = localStorage.getItem(SETTINGS_KEY);
+        if (savedSettings) {
+          this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
+        }
+        this.applySettings();
+      }
+      
+      async saveSettings() {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+        this.applySettings();
+        this.vibrate(10);
+      }
+      
+      /**
+       * Applies settings to the UI (currency, name, etc.)
+       */
+      applySettings() {
+        // Update header title
+        this.dom.headerTitle.textContent = this.settings.businessName || 'Bike Manager';
+        document.title = this.settings.businessName || 'Bike Manager';
+        
+        // Update currency symbols
+        document.querySelectorAll('.currency').forEach(el => {
+          el.textContent = this.settings.currency || '₹';
+        });
+        
+        // Populate settings form
+        document.getElementById('setting-gist-id').value = this.settings.gistId || '';
+        document.getElementById('setting-gist-filename').value = this.settings.gistFilename || 'bikes_inventory.csv';
+        document.getElementById('setting-github-pat').value = this.settings.githubPat || '';
+        document.getElementById('setting-business-name').value = this.settings.businessName || '';
+        document.getElementById('setting-currency').value = this.settings.currency || '';
+      }
+      
+      // --- 4. UI & EVENT LISTENERS ---
+      
       initUI() {
-        if (!this.isMobile) document.getElementById('add-bike-desktop').style.display = 'inline-flex';
+        // Adjust UI for desktop if needed
+        if (!this.isMobile) {
+          document.getElementById('add-bike-desktop').style.display = 'inline-flex';
+        }
+        
+        // Set initial filter chip
+        document.getElementById('filter-all').classList.add('active');
+        
+        // Set initial online status
         this.updateOnlineStatus();
       }
-
+      
       initEventListeners() {
-        this.dom.navButtons.forEach(btn => btn.addEventListener('click', () => this.navigateTo(btn.dataset.view)));
+        // --- Navigation ---
+        this.dom.navButtons.forEach(btn => {
+          btn.addEventListener('click', () => this.navigateTo(btn.dataset.view));
+        });
+        
+        // --- Header Actions ---
         this.dom.syncNowBtn.addEventListener('click', () => this.syncNow());
-        this.dom.searchInput.addEventListener('input', e => {
+        
+        // --- Main List View ---
+        document.getElementById('search-input').addEventListener('input', (e) => {
           this.currentFilters.search = e.target.value.toLowerCase();
-          this.dom.searchClear.style.display = e.target.value ? 'block' : 'none';
           this.debouncedRenderList();
         });
-        this.dom.searchClear.addEventListener('click', () => {
-          this.dom.searchInput.value = '';
-          this.dom.searchClear.style.display = 'none';
-          this.currentFilters.search = '';
-          this.renderBikeList();
-        });
-        document.querySelectorAll('.filter-chips .chip').forEach(chip => chip.addEventListener('click', () => this.setFilterStatus(chip.dataset.filter)));
-        this.dom.bikeList.addEventListener('click', e => {
+        document.getElementById('filter-all').addEventListener('click', () => this.setFilterStatus('all'));
+        document.getElementById('filter-sold').addEventListener('click', () => this.setFilterStatus('sold'));
+        document.getElementById('filter-unsold').addEventListener('click', () => this.setFilterStatus('unsold'));
+        document.getElementById('bike-list').addEventListener('click', (e) => {
           const card = e.target.closest('.bike-card');
-          const printBtn = e.target.closest('.print-btn');
-          if (printBtn) { this.printInvoiceById(card.dataset.id); }
-          else if (card) { this.handleEditBike(card.dataset.id); }
+          if (card) {
+            this.handleEditBike(card.dataset.id);
+          }
         });
-        [document.getElementById('fab-add'), document.getElementById('add-bike-desktop')].forEach(b => b.addEventListener('click', () => this.handleNewBike()));
+        
+        // --- Add/Edit Modal ---
+        const addBtns = [document.getElementById('fab-add'), document.getElementById('add-bike-desktop')];
+        addBtns.forEach(btn => btn.addEventListener('click', () => this.handleNewBike()));
+        
         document.getElementById('close-form-modal').addEventListener('click', () => this.closeFormModal());
-        this.dom.modalOverlay.addEventListener('click', e => { if (e.target === this.dom.modalOverlay) this.closeFormModal(); });
         document.getElementById('cancel-form-btn').addEventListener('click', () => this.closeFormModal());
         document.getElementById('save-form-btn').addEventListener('click', () => this.handleSaveBike());
         document.getElementById('delete-bike-btn').addEventListener('click', () => this.handleDeleteBike());
-        ['form-purchasePrice', 'form-repairCost', 'form-sellingPrice'].forEach(id => document.getElementById(id).addEventListener('input', () => this.calculateFormProfit()));
+        
+        // Auto-calculate profit
+        const profitInputs = ['form-purchasePrice', 'form-repairCost', 'form-sellingPrice'];
+        profitInputs.forEach(id => {
+          document.getElementById(id).addEventListener('input', () => this.calculateFormProfit());
+        });
+        
+        // --- Settings View ---
         document.getElementById('save-sync-settings').addEventListener('click', () => this.handleSaveSyncSettings());
         document.getElementById('save-display-settings').addEventListener('click', () => this.handleSaveDisplaySettings());
-        ['export-csv', 'export-json', 'export-xlsx'].forEach(id => document.getElementById(id).addEventListener('click', () => this.exportData(id.split('-')[1])));
-        document.getElementById('download-template').addEventListener('click', () => this.downloadTemplate());
+        document.getElementById('export-csv').addEventListener('click', () => this.exportData('csv'));
+        document.getElementById('export-json').addEventListener('click', () => this.exportData('json'));
+        document.getElementById('export-xlsx').addEventListener('click', () => this.exportData('xlsx'));
         document.getElementById('import-csv').addEventListener('click', () => document.getElementById('import-file-input').click());
-        document.getElementById('import-file-input').addEventListener('change', e => this.handleImportFile(e));
+        document.getElementById('import-file-input').addEventListener('change', (e) => this.handleImportFile(e));
         document.getElementById('wipe-data-btn').addEventListener('click', () => this.handleWipeData());
+        
+        // --- Global Listeners ---
         window.addEventListener('online', () => this.updateOnlineStatus());
         window.addEventListener('offline', () => this.updateOnlineStatus());
-        window.addEventListener('resize', this.debounce(() => { this.isMobile = window.innerWidth < 768; this.initUI(); }, 200));
+        window.addEventListener('resize', this.debounce(() => {
+          this.isMobile = window.innerWidth < 768;
+          this.initUI();
+        }, 200));
       }
-
+      
+      /**
+       * Main render loop. Updates all dynamic parts of the UI.
+       */
       async renderAll() {
-        await this.renderBikeList();
+        this.renderBikeList();
         this.renderStatsDashboard();
       }
-
+      
+      /**
+       * Renders the list of bikes based on current filters.
+       */
       async renderBikeList() {
-        let bikes = await this.db.bikes.toArray();
-        if (this.currentFilters.status === 'sold') bikes = bikes.filter(b => b.dateSelling);
-        else if (this.currentFilters.status === 'unsold') bikes = bikes.filter(b => !b.dateSelling);
-        if (this.currentFilters.search) {
-          const s = this.currentFilters.search;
-          bikes = bikes.filter(b => b.no.toLowerCase().includes(s) || b.owner.toLowerCase().includes(s));
+        let bikes;
+        const listEl = document.getElementById('bike-list');
+        const emptyEl = document.getElementById('bike-list-empty');
+        
+        // Apply status filter (IndexedDB query)
+        if (this.currentFilters.status === 'sold') {
+          bikes = await this.db.bikes.where('dateSelling').notEqual('').toArray();
+        } else if (this.currentFilters.status === 'unsold') {
+          bikes = await this.db.bikes.where({ dateSelling: '' }).toArray();
+        } else {
+          bikes = await this.db.bikes.toArray();
         }
+        
+        // Apply search filter (JS filter)
+        if (this.currentFilters.search) {
+          const search = this.currentFilters.search;
+          bikes = bikes.filter(b => 
+            b.no.toLowerCase().includes(search) || 
+            b.owner.toLowerCase().includes(search)
+          );
+        }
+        
+        // Sort (newest first)
         bikes.sort((a, b) => new Date(b._updatedAt) - new Date(a._updatedAt));
-
-        const fragment = document.createDocumentFragment();
-        bikes.forEach(bike => fragment.appendChild(this.createBikeCardElement(bike)));
-        this.dom.bikeList.innerHTML = '';
-        this.dom.bikeList.appendChild(fragment);
-        this.dom.bikeListEmpty.classList.toggle('hidden', bikes.length > 0);
+        
+        // Render
+        if (bikes.length === 0) {
+          listEl.innerHTML = '';
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+        
+        emptyEl.classList.add('hidden');
+        listEl.innerHTML = bikes.map(bike => this.createBikeCardHTML(bike)).join('');
       }
-
-      createBikeCardElement(bike) {
+      
+      createBikeCardHTML(bike) {
         const isSold = !!bike.dateSelling;
         const profit = bike.netProfit || 0;
-        const card = document.createElement('div');
-        card.className = 'bike-card';
-        card.dataset.id = bike._id;
-        card.innerHTML = `
-          <div class="bike-card-main">
-            <div class="bike-card-plate">${bike.no}</div>
-            <div class="bike-card-owner">${bike.owner}</div>
-          </div>
-          <div class="bike-card-profit">
-            <div class="profit-value ${!isSold ? 'unrealized' : profit < 0 ? 'loss' : ''}">
-              ${isSold ? this.settings.currency + ' ' + this.formatCurrency(profit) : 'Unsold'}
+        let profitClass = 'profit-value';
+        let profitDisplay = `${this.settings.currency} ${this.formatCurrency(profit)}`;
+        
+        if (!isSold) {
+          profitClass += ' unrealized';
+          profitDisplay = 'Unsold';
+        } else if (profit < 0) {
+          profitClass += ' loss';
+        } else if (profit === 0) {
+          profitClass = 'text-secondary';
+        }
+        
+        return `
+          <div class="bike-card" data-id="${bike._id}">
+            <div class="bike-card-main">
+              <div class="bike-card-plate">${bike.no}</div>
+              <div class="bike-card-owner">${bike.owner}</div>
             </div>
-            ${isSold ? `<button class="btn-icon btn-ghost print-btn" title="Print Invoice"><svg><use href="#icon-save"></use></svg></button>` : ''}
+            <div class="bike-card-profit">
+              <div class="${profitClass}">${profitDisplay}</div>
+            </div>
           </div>
         `;
-        return card;
       }
 
+      /**
+       * Renders the stats cards and charts on the dashboard.
+       */
       async renderStatsDashboard() {
         const bikes = await this.db.bikes.toArray();
-        const sold = bikes.filter(b => b.dateSelling);
-        const unsold = bikes.filter(b => !b.dateSelling);
-        const totalProfit = sold.reduce((s, b) => s + b.netProfit, 0);
-        const unsoldValue = unsold.reduce((s, b) => s + b.purchasePrice + b.repairCost, 0);
+        const soldBikes = bikes.filter(b => !!b.dateSelling);
+        const unsoldBikes = bikes.filter(b => !b.dateSelling);
+        
+        // 1. Calculate Quick Stats
+        const totalProfit = soldBikes.reduce((sum, b) => sum + b.netProfit, 0);
+        const unsoldValue = unsoldBikes.reduce((sum, b) => sum + b.purchasePrice + b.repairCost, 0);
+        
         document.getElementById('stat-total-profit').textContent = this.formatCurrency(totalProfit);
         document.getElementById('stat-unsold-value').textContent = this.formatCurrency(unsoldValue);
-        document.getElementById('stat-sold-count').textContent = sold.length;
-        document.getElementById('stat-unsold-count').textContent = unsold.length;
-        const avg = sold.length ? totalProfit / sold.length : 0;
-        document.getElementById('auto-insight-text').textContent = `Stock: ${unsold.length} bikes. Avg profit: ${this.settings.currency}${this.formatCurrency(avg)}.`;
+        document.getElementById('stat-sold-count').textContent = soldBikes.length;
+        document.getElementById('stat-unsold-count').textContent = unsoldBikes.length;
 
-        if (this.currentView === VIEWS.STATS) {
-          this.renderProfitTrendChart(sold);
-          this.renderProfitPieChart(sold);
-          this.renderTopBikesChart(sold);
+        // 2. Generate Auto-Insight
+        const avgProfit = soldBikes.length > 0 ? totalProfit / soldBikes.length : 0;
+        document.getElementById('auto-insight-text').textContent = 
+          `You have ${unsoldBikes.length} bikes in stock. Your average profit on a sold bike is ${this.settings.currency}${this.formatCurrency(avgProfit)}.`;
+
+        // 3. Render Charts (only if on the stats view)
+        if (this.currentView === 'view-stats') {
+          this.renderProfitTrendChart(soldBikes);
+          this.renderProfitPieChart(soldBikes);
+          this.renderTopBikesChart(soldBikes);
         }
       }
-
-      renderProfitTrendChart(sold) {
+      
+      // --- 5. CHART.JS IMPLEMENTATION ---
+      
+      renderProfitTrendChart(soldBikes) {
         const ctx = document.getElementById('chart-profit-trend').getContext('2d');
-        const monthly = sold.reduce((acc, b) => {
-          if (!b.dateSelling) return acc;
-          const m = b.dateSelling.substring(0, 7);
-          acc[m] = (acc[m] || 0) + b.netProfit;
+        
+        // Group profit by month
+        const monthlyData = soldBikes.reduce((acc, bike) => {
+          const month = bike.dateSelling.substring(0, 7); // 'YYYY-MM'
+          acc[month] = (acc[month] || 0) + bike.netProfit;
           return acc;
         }, {});
-        const labels = Object.keys(monthly).sort().map(m => new Date(m + '-01'));
-        const data = Object.values(monthly);
+        
+        const sortedMonths = Object.keys(monthlyData).sort();
+        const labels = sortedMonths.map(month => new Date(month + '-02')); // Use 2nd day to avoid TZ issues
+        const data = sortedMonths.map(month => monthlyData[month]);
 
-        if (this.charts.profitTrend) { this.charts.profitTrend.data.labels = labels; this.charts.profitTrend.data.datasets[0].data = data; this.charts.profitTrend.update(); return; }
-        this.charts.profitTrend = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Profit', data, borderColor: '#00D0FF', backgroundColor: 'rgba(0,208,255,0.2)', fill: true, tension: 0.3 }] }, options: { responsive: true, scales: { x: { type: 'time', time: { unit: 'month' } } } } });
-      }
-
-      renderProfitPieChart(sold) {
-        const ctx = document.getElementById('chart-profit-pie').getContext('2d');
-        const ranges = { 'Loss': 0, '0-5k': 0, '5k-10k': 0, '>10k': 0 };
-        sold.forEach(b => {
-          if (b.netProfit < 0) ranges['Loss']++;
-          else if (b.netProfit < 5000) ranges['0-5k']++;
-          else if (b.netProfit < 10000) ranges['5k-10k']++;
-          else ranges['>10k']++;
+        if (this.charts.profitTrend) this.charts.profitTrend.destroy();
+        this.charts.profitTrend = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Monthly Profit',
+              data: data,
+              borderColor: 'rgba(0, 208, 255, 1)',
+              backgroundColor: 'rgba(0, 208, 255, 0.2)',
+              fill: true,
+              tension: 0.3,
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                type: 'time',
+                time: { unit: 'month' },
+                ticks: { color: 'var(--text-secondary)' },
+                grid: { color: 'var(--border-color-subtle)' }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: 'var(--text-secondary)' },
+                grid: { color: 'var(--border-color-subtle)' }
+              }
+            },
+            plugins: { legend: { display: false } }
+          }
         });
-        if (this.charts.profitPie) { this.charts.profitPie.data.datasets[0].data = Object.values(ranges); this.charts.profitPie.update(); return; }
-        this.charts.profitPie = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(ranges), datasets: [{ data: Object.values(ranges), backgroundColor: ['#ef4444', '#f59e0b', '#22c55e', '#00D0FF'] }] } });
       }
+      
+      renderProfitPieChart(soldBikes) {
+        const ctx = document.getElementById('chart-profit-pie').getContext('2d');
+        const profitRanges = {
+          'Loss (< 0)': soldBikes.filter(b => b.netProfit < 0).length,
+          'Low (0-5k)': soldBikes.filter(b => b.netProfit >= 0 && b.netProfit < 5000).length,
+          'Mid (5k-10k)': soldBikes.filter(b => b.netProfit >= 5000 && b.netProfit < 10000).length,
+          'High (> 10k)': soldBikes.filter(b => b.netProfit >= 10000).length,
+        };
 
-      renderTopBikesChart(sold) {
+        if (this.charts.profitPie) this.charts.profitPie.destroy();
+        this.charts.profitPie = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: Object.keys(profitRanges),
+            datasets: [{
+              data: Object.values(profitRanges),
+              backgroundColor: ['#ef4444', '#f59e0b', '#22c55e', '#00D0FF'],
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top', labels: { color: 'var(--text-primary)' } }
+            }
+          }
+        });
+      }
+      
+      renderTopBikesChart(soldBikes) {
         const ctx = document.getElementById('chart-top-bikes').getContext('2d');
-        const top5 = sold.sort((a,b) => b.netProfit - a.netProfit).slice(0,5);
-        if (this.charts.topBikes) { this.charts.topBikes.data.labels = top5.map(b => b.no); this.charts.topBikes.data.datasets[0].data = top5.map(b => b.netProfit); this.charts.topBikes.update(); return; }
-        this.charts.topBikes = new Chart(ctx, { type: 'bar', data: { labels: top5.map(b => b.no), datasets: [{ label: 'Profit', data: top5.map(b => b.netProfit), backgroundColor: '#6EE7B7' }] }, options: { indexAxis: 'y' } });
+        const top5 = soldBikes.sort((a, b) => b.netProfit - a.netProfit).slice(0, 5);
+        
+        if (this.charts.topBikes) this.charts.topBikes.destroy();
+        this.charts.topBikes = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: top5.map(b => b.no),
+            datasets: [{
+              label: 'Net Profit',
+              data: top5.map(b => b.netProfit),
+              backgroundColor: 'rgba(110, 231, 183, 0.6)',
+              borderColor: 'rgba(110, 231, 183, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            scales: {
+              x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color-subtle)' } },
+              y: { ticks: { color: 'var(--text-secondary)' }, grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+          }
+        });
       }
 
-      handleNewBike() { this.openFormModal(); }
+      // --- 6. CORE CRUD OPERATIONS ---
+      
+      handleNewBike() {
+        this.openFormModal();
+      }
+      
       async handleEditBike(id) {
-        const bike = await this.db.bikes.get(Number(id));
-        if (bike) this.openFormModal(bike);
+        try {
+          const bike = await this.db.bikes.get(Number(id));
+          if (bike) {
+            this.openFormModal(bike);
+          }
+        } catch (error) {
+          console.error("Failed to get bike for editing:", error);
+          this.showToast("Could not load bike data.", 'error');
+        }
       }
-
+      
       async handleSaveBike() {
+        const form = document.getElementById('bike-form');
+        const id = document.getElementById('form-bike-id').value;
+        
+        // 1. Read & Validate Form
         const plate = document.getElementById('form-no').value.trim().toUpperCase();
         const owner = document.getElementById('form-owner').value.trim();
-        if (!plate || !owner) return this.showToast('Plate and Owner required.', 'error');
-
-        const data = {
+        
+        if (!plate || !owner) {
+          this.showToast("Bike Plate and Owner Name are required.", 'error');
+          return;
+        }
+        
+        const purchasePrice = Number(document.getElementById('form-purchasePrice').value) || 0;
+        const repairCost = Number(document.getElementById('form-repairCost').value) || 0;
+        const sellingPrice = Number(document.getElementById('form-sellingPrice').value) || 0;
+        
+        const bikeData = {
           no: plate,
-          owner,
-          purchasePrice: parseFloat(document.getElementById('form-purchasePrice').value) || 0,
-          repairCost: parseFloat(document.getElementById('form-repairCost').value) || 0,
-          sellingPrice: parseFloat(document.getElementById('form-sellingPrice').value) || 0,
+          owner: owner,
+          purchasePrice: purchasePrice,
+          repairCost: repairCost,
+          sellingPrice: sellingPrice,
+          netProfit: sellingPrice - (purchasePrice + repairCost),
           datePurchase: document.getElementById('form-datePurchase').value || '',
           dateSelling: document.getElementById('form-dateSelling').value || '',
           _updatedAt: new Date().toISOString(),
         };
-        data.netProfit = data.sellingPrice - (data.purchasePrice + data.repairCost);
-
+        
         try {
-          const id = document.getElementById('form-bike-id').value;
-          if (id) await this.db.bikes.update(Number(id), data);
-          else {
-            await this.db.bikes.add(data);
+          // 2. Save to DB
+          if (id) {
+            // Update existing
+            await this.db.bikes.update(Number(id), bikeData);
+            this.showToast("Bike updated successfully.", 'success');
+          } else {
+            // Add new
+            await this.db.bikes.add(bikeData);
+            this.showToast("Bike added successfully.", 'success');
+            
+            // Confetti for first bike?
             const count = await this.db.bikes.count();
-            if (count === 1) this.showConfetti();
+            if (count === 1) {
+              this.showConfetti();
+            }
           }
+          
+          // 3. Post-Save
+          this.vibrate(20);
           this.closeFormModal();
-          this.renderAll();
-          this.triggerAutoSync();
-          this.showToast(id ? 'Updated!' : 'Added!', 'success');
-        } catch (e) {
-          this.showToast(e.name === 'ConstraintError' ? 'Plate exists.' : 'Save failed.', 'error');
+          this.renderAll(); // Full re-render
+          this.triggerAutoSync(); // Trigger a sync in the background
+          
+        } catch (error) {
+          console.error("Save bike failed:", error);
+          if (error.name === 'ConstraintError') {
+            this.showToast("A bike with this plate number already exists.", 'error');
+          } else {
+            this.showToast("Failed to save bike.", 'error');
+          }
         }
       }
-
+      
       async handleDeleteBike() {
-        if (confirm('Delete this bike?')) {
-          await this.db.bikes.delete(Number(document.getElementById('form-bike-id').value));
-          this.closeFormModal();
-          this.renderAll();
-          this.showToast('Deleted.', 'success');
+        const id = document.getElementById('form-bike-id').value;
+        if (!id) return;
+        
+        if (confirm("Are you sure you want to delete this bike? This cannot be undone easily.")) {
+          try {
+            await this.db.bikes.delete(Number(id));
+            this.showToast("Bike deleted.", 'success');
+            this.vibrate(50);
+            this.closeFormModal();
+            this.renderAll();
+            this.triggerAutoSync();
+          } catch (error) {
+            console.error("Delete failed:", error);
+            this.showToast("Failed to delete bike.", 'error');
+          }
         }
       }
 
+      // --- 7. FORM & MODAL UI ---
+      
       openFormModal(bike = null) {
+        const modal = document.getElementById('form-modal');
+        const title = document.getElementById('form-title');
+        const deleteBtn = document.getElementById('delete-bike-btn');
         const form = document.getElementById('bike-form');
-        form.reset();
-        document.getElementById('form-title').textContent = bike ? 'Edit Bike' : 'Add New Bike';
-        document.getElementById('delete-bike-btn').classList.toggle('hidden', !bike);
+        
+        form.reset(); // Clear form
+        
         if (bike) {
-          Object.keys(bike).forEach(k => { const el = document.getElementById('form-' + k); if (el) el.value = bike[k]; });
+          // Edit mode
+          title.textContent = "Edit Bike";
+          deleteBtn.classList.remove('hidden');
+          
+          document.getElementById('form-bike-id').value = bike._id;
+          document.getElementById('form-no').value = bike.no;
+          document.getElementById('form-owner').value = bike.owner;
+          document.getElementById('form-datePurchase').value = bike.datePurchase;
+          document.getElementById('form-dateSelling').value = bike.dateSelling;
+          document.getElementById('form-purchasePrice').value = bike.purchasePrice;
+          document.getElementById('form-repairCost').value = bike.repairCost;
+          document.getElementById('form-sellingPrice').value = bike.sellingPrice;
           this.calculateFormProfit();
+          
         } else {
+          // Add mode
+          title.textContent = "Add New Bike";
+          deleteBtn.classList.add('hidden');
+          document.getElementById('form-bike-id').value = '';
+          // Set purchase date to today by default
           document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
         }
-        this.dom.modalOverlay.classList.add('active');
+        
+        modal.classList.add('active');
       }
-
-      closeFormModal() { this.dom.modalOverlay.classList.remove('active'); }
-
+      
+      closeFormModal() {
+        document.getElementById('form-modal').classList.remove('active');
+      }
+      
       calculateFormProfit() {
-        const p = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
-        const r = parseFloat(document.getElementById('form-repairCost').value) || 0;
-        const s = parseFloat(document.getElementById('form-sellingPrice').value) || 0;
-        const profit = s - p - r;
-        document.getElementById('form-netProfit').value = isNaN(profit) ? '' : profit.toFixed(2);
+        const p = Number(document.getElementById('form-purchasePrice').value) || 0;
+        const r = Number(document.getElementById('form-repairCost').value) || 0;
+        const s = Number(document.getElementById('form-sellingPrice').value) || 0;
+        const profit = s - (p + r);
+        document.getElementById('form-netProfit').value = profit.toFixed(2);
       }
-
+      
+      // --- 8. SETTINGS HANDLERS ---
+      
       handleSaveSyncSettings() {
         this.settings.gistId = document.getElementById('setting-gist-id').value.trim();
         this.settings.gistFilename = document.getElementById('setting-gist-filename').value.trim() || 'bikes_inventory.csv';
         this.settings.githubPat = document.getElementById('setting-github-pat').value.trim();
+        
         this.saveSettings();
-        this.showToast('Sync settings saved.', 'success');
+        this.showToast("Sync settings saved.", 'success');
       }
-
+      
       handleSaveDisplaySettings() {
         this.settings.businessName = document.getElementById('setting-business-name').value.trim();
         this.settings.currency = document.getElementById('setting-currency').value.trim();
-        this.settings.theme = document.getElementById('setting-theme').value;
+        
         this.saveSettings();
-        this.showToast('Display saved.', 'success');
-        this.renderAll();
+        this.showToast("Display settings saved.", 'success');
+        this.renderAll(); // Re-render to apply currency/etc.
       }
-
+      
+      async handleWipeData() {
+        if (confirm("WARNING: This will delete ALL local bike data from your browser. This cannot be undone. Are you sure?")) {
+          if (confirm("Final confirmation: Delete all data?")) {
+            try {
+              await this.db.bikes.clear();
+              this.showToast("All local data has been wiped.", 'success');
+              this.vibrate(100);
+              this.renderAll();
+            } catch (error) {
+              console.error("Data wipe failed:", error);
+              this.showToast("Data wipe failed.", 'error');
+            }
+          }
+        }
+      }
+      
+      // --- 9. IMPORT / EXPORT ---
+      
       async exportData(format) {
         const bikes = await this.db.bikes.orderBy('no').toArray();
-        if (!bikes.length) return this.showToast('No data.', 'warning');
-        const clean = bikes.map(b => { const { _id, ...rest } = b; return rest; });
-        const file = `bike_inventory_${new Date().toISOString().split('T')[0]}`;
-        if (format === 'json') this.downloadFile(JSON.stringify(clean, null, 2), `${file}.json`, 'application/json');
-        else if (format === 'csv') this.downloadFile(this.jsonToCsv(clean), `${file}.csv`, 'text/csv');
-        else if (format === 'xlsx') { const ws = XLSX.utils.json_to_sheet(clean); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Bikes'); XLSX.writeFile(wb, `${file}.xlsx`); }
-      }
+        if (bikes.length === 0) {
+          this.showToast("No data to export.", 'warning');
+          return;
+        }
+        
+        // Clean data for export (remove _id)
+        const exportBikes = bikes.map(b => {
+          const { _id, ...rest } = b;
+          return rest;
+        });
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `bike_inventory_${timestamp}`;
 
-      downloadTemplate() {
-        this.downloadFile(this.jsonToCsv([]), 'bike_template.csv', 'text/csv');
+        if (format === 'json') {
+          const json = JSON.stringify(exportBikes, null, 2);
+          this.downloadFile(json, `${filename}.json`, 'application/json');
+        } else if (format === 'csv') {
+          const csv = this.jsonToCsv(exportBikes);
+          this.downloadFile(csv, `${filename}.csv`, 'text/csv');
+        } else if (format === 'xlsx') {
+          const ws = XLSX.utils.json_to_sheet(exportBikes);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
+          XLSX.writeFile(wb, `${filename}.xlsx`);
+        }
+        this.vibrate(10);
       }
-
-      async handleImportFile(e) {
-        const file = e.target.files[0];
-        if (!file || file.size > 2*1024*1024) return this.showToast('File too large.', 'error');
+      
+      handleImportFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
         const reader = new FileReader();
-        reader.onload = async ev => {
+        reader.onload = async (e) => {
           try {
-            let data = file.name.endsWith('.json') ? JSON.parse(ev.target.result) : this.csvTojson(ev.target.result);
-            if (!Array.isArray(data)) throw '';
+            const content = e.target.result;
+            let bikesToImport = [];
+            
+            if (file.name.endsWith('.json')) {
+              bikesToImport = JSON.parse(content);
+            } else if (file.name.endsWith('.csv')) {
+              bikesToImport = this.csvTojson(content);
+            } else {
+              this.showToast("Unsupported file type. Please use .csv or .json", 'error');
+              return;
+            }
+            
+            if (!Array.isArray(bikesToImport)) throw new Error("Invalid file format.");
+            
+            // Add/update metadata
             const now = new Date().toISOString();
-            const prepared = data.map(b => ({
+            const preparedBikes = bikesToImport.map(b => ({
               no: (b.no || '').trim().toUpperCase(),
               owner: b.owner || '',
               purchasePrice: Number(b.purchasePrice) || 0,
               repairCost: Number(b.repairCost) || 0,
               sellingPrice: Number(b.sellingPrice) || 0,
-              netProfit: Number(b.netProfit) || 0,
+              netProfit: Number(b.netProfit) || (Number(b.sellingPrice) - (Number(b.purchasePrice) + Number(b.repairCost))),
               datePurchase: b.datePurchase || '',
               dateSelling: b.dateSelling || '',
-              _updatedAt: b._updatedAt || now,
-            })).filter(b => b.no);
-            if (confirm(`Import ${prepared.length} records?`)) {
-              await this.db.bikes.bulkPut(prepared);
+              _updatedAt: b._updatedAt || now, // Preserve timestamp if it exists
+            })).filter(b => b.no); // Must have a plate number
+            
+            if (confirm(`Found ${preparedBikes.length} records. This will ADD new records and UPDATE existing records based on bike plate. Continue?`)) {
+              // bulkPut does an "upsert" based on the unique key '&no'
+              await this.db.bikes.bulkPut(preparedBikes);
+              this.showToast(`Successfully imported/updated ${preparedBikes.length} records.`, 'success');
               this.renderAll();
-              this.showToast('Imported!', 'success');
             }
-          } catch { this.showToast('Invalid file.', 'error'); }
-          e.target.value = '';
+            
+          } catch (error) {
+            console.error("Import failed:", error);
+            this.showToast("Import failed. Check file format.", 'error');
+          } finally {
+            event.target.value = ''; // Reset file input
+          }
         };
-        reader.readAsText(file);
+        
+        if (file.name.endsWith('.json')) {
+          reader.readAsText(file);
+        } else if (file.name.endsWith('.csv')) {
+          reader.readAsText(file);
+        }
       }
 
-      async _syncNow() {
-        if (!this.isOnline) return this.showToast('Offline.', 'warning');
-        if (!this.settings.gistId || !this.settings.githubPat) return this.showToast('Set Gist ID & PAT.', 'error');
+      // --- 10. GITHUB GIST SYNC ---
+      
+      /**
+       * This is the core disconnected sync logic.
+       * It performs a 3-way merge between local, remote, and a stored "last sync" state.
+       * This implementation is simpler: it merges based on timestamp.
+       * Local and remote data are merged, with the newest `_updatedAt` timestamp winning.
+       */
+      async syncNow() {
+        if (!this.isOnline) {
+          this.showToast("Cannot sync. You are offline.", 'warning');
+          return;
+        }
+        
+        const { gistId, githubPat, gistFilename } = this.settings;
+        if (!gistId || !githubPat) {
+          this.showToast("Gist ID and GitHub PAT must be set in Settings.", 'error');
+          this.navigateTo('view-settings');
+          return;
+        }
+        
         this.setSyncStatus('syncing', 'Syncing...');
+        
         try {
-          const remote = await this.fetchFromGist();
-          const local = await this.db.bikes.toArray();
-          const map = new Map(local.map(b => [b.no, b]));
-          (remote ? this.csvTojson(atob(remote.content)) : []).forEach(b => {
-            const existing = map.get(b.no);
-            if (!existing || new Date(b._updatedAt) > new Date(existing._updatedAt)) map.set(b.no, b);
-          });
-          const merged = Array.from(map.values());
-          await this.db.transaction('rw', this.db.bikes, async () => {
-            await this.db.bikes.clear();
-            await this.db.bikes.bulkPut(merged);
-          });
-          const csv = this.jsonToCsv(merged.map(b => { const { _id, ...r } = b; return r; }));
-          const b64 = btoa(csv);
-          if (!remote || b64 !== remote.content) await this.pushToGist(b64, remote?.sha);
+          // 1. Fetch Remote Data
+          this.setSyncStatus('syncing', 'Fetching remote...');
+          const remoteFile = await this.fetchFromGist();
+          let remoteBikes = [];
+          if (remoteFile) {
+            remoteBikes = this.csvTojson(atob(remoteFile.content));
+          }
+          
+          // 2. Get Local Data
+          const localBikes = await this.db.bikes.toArray();
+          
+          // 3. Merge Data (timestamp wins)
+          this.setSyncStatus('syncing', 'Merging data...');
+          const mergedBikesMap = new Map();
+          
+          // Add all local bikes to map
+          for (const bike of localBikes) {
+            mergedBikesMap.set(bike.no, bike);
+          }
+          
+          // Merge remote bikes
+          for (const remoteBike of remoteBikes) {
+            const localBike = mergedBikesMap.get(remoteBike.no);
+            if (!localBike || new Date(remoteBike._updatedAt) > new Date(localBike._updatedAt)) {
+              // Remote is newer or doesn't exist locally
+              mergedBikesMap.set(remoteBike.no, remoteBike);
+            }
+          }
+          
+          const mergedBikes = Array.from(mergedBikesMap.values());
+          
+          // 4. Write merged data back to local DB
+          this.setSyncStatus('syncing', 'Saving local...');
+          await this.db.bikes.clear();
+          await this.db.bikes.bulkPut(mergedBikes);
+          
+          // 5. Write merged data back to Gist
+          this.setSyncStatus('syncing', 'Pushing remote...');
+          const csvContent = this.jsonToCsv(mergedBikes);
+          const newFileContent = btoa(csvContent);
+          
+          if (!remoteFile || newFileContent !== remoteFile.content) {
+            await this.pushToGist(newFileContent, remoteFile ? remoteFile.sha : null);
+          } else {
+            console.log("No changes to push.");
+          }
+          
+          // 6. Success
           this.settings.lastSync = new Date().toISOString();
           this.saveSettings();
-          this.setSyncStatus('success', 'Synced');
-          this.showToast('Sync complete.', 'success');
+          this.setSyncStatus('success', 'Up to date');
+          this.showToast("Sync complete.", 'success');
           this.renderAll();
-        } catch (e) {
-          this.setSyncStatus('error', 'Failed');
-          this.showToast(e.message || 'Sync error.', 'error');
+          
+        } catch (error) {
+          console.error("Sync failed:", error);
+          this.setSyncStatus('error', 'Sync Failed');
+          this.showToast(error.message, 'error');
         }
       }
-
+      
+      /**
+       * Fetches the content of the Gist file.
+       * Returns file object { content, sha } or null.
+       */
       async fetchFromGist() {
-        const res = await fetch(`https://api.github.com/gists/${this.settings.gistId}`, { headers: { Authorization: `token ${this.settings.githubPat}` } });
-        if (!res.ok) return null;
-        const gist = await res.json();
-        const file = gist.files[this.settings.gistFilename];
-        if (!file) return null;
-        let content = file.content;
-        if (file.truncated) {
-          const raw = await fetch(file.raw_url);
-          content = await raw.text();
+        const { gistId, githubPat, gistFilename } = this.settings;
+        const url = `https://api.github.com/gists/${gistId}`;
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `token ${githubPat}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            this.showToast("Gist not found. Check Gist ID.", 'error');
+            return null;
+          }
+          throw new Error(`GitHub API error: ${response.statusText}`);
         }
-        return { content: btoa(content), sha: gist.history[0].version };
+        
+        const gist = await response.json();
+        const file = gist.files[gistFilename];
+        
+        if (!file) {
+          console.log(`File '${gistFilename}' not found in Gist. Will create it on next sync.`);
+          return null; // File doesn't exist, will be created on push
+        }
+        
+        // Gist API returns truncated content if too large,
+        // so we must fetch the raw_url if truncated.
+        if (file.truncated) {
+          const rawResponse = await fetch(file.raw_url);
+          const textContent = await rawResponse.text();
+          return { content: btoa(textContent), sha: gist.history[0].version }; // We can't get SHA from raw file, this is a limitation
+        }
+        
+        return { content: file.content, sha: gist.history[0].version };
       }
-
-      async pushToGist(b64, sha) {
-        const body = { files: { [this.settings.gistFilename]: { content: atob(b64) } } };
-        if (sha) body.files[this.settings.gistFilename].sha = sha;
-        const res = await fetch(`https://api.github.com/gists/${this.settings.gistId}`, {
+      
+      /**
+       * Pushes new content to the Gist file.
+       */
+      async pushToGist(base64Content) {
+        const { gistId, githubPat, gistFilename } = this.settings;
+        const url = `https://api.github.com/gists/${gistId}`;
+        
+        const body = {
+          description: `Bike Manager DB updated ${new Date().toISOString()}`,
+          files: {
+            [gistFilename]: {
+              content: atob(base64Content) // Gist API expects raw text, not base64
+            }
+          }
+        };
+        
+        const response = await fetch(url, {
           method: 'PATCH',
-          headers: { Authorization: `token ${this.settings.githubPat}` },
+          headers: {
+            'Authorization': `token ${githubPat}`,
+            'Accept': 'application/vnd.github.v3+json'
+          },
           body: JSON.stringify(body)
         });
-        if (!res.ok) throw new Error('Push failed');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to push to Gist: ${response.statusText}`);
+        }
       }
-
-      triggerAutoSync = this.debounce(() => { if (this.isOnline && this.settings.gistId && this.settings.githubPat) this.syncNow(); }, 10000);
-
+      
+      /**
+       * A simple background sync trigger with debouncing.
+       */
+      triggerAutoSync = this.debounce(() => {
+        if (this.isOnline && this.settings.gistId && this.settings.githubPat) {
+          console.log("Triggering auto-sync in background...");
+          this.syncNow().catch(err => console.error("Background sync failed", err));
+        }
+      }, 10000); // Wait 10 seconds after last change
+      
+      // --- 11. UI HELPERS ---
+      
       navigateTo(viewId) {
         if (this.currentView === viewId) return;
+        
         this.currentView = viewId;
-        this.dom.views.forEach(v => v.classList.toggle('active', v.id === viewId));
-        this.dom.navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
-        if (viewId === VIEWS.STATS) this.renderStatsDashboard();
+        
+        // Update view visibility
+        this.dom.views.forEach(view => {
+          view.classList.toggle('active', view.id === viewId);
+        });
+        
+        // Update nav button active state
+        this.dom.navButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.view === viewId);
+        });
+        
+        // If we navigated to stats, render them
+        if (viewId === 'view-stats') {
+          this.renderStatsDashboard();
+        }
+        this.vibrate(10);
       }
-
+      
       setFilterStatus(status) {
         this.currentFilters.status = status;
-        document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.filter === status));
+        
+        // Update chip UI
+        document.querySelectorAll('.filter-chips .chip').forEach(chip => {
+          chip.classList.toggle('active', chip.dataset.filter === status);
+        });
+        
         this.renderBikeList();
+        this.vibrate(10);
       }
-
+      
       setSyncStatus(status, text) {
         this.dom.syncStatus.className = `sync-status ${status}`;
         this.dom.syncStatusText.textContent = text;
-        this.dom.syncNowBtn.disabled = status === 'syncing';
+        
+        if (status === 'syncing') {
+          this.dom.syncNowBtn.disabled = true;
+          this.dom.syncNowBtn.style.animation = 'spin 1.5s linear infinite';
+        } else {
+          this.dom.syncNowBtn.disabled = false;
+          this.dom.syncNowBtn.style.animation = 'none';
+        }
       }
-
+      
       updateOnlineStatus() {
         this.isOnline = navigator.onLine;
-        this.setSyncStatus(this.isOnline ? 'success' : 'offline', this.isOnline ? 'Online' : 'Offline');
-        if (this.isOnline) this.triggerAutoSync();
+        if (this.isOnline) {
+          this.setSyncStatus('success', 'Online');
+          // Try a sync if we just came online
+          this.triggerAutoSync();
+        } else {
+          this.setSyncStatus('offline', 'Offline');
+        }
       }
-
-      showToast(msg, type = 'info') {
+      
+      showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.innerHTML = `${msg} <span class="toast-close">×</span>`;
-        this.dom.toastContainer.appendChild(toast);
-        toast.querySelector('.toast-close').onclick = () => toast.remove();
-        setTimeout(() => toast.remove(), 5000);
+        toast.textContent = message;
+        
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
       }
-
-      async printInvoiceById(id) {
-        const bike = await this.db.bikes.get(Number(id));
-        if (!bike || !bike.dateSelling) return;
-        const win = window.open('', '_blank');
-        win.document.write(`
-          <html><head><title>Invoice - ${bike.no}</title><style>
-            body{font-family:sans-serif;padding:40px;} h1{font-size:24px;} table{width:100%;border-collapse:collapse;margin:20px 0;}
-            th,td{border:1px solid #ccc;padding:8px;text-align:left;} th{background:#f0f0f0;}
-          </style></head><body>
-          <h1>${this.settings.businessName}</h1>
-          <p>Date: ${new Date().toLocaleDateString()}</p>
-          <table>
-            <tr><th>Plate</th><td>${bike.no}</td></tr>
-            <tr><th>Owner</th><td>${bike.owner}</td></tr>
-            <tr><th>Purchase</th><td>${this.settings.currency}${bike.purchasePrice}</td></tr>
-            <tr><th>Repair</th><td>${this.settings.currency}${bike.repairCost}</td></tr>
-            <tr><th>Selling</th><td>${this.settings.currency}${bike.sellingPrice}</td></tr>
-            <tr><th>Profit</th><td>${this.settings.currency}${bike.netProfit}</td></tr>
-          </table>
-          </body></html>
-        `);
-        win.document.close();
-        win.print();
+      
+      vibrate(duration) {
+        if ('vibrate' in navigator) {
+          navigator.vibrate(duration);
+        }
       }
-
+      
       showConfetti() {
+        // A simple, lightweight confetti implementation
         const canvas = document.getElementById('confetti-canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = innerWidth; canvas.height = innerHeight;
-        const pieces = Array.from({length: 100}, () => ({
-          x: innerWidth/2, y: innerHeight/2,
-          vx: Math.random()*10-5, vy: Math.random()*10-5,
-          r: Math.random()*5+3, color: ['#00D0FF','#6EE7B7','#FFD700','#FF69B4'][Math.floor(Math.random()*4)],
-          opacity: 1
-        }));
-        let frame = 0;
-        const draw = () => {
-          if (frame++ > 180) { canvas.width = 0; return; }
-          ctx.clearRect(0,0,canvas.width,canvas.height);
-          pieces.forEach(p => {
-            ctx.globalAlpha = p.opacity;
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            ctx.fill();
-            p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.opacity -= 0.005;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const pieces = [];
+        const pieceCount = 100;
+        const colors = ['#00D0FF', '#6EE7B7', '#FFD700', '#FF69B4'];
+
+        for (let i = 0; i < pieceCount; i++) {
+          pieces.push({
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            rx: Math.random() * 10 + 5,
+            ry: Math.random() * 5 + 2,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            vx: Math.random() * 10 - 5,
+            vy: Math.random() * 10 - 5,
+            opacity: 1,
+            angle: Math.random() * 360,
           });
-          requestAnimationFrame(draw);
+        }
+
+        let frame = 0;
+        function drawConfetti() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (frame > 200) { // Stop after ~3 seconds
+            canvas.width = 0; canvas.height = 0; // Clear canvas
+            return;
+          }
+          
+          pieces.forEach(p => {
+            ctx.beginPath();
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.opacity;
+            ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.restore();
+            
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.1; // Gravity
+            p.opacity -= 0.005;
+            p.angle += p.vx;
+          });
+          
+          frame++;
+          requestAnimationFrame(drawConfetti);
+        }
+        drawConfetti();
+      }
+
+      // --- 12. UTILITY FUNCTIONS ---
+
+      formatCurrency(value) {
+        return (value || 0).toLocaleString(undefined, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        });
+      }
+      
+      debounce(func, delay) {
+        let timeout;
+        return (...args) => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), delay);
         };
-        draw();
       }
-
-      updateLoaderStatus(t) { this.dom.loaderStatus.textContent = t; }
-      formatCurrency(v) { return Math.round(v || 0).toLocaleString(); }
-      debounce(fn, d) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
-      downloadFile(c, n, t) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([c], {type:t})); a.download = n; a.click(); }
+      
+      downloadFile(content, fileName, contentType) {
+        const a = document.createElement('a');
+        const file = new Blob([content], { type: contentType });
+        a.href = URL.createObjectURL(file);
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+      
       jsonToCsv(items) {
-        const headers = ['no','owner','purchasePrice',''repairCost','sellingPrice','netProfit','datePurchase','dateSelling','_updatedAt'];
-        if (items.length === 0) return headers.join(',') + '\n';
-        const escape = (s) => `"${String(s).replace(/"/g, '""')}"`;
-        const rows = items.map(o => headers.map(h => escape(o[h] ?? '')).join(','));
-        return [headers.join(','), ...rows].join('\n');
+        // Use the same headers as the old app, plus _updatedAt
+        const headers = ['_id', '_updatedAt', 'no', 'owner', 'purchasePrice', 'repairCost', 'sellingPrice', 'netProfit', 'datePurchase', 'dateSelling'];
+        const replacer = (key, value) => value === null ? '' : value;
+        const headerRow = headers.map(h => `"${h}"`).join(',');
+        
+        const rows = items.map(row => 
+          headers.map(header => 
+            `"${String(row[header] || '').replace(/"/g, '""')}"`
+          ).join(',')
+        );
+        
+        return [headerRow, ...rows].join('\r\n');
       }
-
+      
       csvTojson(text) {
-        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        const lines = text.split('\n').filter(Boolean);
         if (lines.length < 2) return [];
-        const headers = this.parseCsvLine(lines[0]);
+        
+        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        
         return lines.slice(1).map(line => {
-          const values = this.parseCsvLine(line);
+          // Simple CSV parse, not robust for commas in fields
+          const values = line.split(',').map(v => v.replace(/"/g, '').trim());
           const obj = {};
-          headers.forEach((h, i) => obj[h] = values[i] || '');
+          headers.forEach((header, index) => {
+            obj[header] = values[index];
+          });
           return obj;
         });
       }
-
-      parseCsvLine(line) {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const c = line[i];
-          if (c === '"') {
-            inQuotes = !inQuotes;
-          } else if (c === ',' && !inQuotes) {
-            result.push(current);
-            current = '';
-          } else {
-            current += c;
-          }
-        }
-        result.push(current);
-        return result.map(v => v.replace(/^"|"$/g, '').replace(/""/g, '"'));
-      }
-
-      async handleWipeData() {
-        if (confirm('Delete all local data? This cannot be undone.')) {
-          await this.db.bikes.clear();
-          localStorage.clear();
-          this.showToast('Data wiped.', 'success');
-          this.renderAll();
-        }
-      }
+      
     }
-
-    // Start the app
-    new BikeManagerApp();
+    
+    // --- Initialize the application ---
+    window.app = new BikeManagerApp();
+    
   </script>
 </body>
 </html>
