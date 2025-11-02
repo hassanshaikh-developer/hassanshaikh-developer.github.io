@@ -1,239 +1,1367 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Bike Manager — Extended</title>
-  <meta name="description" content="Offline-first bike inventory manager with CSV/GitHub sync, import/export, search, filters and more." />
-  <link rel="icon" href="data:;base64,iVBORw0KGgo="> 
-  <style>
-    :root{--bg:#071026;--card:#071b2b;--accent:#00d0ff;--muted:#9fb0c2;--text:#e6f6ff;--radius:12px}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter, Poppins, system-ui, sans-serif;background:linear-gradient(180deg,#071026 0%,#020511 100%);color:var(--text);min-height:100vh;display:flex;justify-content:center;padding:20px}
-    .wrap{width:100%;max-width:1100px}
-    header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    h1{margin:0;font-size:1.4rem;background:linear-gradient(90deg,var(--accent),#6ee7b7);-webkit-background-clip:text;color:transparent}
-    .note{color:var(--muted);font-size:0.9rem}
-    .controls{display:flex;gap:8px;flex-wrap:wrap}
-    button{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;font-weight:600;color:#00242f;cursor:pointer}
-    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:14px;padding:16px;margin-top:12px;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
-    form.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-    label{display:block;color:var(--muted);font-size:0.85rem;margin-bottom:6px}
-    input,select{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
-    .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
-    table{width:100%;border-collapse:collapse;margin-top:12px;border-radius:10px;overflow:hidden}
-    th,td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.9rem}
-    th{color:var(--muted);background:rgba(255,255,255,0.01)}
-    tr:hover{background:rgba(255,255,255,0.02);cursor:pointer}
-    .selected{background:linear-gradient(90deg,rgba(0,208,255,0.06),rgba(0,208,255,0.02))}
-    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .search{padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
-    .small{padding:6px 8px;font-size:0.9rem;border-radius:8px}
-    .stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-    .stat{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;min-width:120px}
-    .muted{color:var(--muted)}
-    .flex{display:flex;gap:8px;align-items:center}
-    .file-drop{border:2px dashed rgba(255,255,255,0.03);padding:12px;border-radius:10px;text-align:center;color:var(--muted)}
-    .pagination{display:flex;gap:6px;align-items:center}
-    @media(max-width:700px){.stats{flex-direction:column}}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Bike Manager v3 — Offline PWA (Gist Sync)</title>
+<meta name="description" content="Bike Manager v3 — Mobile-first, offline-first PWA. IndexedDB, CSV/Gist sync, import/export, analytics, backups, and more."/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle fill='%2300D0FF' cx='50' cy='50' r='50'/%3E%3Ctext x='50' y='58' font-size='48' text-anchor='middle' font-family='sans-serif' fill='%23071226' %3E🚲%3C/text%3E%3C/svg%3E">
+<style>
+  /* ---------- THEME & LAYOUT ---------- */
+  :root{
+    --bg:#071026; --card:#071b2b; --muted:#9fb0c2; --text:#e6f6ff;
+    --accent-from:#00D0FF; --accent-to:#6EE7B7;
+    --radius:14px; --glass: rgba(255,255,255,0.03);
+    --safe-area: env(safe-area-inset-bottom);
+    --tap:44px;
+    --shadow: 0 10px 30px rgba(2,6,23,0.6);
+    --glass-2: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter, Roboto, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial;
+    background: linear-gradient(180deg,#071026 0%, #020511 100%);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    display:flex; align-items:flex-start; justify-content:center; padding:12px;
+  }
+  .app {
+    width:100%; max-width:980px; min-height:100vh; display:flex; flex-direction:column; gap:12px;
+    padding-bottom:calc(80px + var(--safe-area)); /* leave room for bottom nav */
+  }
+  /* ---------- APP SHELL ---------- */
+  .topbar {
+    position:sticky; top:12px; z-index:40; display:flex; gap:12px; align-items:center;
+  }
+  .title {
+    background: linear-gradient(90deg,var(--accent-from),var(--accent-to));
+    -webkit-background-clip:text; color:transparent; font-weight:700; font-size:1.2rem;
+  }
+  .top-actions { margin-left:auto; display:flex; gap:8px; align-items:center;}
+  .status-pill {
+    padding:8px 12px; border-radius:999px; display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02);
+    border:1px solid rgba(255,255,255,0.02); font-size:0.9rem;
+  }
+  .search {
+    flex:1; min-width:140px; display:flex; align-items:center; gap:8px;
+    background:var(--glass); border-radius:999px; padding:8px 12px; border:1px solid rgba(255,255,255,0.02);
+  }
+  .search input{ background:transparent; border:none; color:var(--text); font-size:0.95rem; outline:none; width:100% }
+  /* ---------- CARD / LAYOUT ---------- */
+  .card {
+    background:var(--card); border-radius:calc(var(--radius)); padding:12px;
+    box-shadow:var(--shadow); border:1px solid rgba(255,255,255,0.03);
+  }
+  .wallet-card {
+    border-radius:24px; padding:14px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+  }
+  .row { display:flex; gap:12px; align-items:center; }
+  .col { display:flex; flex-direction:column; gap:8px; }
+  label{ font-size:0.85rem; color:var(--muted) }
+  input, select, textarea {
+    padding:10px 12px; border-radius:12px; background:transparent; border:1px solid rgba(255,255,255,0.03); color:var(--text);
+    outline:none; font-size:0.95rem;
+  }
+  button { cursor:pointer; border:0; padding:10px 12px; border-radius:12px; font-weight:600 }
+  .btn-primary { background:linear-gradient(90deg,var(--accent-from),var(--accent-to)); color:#012; box-shadow:0 6px 18px rgba(0,208,255,0.08) }
+  .btn-ghost { background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted) }
+  .fab { position:fixed; right:18px; bottom:86px; z-index:60; width:64px; height:64px; border-radius:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 16px 40px rgba(0,0,0,0.6); background:linear-gradient(135deg,var(--accent-from),var(--accent-to)); color:#001; font-size:28px; }
+  /* bottom nav */
+  .bottom-nav {
+    position:fixed; left:12px; right:12px; bottom:12px; z-index:60; display:flex; justify-content:space-between; align-items:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02)); padding:8px 12px; border-radius:20px; box-shadow:var(--shadow);
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .nav-item { min-width:54px; height:48px; display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:12px; color:var(--muted); font-size:0.9rem; justify-content:center }
+  .nav-item.active{ color:var(--text); background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+  /* table/list */
+  .list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .list-item { display:flex; justify-content:space-between; gap:8px; padding:12px; border-radius:12px; background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005)); border:1px solid rgba(255,255,255,0.02); transition:transform .18s ease, box-shadow .18s ease; }
+  .list-item:active{ transform:translateY(2px) }
+  .list-item .meta { color:var(--muted); font-size:0.85rem }
+  .badge { padding:6px 10px; border-radius:999px; background:rgba(0,0,0,0.25); color:var(--text); font-weight:700; font-size:0.9rem; min-width:64px; text-align:center }
+  .controls-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px }
+  .small { padding:6px 8px; border-radius:10px; font-size:0.9rem }
+  .muted { color:var(--muted) }
+  .hcenter{ display:flex; justify-content:center; align-items:center }
+  /* responsive */
+  @media(min-width:900px){ .app{ padding:20px } .fab{ right:40px; bottom:110px } .bottom-nav{ left:24px; right:24px } }
+  @media(max-width:420px){
+    .topbar{ flex-direction:column; align-items:stretch }
+    .title{ font-size:1rem }
+    .fab{ width:60px; height:60px; right:14px; bottom:94px }
+  }
+  /* small helpers */
+  .hidden{display:none}
+  .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:160px; z-index:80; background:linear-gradient(90deg,var(--accent-from),var(--accent-to)); color:#012; padding:10px 16px; border-radius:999px; box-shadow:0 10px 30px rgba(0,0,0,0.6); display:flex; gap:10px; align-items:center }
+  .chip { padding:6px 10px; border-radius:999px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03) }
+  .small-muted{ font-size:0.82rem;color:var(--muted) }
+  /* charts container */
+  .charts { display:grid; grid-template-columns: 1fr; gap:12px; margin-top:8px }
+  @media(min-width:800px){ .charts{ grid-template-columns: 1fr 1fr } }
+  /* animated counter */
+  .counter{ font-size:1.8rem; font-weight:800; letter-spacing:-0.02em; background: linear-gradient(90deg,var(--accent-from),var(--accent-to)); -webkit-background-clip:text; color:transparent }
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>Bike Manager — Extended</h1>
-        <div class="note">Offline-first. Save locally, import/export CSV/XLSX. Optionally sync to GitHub (requires token).</div>
+  <main class="app" id="app">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent-from),var(--accent-to));display:flex;align-items:center;justify-content:center;font-size:20px">🚲</div>
+        <div>
+          <div class="title">Bike Manager</div>
+          <div class="muted" style="font-size:0.8rem">Offline PWA • IndexedDB • Gist Sync</div>
+        </div>
       </div>
-      <div class="controls toolbar">
-        <input id="search" class="search" placeholder="Search owner, plate..." />
-        <button id="btnAdd" title="Add new record">Add</button>
-        <button id="btnImport" class="ghost">Import CSV</button>
-        <button id="btnExportCSV" class="ghost">Export CSV</button>
-        <button id="btnSaveGithub" class="ghost">Sync → GitHub</button>
-        <button id="btnUndo" class="ghost" title="Undo last change">Undo</button>
-        <button id="btnSample" class="ghost">Insert Sample</button>
+
+      <div class="search" role="search" aria-label="Search bikes">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="opacity:.7"><path d="M21 21l-4.35-4.35" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="11" r="6.2" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <input id="q" placeholder="Search owner, plate, notes..." />
+        <button id="clearSearch" class="btn-ghost small" title="Clear search">✕</button>
       </div>
-    </header>
 
-    <section class="card">
-      <form id="bikeForm" class="grid" onsubmit="return false;">
-        <div>
-          <label for="colNo">Bike Number (e.g. GJ05AB1234)</label>
-          <input id="colNo" type="text" placeholder="GJ05AB1234" />
+      <div class="top-actions">
+        <div id="syncStatus" class="status-pill" title="Sync status">
+          <span id="syncIcon">⏺</span>
+          <span id="syncText">Offline</span>
         </div>
-        <div>
-          <label for="owner">Owner name</label>
-          <input id="owner" />
-        </div>
-        <div>
-          <label for="purchasePrice">Purchase price</label>
-          <input id="purchasePrice" type="number" step="0.01" />
-        </div>
-        <div>
-          <label for="repairCost">Repair cost</label>
-          <input id="repairCost" type="number" step="0.01" value="0" />
-        </div>
-        <div>
-          <label for="sellingPrice">Selling price</label>
-          <input id="sellingPrice" type="number" step="0.01" />
-        </div>
-        <div>
-          <label for="netProfit">Net profit (auto)</label>
-          <input id="netProfit" type="number" step="0.01" readonly />
-        </div>
-        <div>
-          <label for="datePurchase">Date of purchase</label>
-          <input id="datePurchase" type="date" />
-        </div>
-        <div>
-          <label for="dateSelling">Date of selling</label>
-          <input id="dateSelling" type="date" />
-        </div>
+        <button id="openSettings" class="btn-ghost small">Settings</button>
+      </div>
+    </div>
 
-        <div class="actions">
-          <div class="flex">
-            <button id="btnSaveLocal" class="small">Save Local</button>
-            <button id="btnUpdate" class="ghost small">Update</button>
-            <button id="btnDelete" class="ghost small">Delete</button>
-            <button id="btnClear" class="ghost small">Clear</button>
+    <!-- DASHBOARD CARD -->
+    <section id="dashboard" class="card wallet-card" aria-labelledby="dashTitle" >
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div class="small-muted">Summary</div>
+          <div style="display:flex;gap:12px;align-items:end;margin-top:6px">
+            <div>
+              <div class="small-muted">Total Profit</div>
+              <div id="animatedProfit" class="counter">₹0</div>
+            </div>
+            <div>
+              <div class="small-muted">Total Bikes</div>
+              <div style="font-weight:700;font-size:1.2rem" id="totalCount">0</div>
+            </div>
+            <div>
+              <div class="small-muted">Unsold</div>
+              <div id="unsoldCount" style="font-weight:700;font-size:1.2rem">0</div>
+            </div>
           </div>
-          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-            <label class="muted">Rows per page</label>
-            <select id="pageSize" class="small"><option>10</option><option>20</option><option>50</option></select>
+          <div class="small-muted" style="margin-top:8px">Auto insights: <span id="insightsText">—</span></div>
+        </div>
+
+        <div style="width:320px; max-width:42vw">
+          <div class="controls-row">
+            <button id="syncNow" class="btn-primary small" title="Sync to/from GitHub Gist">Sync Now</button>
+            <button id="backupNow" class="btn-ghost small">Backup</button>
+            <button id="importBtn" class="btn-ghost small">Import</button>
+            <button id="exportBtn" class="btn-ghost small">Export</button>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <label class="chip">Currency: ₹</label>
+            <label class="chip" id="gistLabel">Gist: —</label>
           </div>
         </div>
-      </form>
-
-      <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        <div class="file-drop" id="dropZone">Drop CSV here to import</div>
-        <div class="muted">Or use Import button. Duplicate plate detection will be offered.</div>
       </div>
 
-      <div class="stats" id="stats"></div>
-
-      <table id="table" aria-describedby="tableDesc">
-        <thead>
-          <tr>
-            <th data-key="no">No ▲▼</th>
-            <th data-key="owner">Owner ▲▼</th>
-            <th data-key="purchasePrice">Purchase ▲▼</th>
-            <th data-key="repairCost">Repair ▲▼</th>
-            <th data-key="sellingPrice">Selling ▲▼</th>
-            <th data-key="netProfit">Net ▲▼</th>
-            <th data-key="datePurchase">Purchased</th>
-            <th data-key="dateSelling">Sold</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div id="tableDesc" class="note">Click a row to select; click headers to sort. Use search/filter for fast access.</div>
-
-      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-        <div class="pagination" id="pagination"></div>
-        <div class="flex">
-          <button id="btnCopy" class="ghost small">Copy CSV</button>
-          <button id="btnPrint" class="ghost small">Print</button>
+      <!-- charts -->
+      <div class="charts" id="chartsArea">
+        <div class="card" style="padding:12px">
+          <div class="small-muted">Monthly Profit</div>
+          <canvas id="chartMonthly" height="160"></canvas>
+        </div>
+        <div class="card" style="padding:12px">
+          <div class="small-muted">Profit Distribution</div>
+          <canvas id="chartDist" height="160"></canvas>
+        </div>
+        <div class="card" style="padding:12px">
+          <div class="small-muted">Sold vs Unsold</div>
+          <canvas id="chartSold" height="160"></canvas>
+        </div>
+        <div class="card" style="padding:12px">
+          <div class="small-muted">Top 5 Profits</div>
+          <ul id="top5" style="margin:8px 0 0 0;padding:0;list-style:none"></ul>
         </div>
       </div>
-
     </section>
 
-    <div style="margin-top:12px" class="note">Tip: To host on GitHub Pages push this file to your repo (e.g. index.html). To store a CSV in the repo automatically, use the GitHub Sync button and provide a personal access token with repo access — see comments in the code. Storing directly in the repo requires authentication (the app cannot write to static hosting without it).</div>
-  </div>
+    <!-- MAIN LIST -->
+    <section id="listView" class="card" aria-labelledby="listTitle">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>Bikes</strong> <span class="small-muted" id="filterChips"></span></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="sortKey" class="small">
+            <option value="no">Plate</option><option value="owner">Owner</option><option value="netProfit">Net Profit</option><option value="datePurchase">Purchased</option>
+          </select>
+          <select id="sortDir" class="small"><option value="-1">Desc</option><option value="1">Asc</option></select>
+          <button id="addQuick" class="btn-primary small">Add</button>
+        </div>
+      </div>
 
-  <input id="fileInput" type="file" accept="text/csv" style="display:none" />
+      <div id="list" class="list" style="margin-top:12px"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div class="small-muted" id="listSummary">Showing 0 records</div>
+        <div style="display:flex;gap:8px">
+          <button id="prevPage" class="btn-ghost small">Prev</button>
+          <div id="pageInfo" class="muted small">1</div>
+          <button id="nextPage" class="btn-ghost small">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- EDIT PANEL (slide-in modal) -->
+    <aside id="editPanel" class="card" style="position:fixed; right:12px; top:84px; width:96%; max-width:480px; transform:translateY(20px); display:none; z-index:80">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong id="editTitle">Add Bike</strong>
+        <div style="display:flex;gap:8px">
+          <button id="closeEdit" class="btn-ghost small">Close</button>
+        </div>
+      </div>
+      <form id="form" onsubmit="return false" style="margin-top:8px;display:flex;flex-direction:column;gap:10px">
+        <div class="row">
+          <div style="flex:1">
+            <label>Plate (e.g. GJ05AB1234)</label>
+            <input id="f_no" required placeholder="GJ05AB1234" />
+          </div>
+          <div style="width:130px">
+            <label>Sold?</label>
+            <select id="f_sold"><option value="no">No</option><option value="yes">Yes</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <label>Owner</label>
+            <input id="f_owner" required />
+          </div>
+          <div style="width:140px">
+            <label>Purchase ₹</label>
+            <input id="f_purchase" type="number" step="0.01" />
+          </div>
+        </div>
+        <div class="row">
+          <div style="width:140px">
+            <label>Repair ₹</label>
+            <input id="f_repair" type="number" step="0.01" value="0" />
+          </div>
+          <div style="width:140px">
+            <label>Selling ₹</label>
+            <input id="f_selling" type="number" step="0.01" />
+          </div>
+          <div style="flex:1">
+            <label>Notes</label>
+            <input id="f_notes" />
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <label>Purchase date</label>
+            <input id="f_datePurchase" type="date" />
+          </div>
+          <div style="flex:1">
+            <label>Selling date</label>
+            <input id="f_dateSelling" type="date" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+          <div class="muted">Net:</div><div id="liveNet" style="font-weight:800">₹0</div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="saveBtn" class="btn-primary small">Save</button>
+          <button id="saveNewBtn" class="btn-ghost small">Save & New</button>
+          <button id="deleteBtn" class="btn-ghost small">Delete</button>
+        </div>
+      </form>
+    </aside>
+
+    <!-- SETTINGS PANEL -->
+    <aside id="settings" class="card" style="position:fixed; left:12px; top:84px; width:96%; max-width:480px; transform:translateY(20px); display:none; z-index:80">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Settings</strong>
+        <button id="closeSettings" class="btn-ghost small">Close</button>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px">
+        <label>Gist ID (public)</label>
+        <input id="gistId" placeholder="Leave blank to skip Gist sync (you can still fetch a public gist)" />
+        <label>Gist Write Token (optional - saved locally if you choose)</label>
+        <input id="gistToken" placeholder="Paste GitHub token with gist scope (kept locally)" />
+        <div style="display:flex;gap:8px">
+          <button id="testGist" class="btn-primary small">Test Gist</button>
+          <button id="createGist" class="btn-ghost small">Create New Gist</button>
+        </div>
+
+        <label>Auto-backup interval (hours)</label>
+        <select id="autoBackupInterval" class="small">
+          <option value="0">Off</option>
+          <option value="24">24h</option>
+          <option value="168">Weekly</option>
+        </select>
+
+        <label>Theme & Accent</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="accentReset" class="btn-ghost small">Reset Accent</button>
+        </div>
+
+        <label>Security</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="enablePin" class="btn-ghost small">Enable PIN (optional)</button>
+          <button id="clearData" class="btn-ghost small">Reset All Data</button>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="exportAll" class="btn-ghost small">Download Backup (encrypted)</button>
+          <button id="importAll" class="btn-ghost small">Restore Backup</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- hidden file input -->
+    <input id="fileInput" type="file" accept=".csv,application/json,text/csv" class="hidden" />
+
+    <!-- TOAST -->
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"><span id="toastMsg">Saved</span></div>
+  </main>
+
+  <!-- Libraries: Chart.js from CDN (allowed) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
   <script>
-    // STORAGE & CONFIG
-    const STORAGE_KEY = 'bikes_db_v2';
-    const CSV_FILENAME = 'bikes_db.csv';
-    let db = [];
-    let selectedIndex = -1;
-    let sortState = {key:'',dir:1};
-    let undoStack = [];
+  /************************************************************************
+   *
+   *  Bike Manager v3 - single-file PWA
+   *  - IndexedDB storage with migrations
+   *  - Offline caching via Service Worker (created dynamically)
+   *  - GitHub Gist sync (read public gist; write with token)
+   *  - Import/Export CSV & JSON, encrypted backups via Web Crypto AES-GCM
+   *  - Mobile-first UI with charts, analytics, filters, undo/redo, toasts, haptics
+   *
+   *  Developer notes: Everything is inline so you can upload to GitHub Pages
+   *  or open locally. Comments mark the major modules below.
+   *
+   ************************************************************************/
 
-    const els = {
-      colNo: document.getElementById('colNo'), owner:document.getElementById('owner'),
-      purchasePrice: document.getElementById('purchasePrice'), repairCost:document.getElementById('repairCost'),
-      sellingPrice:document.getElementById('sellingPrice'), netProfit:document.getElementById('netProfit'),
-      datePurchase:document.getElementById('datePurchase'), dateSelling:document.getElementById('dateSelling'),
-      btnAdd:document.getElementById('btnAdd'), btnSaveLocal:document.getElementById('btnSaveLocal'), btnUpdate:document.getElementById('btnUpdate'),
-      btnDelete:document.getElementById('btnDelete'), btnClear:document.getElementById('btnClear'), tbody:document.querySelector('#table tbody'),
-      search:document.getElementById('search'), btnImport:document.getElementById('btnImport'), btnExportCSV:document.getElementById('btnExportCSV'),
-      fileInput:document.getElementById('fileInput'), dropZone:document.getElementById('dropZone'), stats:document.getElementById('stats'),
-      btnSaveGithub:document.getElementById('btnSaveGithub'), btnUndo:document.getElementById('btnUndo'), btnSample:document.getElementById('btnSample'),
-      pageSize:document.getElementById('pageSize'), pagination:document.getElementById('pagination'), btnCopy:document.getElementById('btnCopy'), btnPrint:document.getElementById('btnPrint')
-    };
+  /* ===============================
+     CONFIG & DEFAULTS
+     =============================== */
+  const APP_VERSION = '3.0.0';
+  const DB_NAME = 'bike_manager_v3_db';
+  const DB_STORE = 'bikes';
+  const META_STORE = 'meta';
+  const MIGRATION_VERSION = 2; // increment when schema changes
+  const DEFAULT_PAGE_SIZE = 12;
+  const CURRENCY = '₹'; // as per user selection
+  const ACCENT_FROM = '#00D0FF', ACCENT_TO = '#6EE7B7';
+  let gistConfig = { id: null, token: null }; // saved in meta store
+  let syncState = { status: 'offline', lastSync: null, syncing: false, conflict: false };
 
-    function round2(v){return Math.round((v+Number.EPSILON)*100)/100}
-    function formatNum(n){return Number(n).toLocaleString(undefined,{maximumFractionDigits:2})}
-    function escapeHtml(s){return String(s).replace(/[&<>\'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":"&#39;"}[c]||c})}
+  /* ===============================
+     SMALL UTILITIES
+     =============================== */
+  const $ = sel => document.querySelector(sel);
+  const el = id => document.getElementById(id);
+  const nowISO = ()=> new Date().toISOString();
+  function uid(len=10){ const s = 'abcdefghijklmnopqrstuvwxyz0123456789'; let out=''; for(let i=0;i<len;i++) out += s[Math.floor(Math.random()*s.length)]; return out; }
+  function showToast(msg, time=2200) {
+    const t = el('toast'); el('toastMsg').textContent = msg; t.classList.remove('hidden'); navigator.vibrate?.(10);
+    clearTimeout(t._hide); t._hide = setTimeout(()=>t.classList.add('hidden'), time);
+  }
+  function safeParse(s){ try{return JSON.parse(s);}catch(e){return null;} }
+  function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+  function fmtMoney(n){ return CURRENCY + Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+  function round2(v){ return Math.round((v+Number.EPSILON)*100)/100; }
 
-    function load(){ try{ db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ db=[] } render(); }
-    function saveLocal(pushUndo=true){ if(pushUndo){undoStack.push(JSON.stringify(db)); if(undoStack.length>50) undoStack.shift()} localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); render(); }
+  /* ===============================
+     INDEXEDDB WRAPPER + MIGRATIONS
+     =============================== */
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, MIGRATION_VERSION);
+      req.onupgradeneeded = (ev) => {
+        const db = ev.target.result;
+        // keep backward compatibility: create stores if missing
+        if(!db.objectStoreNames.contains(DB_STORE)) {
+          const s = db.createObjectStore(DB_STORE, { keyPath: 'id' }); // id: unique string
+          s.createIndex('no','no',{ unique: false });
+          s.createIndex('_updatedAt','_updatedAt',{ unique:false });
+        }
+        if(!db.objectStoreNames.contains(META_STORE)) {
+          db.createObjectStore(META_STORE, { keyPath: 'k' }); // key-value store
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = e => reject(e);
+    });
+  }
 
-    function isValidPlate(s){ s = (s||'').toUpperCase().trim(); // loose check: must start with 2 letters and end with digits
-      if(s.length<4) return false; const a = s.charCodeAt(0); if(a<65||a>90) return false; const b=s.charCodeAt(1); if(b<65||b>90) return false; // has digits somewhere
-      for(let i=2;i<s.length;i++){ if(s.charCodeAt(i)>=48 && s.charCodeAt(i)<=57) return true; } return false; }
+  async function idbPut(storeName, value) {
+    const db = await openDb();
+    return new Promise((res,rej)=>{
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).put(value);
+      tx.oncomplete = ()=>res(true);
+      tx.onerror = e=>rej(e);
+    });
+  }
+  async function idbGet(storeName, key) {
+    const db = await openDb();
+    return new Promise((res,rej)=>{
+      const tx = db.transaction(storeName,'readonly');
+      const r = tx.objectStore(storeName).get(key);
+      r.onsuccess = ()=>res(r.result);
+      r.onerror = e=>rej(e);
+    });
+  }
+  async function idbGetAll(storeName) {
+    const db = await openDb();
+    return new Promise((res,rej)=>{
+      const tx = db.transaction(storeName,'readonly');
+      const r = tx.objectStore(storeName).getAll();
+      r.onsuccess = ()=>res(r.result);
+      r.onerror = e=>rej(e);
+    });
+  }
+  async function idbDelete(storeName, key) {
+    const db = await openDb();
+    return new Promise((res,rej)=>{
+      const tx = db.transaction(storeName,'readwrite');
+      tx.objectStore(storeName).delete(key);
+      tx.oncomplete = ()=>res(true);
+      tx.onerror = e=>rej(e);
+    });
+  }
 
-    function readForm(){ const no = (els.colNo.value||'').trim().toUpperCase(); const owner = (els.owner.value||'').trim(); if(!isValidPlate(no)){ alert('Enter valid Indian bike number e.g. GJ05AB1234'); return null; } const purchasePrice = Number(els.purchasePrice.value)||0; const repairCost = Number(els.repairCost.value)||0; const sellingPrice = Number(els.sellingPrice.value)||0; const netProfit = round2(sellingPrice - (purchasePrice + repairCost)); if(!owner){ alert('Owner name required'); return null; } return { no, owner, purchasePrice, repairCost, sellingPrice, netProfit, datePurchase:els.datePurchase.value||'', dateSelling:els.dateSelling.value||'' }; }
+  /* migration from legacy localStorage key 'bikes_db_v2' if present */
+  async function migrateFromLocalStorage() {
+    try {
+      const legacy = localStorage.getItem('bikes_db_v2');
+      if(!legacy) return;
+      const parsed = safeParse(legacy);
+      if(!Array.isArray(parsed)) return;
+      // convert each record into new shape and store
+      for(const r of parsed) {
+        const rec = {
+          id: r.no ? r.no + '_' + uid(4) : ('b_' + uid(8)),
+          no: (r.no||'').toUpperCase(),
+          owner: r.owner||'',
+          purchasePrice: Number(r.purchasePrice||0),
+          repairCost: Number(r.repairCost||0),
+          sellingPrice: Number(r.sellingPrice||0),
+          netProfit: round2(Number(r.netProfit) || Number(r.sellingPrice||0) - (Number(r.purchasePrice||0)+Number(r.repairCost||0))),
+          datePurchase: r.datePurchase||'',
+          dateSelling: r.dateSelling||'',
+          notes: r.notes||'',
+          sold: (r.dateSelling && r.dateSelling.length>0) ? true : false,
+          _createdAt: r._createdAt || nowISO(),
+          _updatedAt: nowISO()
+        };
+        await idbPut(DB_STORE, rec);
+      }
+      showToast('Migrated localStorage -> IndexedDB ✓', 1800);
+      localStorage.removeItem('bikes_db_v2'); // keep things tidy
+    } catch(err) { console.warn('Migration failed', err); }
+  }
 
-    function addRecord(){ const rec = readForm(); if(!rec) return; const dup = db.findIndex(r=>r.no===rec.no); if(dup>=0){ if(!confirm('Plate exists. Replace existing record? Cancel to keep both.')){ db.push(rec); saveLocal(); clearForm(); return; } else { pushUndo(); db[dup]=rec; saveLocal(); clearForm(); return; } } pushUndo(); db.push(rec); saveLocal(); clearForm(); }
-    function updateRecord(){ if(selectedIndex<0) return alert('Select a record first'); const rec=readForm(); if(!rec) return; pushUndo(); db[selectedIndex]=rec; saveLocal(); }
-    function deleteRecord(){ if(selectedIndex<0) return alert('Select a record first'); if(!confirm('Delete selected record?')) return; pushUndo(); db.splice(selectedIndex,1); selectedIndex=-1; saveLocal(); clearForm(); }
-    function clearForm(){ els.colNo.value=''; els.owner.value=''; els.purchasePrice.value=''; els.repairCost.value='0'; els.sellingPrice.value=''; els.netProfit.value=''; els.datePurchase.value=''; els.dateSelling.value=''; selectedIndex=-1; Array.from(els.tbody.children).forEach(r=>r.classList.remove('selected')); }
+  /* ===============================
+     APP STATE, UNDO/REDO & SNAPSHOTS
+     =============================== */
+  let APP = {
+    items: [], // cached in-memory snapshot
+    page: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
+    filters: {},
+    sort: { key: 'no', dir: -1 },
+    undoStack: [],
+    redoStack: [],
+    lastBackupAt: null
+  };
 
-    function pushUndo(){ undoStack.push(JSON.stringify(db)); if(undoStack.length>50) undoStack.shift(); }
-    function undo(){ if(undoStack.length===0){ alert('Nothing to undo'); return; } db = JSON.parse(undoStack.pop()); saveLocal(false); }
+  async function loadAllToMemory() {
+    APP.items = await idbGetAll(DB_STORE) || [];
+    // ensure timestamps exist
+    APP.items.forEach(i=>{
+      if(!i._createdAt) i._createdAt = nowISO();
+      if(!i._updatedAt) i._updatedAt = nowISO();
+    });
+  }
 
-    function selectRow(i,tr){ selectedIndex=i; const r=db[i]; els.colNo.value=r.no; els.owner.value=r.owner; els.purchasePrice.value=r.purchasePrice; els.repairCost.value=r.repairCost; els.sellingPrice.value=r.sellingPrice; els.netProfit.value=r.netProfit; els.datePurchase.value=r.datePurchase||''; els.dateSelling.value=r.dateSelling||''; Array.from(els.tbody.children).forEach((row,idx)=>row.classList.toggle('selected', idx===i)); }
+  async function saveItem(item, pushUndo=true) {
+    // item must have id
+    item._updatedAt = nowISO();
+    if(!item._createdAt) item._createdAt = item._updatedAt;
+    if(pushUndo) { APP.undoStack.push(JSON.stringify(APP.items)); if(APP.undoStack.length>80) APP.undoStack.shift(); APP.redoStack = []; }
+    await idbPut(DB_STORE, item);
+    await loadAllToMemory();
+    renderAll();
+  }
 
-    function computeNet(){ const p=Number(els.purchasePrice.value)||0; const r=Number(els.repairCost.value)||0; const s=Number(els.sellingPrice.value)||0; els.netProfit.value=round2(s-(p+r)); }
-    els.purchasePrice.addEventListener('input', computeNet); els.repairCost.addEventListener('input', computeNet); els.sellingPrice.addEventListener('input', computeNet);
+  async function deleteItemById(id) {
+    APP.undoStack.push(JSON.stringify(APP.items));
+    if(APP.undoStack.length>80) APP.undoStack.shift();
+    await idbDelete(DB_STORE, id);
+    await loadAllToMemory();
+    renderAll();
+  }
 
-    function render(){ const q = (els.search.value||'').trim().toLowerCase(); const pageSize = Number(els.pageSize.value)||10; let list = db.slice(); if(q){ list = list.filter(r=> (r.no||'').toLowerCase().includes(q) || (r.owner||'').toLowerCase().includes(q) ); } if(sortState.key){ list.sort((a,b)=>{ const ka=a[sortState.key]; const kb=b[sortState.key]; if(typeof ka==='number' && typeof kb==='number') return (ka-kb)*sortState.dir; return (String(ka||'').localeCompare(String(kb||'')))*sortState.dir; }); }
-      const page = Number(localStorage.getItem('bikes_page')||1); const totalPages = Math.max(1, Math.ceil(list.length / pageSize)); const currentPage = Math.min(page, totalPages); localStorage.setItem('bikes_page', currentPage); const start = (currentPage-1)*pageSize; const visible = list.slice(start, start+pageSize);
-      els.tbody.innerHTML=''; visible.forEach((r,i)=>{ const idx=start+i; const tr=document.createElement('tr'); tr.innerHTML=`<td>${escapeHtml(r.no)}</td><td>${escapeHtml(r.owner)}</td><td>${formatNum(r.purchasePrice)}</td><td>${formatNum(r.repairCost)}</td><td>${formatNum(r.sellingPrice)}</td><td>${formatNum(r.netProfit)}</td><td>${r.datePurchase||''}</td><td>${r.dateSelling||''}</td>`; tr.addEventListener('click',()=>selectRow(idx,tr)); if(idx===selectedIndex) tr.classList.add('selected'); els.tbody.appendChild(tr); }); renderStats(list); renderPagination(currentPage, totalPages); }
+  function undo() {
+    if(APP.undoStack.length===0){ showToast('Nothing to undo'); return; }
+    APP.redoStack.push(JSON.stringify(APP.items));
+    const prev = APP.undoStack.pop();
+    try {
+      const arr = JSON.parse(prev);
+      // replace DB contents with arr
+      (async ()=>{
+        // clear store
+        const db = await openDb();
+        const tx = db.transaction(DB_STORE,'readwrite');
+        tx.objectStore(DB_STORE).clear();
+        tx.oncomplete = async ()=>{
+          for(const r of arr) await idbPut(DB_STORE, r);
+          await loadAllToMemory(); renderAll(); showToast('Undo applied');
+        };
+      })();
+    } catch(e){ console.error(e); showToast('Undo failed'); }
+  }
 
-    function renderStats(list){ const totalPurchase = round2(list.reduce((s,r)=>s+(Number(r.purchasePrice)||0),0)); const totalRepair = round2(list.reduce((s,r)=>s+(Number(r.repairCost)||0),0)); const totalSelling = round2(list.reduce((s,r)=>s+(Number(r.sellingPrice)||0),0)); const totalNet = round2(list.reduce((s,r)=>s+(Number(r.netProfit)||0),0)); els.stats.innerHTML=`<div class="stat"><div class="muted">Records</div><div><strong>${list.length}</strong></div></div><div class="stat"><div class="muted">Total Purchase</div><div>₹ ${formatNum(totalPurchase)}</div></div><div class="stat"><div class="muted">Total Repair</div><div>₹ ${formatNum(totalRepair)}</div></div><div class="stat"><div class="muted">Total Selling</div><div>₹ ${formatNum(totalSelling)}</div></div><div class="stat"><div class="muted">Net Profit</div><div>₹ ${formatNum(totalNet)}</div></div>`; }
+  function redo(){ if(APP.redoStack.length===0){ showToast('Nothing to redo'); return; } const next = APP.redoStack.pop(); try{ const arr=JSON.parse(next); (async ()=>{ const db=await openDb(); const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).clear(); tx.oncomplete=async ()=>{ for(const r of arr) await idbPut(DB_STORE,r); await loadAllToMemory(); renderAll(); showToast('Redo applied'); }; })(); }catch(e){showToast('Redo failed')} }
 
-    function renderPagination(current, total){ els.pagination.innerHTML=''; const make=(t,disabled)=>{ const b=document.createElement('button'); b.textContent=t; b.className='small ghost'; if(disabled) b.disabled=true; return b; };
-      const prev = make('Prev', current<=1); prev.addEventListener('click',()=>{ localStorage.setItem('bikes_page', Math.max(1,current-1)); render(); }); els.pagination.appendChild(prev);
-      const info=document.createElement('div'); info.textContent=`Page ${current} / ${total}`; info.className='muted'; els.pagination.appendChild(info);
-      const next = make('Next', current>=total); next.addEventListener('click',()=>{ localStorage.setItem('bikes_page', Math.min(total,current+1)); render(); }); els.pagination.appendChild(next);
+  /* ===============================
+     CORE VALIDATION & COMPUTE
+     =============================== */
+  function isValidPlate(s){
+    if(!s) return false;
+    const t = s.replace(/\s+/g,'').toUpperCase();
+    if(t.length<4) return false;
+    if(!/^[A-Z]{2}\d{2}[A-Z]{0,2}\d{1,4}$/.test(t) && !/^[A-Z0-9\- ]+$/.test(t)) {
+      // fallback: accept alnum if looks ok
+      return t.length>=4;
+    }
+    return true;
+  }
+  function computeNetFromFields(p, r, s){ return round2((Number(s)||0) - ((Number(p)||0) + (Number(r)||0))); }
+
+  /* ===============================
+     UI RENDERING: LIST & DASHBOARD
+     =============================== */
+  function applyFilters(items) {
+    const q = (el('q').value||'').trim().toLowerCase();
+    let out = items.slice();
+    if(q) {
+      out = out.filter(it => {
+        return (it.no||'').toLowerCase().includes(q) ||
+               (it.owner||'').toLowerCase().includes(q) ||
+               (it.notes||'').toLowerCase().includes(q);
+      });
+    }
+    // other filters could be applied here (profit range, date range)
+    return out;
+  }
+
+  function applySort(items) {
+    const s = APP.sort;
+    const k = s.key;
+    const dir = Number(s.dir);
+    if(!k) return items;
+    return items.sort((a,b)=>{
+      let va = a[k], vb = b[k];
+      if(typeof va === 'string') va = va.toLowerCase();
+      if(typeof vb === 'string') vb = vb.toLowerCase();
+      if(va === vb) return 0;
+      if(va==null) return 1;
+      if(vb==null) return -1;
+      return (va > vb ? 1 : -1) * dir;
+    });
+  }
+
+  function paginate(items) {
+    const p = APP.page || 1;
+    const ps = APP.pageSize || DEFAULT_PAGE_SIZE;
+    const total = Math.max(1, Math.ceil(items.length / ps));
+    APP.page = clamp(p, 1, total);
+    const start = (APP.page-1) * ps;
+    return { pageItems: items.slice(start, start+ps), totalPages: total };
+  }
+
+  function renderList() {
+    const container = el('list');
+    container.innerHTML = '';
+    let items = applyFilters(APP.items);
+    items = applySort(items);
+    const { pageItems, totalPages } = paginate(items);
+
+    for(const item of pageItems) {
+      const li = document.createElement('div');
+      li.className = 'list-item';
+      li.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <div style="font-weight:800">${escapeHtml(item.no)}</div>
+            <div class="small-muted">${escapeHtml(item.owner)}</div>
+            <div class="badge">${item.sold ? 'SOLD' : 'UNSOLD'}</div>
+          </div>
+          <div class="meta">${CURRENCY} ${Number(item.sellingPrice||0).toLocaleString()} • Net ${CURRENCY} ${Number(item.netProfit||0).toLocaleString()}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+          <div class="muted small">${item.datePurchase||''} ${item.dateSelling?('→ '+item.dateSelling):''}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-ghost small" data-id="${item.id}" onclick="openEditFromList(event)">Edit</button>
+            <button class="btn-ghost small" data-id="${item.id}" onclick="quickDuplicate(event)">Copy</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(li);
     }
 
-    function downloadCSV(filename=CSV_FILENAME){ if(db.length===0) return alert('Nothing to export'); const header = ['no','owner','purchasePrice','repairCost','sellingPrice','netProfit','datePurchase','dateSelling'].join(',') + '\n'; const rows = db.map(r=> [r.no,r.owner,r.purchasePrice,r.repairCost,r.sellingPrice,r.netProfit,r.datePurchase||'',r.dateSelling||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n'); const blob = new Blob([header+rows],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); }
+    el('listSummary').textContent = `Showing ${items.length} records (${pageItems.length} on this page)`;
+    el('pageInfo').textContent = `${APP.page} / ${totalPages}`;
+    renderDashboardMetrics(items);
+  }
 
-    function downloadExcel(filename='bikes_export.xlsx'){ if(db.length===0) return alert('Nothing to export'); const ws = XLSX.utils.json_to_sheet(db); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Bikes'); XLSX.writeFile(wb, filename); }
+  function renderDashboardMetrics(filteredItems) {
+    // compute totals
+    const totalPurchase = filteredItems.reduce((s,i)=>s+Number(i.purchasePrice||0),0);
+    const totalRepair = filteredItems.reduce((s,i)=>s+Number(i.repairCost||0),0);
+    const totalSelling = filteredItems.reduce((s,i)=>s+Number(i.sellingPrice||0),0);
+    const totalNet = filteredItems.reduce((s,i)=>s+Number(i.netProfit||0),0);
+    el('totalCount').textContent = filteredItems.length;
+    el('unsoldCount').textContent = filteredItems.filter(i=>!i.sold).length;
+    // animated profit counter
+    animateCounter(el('animatedProfit'), totalNet);
+    // insights
+    const avgMargin = filteredItems.length ? Math.round((totalNet / Math.max(1, totalSelling)) * 100) : 0;
+    el('insightsText').textContent = `Avg margin ${avgMargin}% • Avg profit ${fmtMoney(filteredItems.length ? (totalNet/filteredItems.length) : 0)}`;
+    // charts
+    updateCharts(filteredItems);
+    // top 5
+    const top5 = filteredItems.slice().sort((a,b)=>b.netProfit - a.netProfit).slice(0,5);
+    const top5El = el('top5'); top5El.innerHTML = '';
+    top5.forEach(t=>{
+      const li = document.createElement('li'); li.style.marginBottom='8px';
+      li.innerHTML = `<div style="display:flex;justify-content:space-between"><div>${escapeHtml(t.no)} • ${escapeHtml(t.owner)}</div><div style="font-weight:800">${fmtMoney(t.netProfit)}</div></div>`;
+      top5El.appendChild(li);
+    });
+  }
 
-    function importCSVText(text){ const lines = text.split('\n').map(l=>l.trim()).filter(Boolean); if(lines.length===0) return; const headers = lines[0].split(',').map(h=>h.replace(/^\"|\"$/g,'').trim()); const rows = lines.slice(1).map(l=>{ // naive split, supports quoted fields without commas inside
-        return l.split(',').map(c=>c.replace(/^\"|\"$/g,'').trim()); }); const imported = rows.map(r=>{ const obj={}; headers.forEach((h,i)=>obj[h]=r[i]||''); return { no:(obj.no||obj.No||'').toUpperCase(), owner:obj.owner||'', purchasePrice:Number(obj.purchasePrice||0), repairCost:Number(obj.repairCost||0), sellingPrice:Number(obj.sellingPrice||0), netProfit:round2(Number(obj.netProfit)|| (Number(obj.sellingPrice||0) - (Number(obj.purchasePrice||0)+Number(obj.repairCost||0)))), datePurchase:obj.datePurchase||'', dateSelling:obj.dateSelling||'' }; }); let added=0,replaced=0,skipped=0; imported.forEach(rec=>{ const idx=db.findIndex(r=>r.no===rec.no); if(idx>=0){ const keep = confirm('Record for '+rec.no+' exists. OK to replace? (Cancel to skip)'); if(keep){ pushUndo(); db[idx]=rec; replaced++; } else skipped++; } else { pushUndo(); db.push(rec); added++; } }); saveLocal(); alert('Imported: ' + imported.length + ' (added ' + added + ', replaced ' + replaced + ', skipped ' + skipped + ')'); }
+  // simple numeric animation
+  let _animTicker = null;
+  function animateCounter(dom, target) {
+    const curText = dom.getAttribute('data-val') || '0';
+    const cur = Number(curText)||0;
+    const t = Number(target)||0;
+    dom.setAttribute('data-val', String(t));
+    if(_animTicker) return; // single global short circuit (keeps it simple)
+    const steps = 24; let c = 0;
+    const from = cur; const delta = t - from;
+    _animTicker = setInterval(()=>{
+      c++;
+      const val = Math.round((from + (delta*(c/steps))) * 100)/100;
+      dom.textContent = (val<0?'-':'') + fmtMoney(Math.abs(val)).replace(CURRENCY,'').trim();
+      if(c>=steps) { clearInterval(_animTicker); _animTicker = null; dom.textContent = fmtMoney(t); }
+    }, 18);
+  }
 
-    els.btnImport.addEventListener('click',()=>els.fileInput.click()); els.fileInput.addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; const rdr=new FileReader(); rdr.onload=()=>importCSVText(rdr.result); rdr.readAsText(f); els.fileInput.value=''; });
+  /* ===============================
+     CHARTS (Chart.js usage)
+     =============================== */
+  let chartMonthly, chartDist, chartSold;
+  function initCharts() {
+    const ctxM = el('chartMonthly').getContext('2d');
+    const ctxD = el('chartDist').getContext('2d');
+    const ctxS = el('chartSold').getContext('2d');
+    chartMonthly = new Chart(ctxM, { type:'line', data:{ labels:[], datasets:[{ label:'Net', data:[], tension:0.3, fill:true, backgroundColor:'rgba(0,208,255,0.12)', borderColor:ACCENT_FROM }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ x:{ display:true }, y:{ display:true } } } });
+    chartDist = new Chart(ctxD, { type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor: [ACCENT_FROM, ACCENT_TO, '#7C3AED', '#FB923C'] }] }, options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } } });
+    chartSold = new Chart(ctxS, { type:'pie', data:{ labels:['Unsold','Sold'], datasets:[{ data:[1,1], backgroundColor:[ACCENT_FROM, ACCENT_TO] }] }, options:{ responsive:true } });
+  }
 
-    ['dragenter','dragover'].forEach(ev=>els.dropZone.addEventListener(ev,e=>{ e.preventDefault(); e.stopPropagation(); els.dropZone.style.borderColor='rgba(0,208,255,0.6)'; })); ['dragleave','drop'].forEach(ev=>els.dropZone.addEventListener(ev,e=>{ e.preventDefault(); e.stopPropagation(); els.dropZone.style.borderColor=''; })); els.dropZone.addEventListener('drop', e=>{ const f = e.dataTransfer.files[0]; if(f){ const rdr=new FileReader(); rdr.onload=()=>importCSVText(rdr.result); rdr.readAsText(f); } });
+  function updateCharts(items) {
+    // monthly profit: aggregate by month of purchase or selling if sold
+    const map = {};
+    items.forEach(it=>{
+      const d = (it.dateSelling || it.datePurchase || '').slice(0,7) || 'Unknown';
+      map[d] = (map[d]||0) + Number(it.netProfit||0);
+    });
+    const labels = Object.keys(map).sort();
+    const values = labels.map(l=>round2(map[l]));
+    if(chartMonthly){ chartMonthly.data.labels = labels; chartMonthly.data.datasets[0].data = values; chartMonthly.update(); }
 
-    async function copyCSVToClipboard(){ if(db.length===0) return alert('Nothing to copy'); const header = ['no','owner','purchasePrice','repairCost','sellingPrice','netProfit','datePurchase','dateSelling'].join(',') + '\n'; const rows = db.map(r=> [r.no,r.owner,r.purchasePrice,r.repairCost,r.sellingPrice,r.netProfit,r.datePurchase||'',r.dateSelling||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n'); try{ await navigator.clipboard.writeText(header+rows); alert('CSV copied to clipboard'); }catch(e){ alert('Unable to copy. Use Export CSV button.'); } }
+    // profit distribution: buckets
+    const buckets = {'<0':0,'0-999':0,'1k-4.9k':0,'5k-9.9k':0,'10k+':0};
+    items.forEach(i=>{
+      const n = Number(i.netProfit||0);
+      if(n<0) buckets['<0']++;
+      else if(n<1000) buckets['0-999']++;
+      else if(n<5000) buckets['1k-4.9k']++;
+      else if(n<10000) buckets['5k-9.9k']++;
+      else buckets['10k+']++;
+    });
+    if(chartDist){ chartDist.data.labels = Object.keys(buckets); chartDist.data.datasets[0].data = Object.values(buckets); chartDist.update(); }
 
-    async function githubLoad(owner, repo, path = CSV_FILENAME, branch='main', token){ const url = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + encodeURIComponent(path) + '?ref=' + encodeURIComponent(branch); const r = await fetch(url, { headers: { Authorization:'token ' + token, Accept:'application/vnd.github.v3+json' } }); if(r.status===404) return null; if(!r.ok) throw new Error('Failed to read file: ' + r.statusText); const j = await r.json(); const text = atob(j.content.replace(/\n/g,'')); return {sha:j.sha, text}; }
+    // sold vs unsold
+    const sold = items.filter(i=>i.sold).length;
+    const unsold = items.length - sold;
+    if(chartSold){ chartSold.data.datasets[0].data = [unsold||0,sold||0]; chartSold.update(); }
+  }
 
-    async function githubSave(owner, repo, path, branch='main', token, contentText, sha=null, message='Update bikes CSV from Bike Manager'){ const url = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + encodeURIComponent(path); const body = { message: message, content: btoa(unescape(encodeURIComponent(contentText))), branch: branch }; if(sha) body.sha = sha; const r = await fetch(url, { method:'PUT', headers:{ Authorization:'token ' + token, Accept:'application/vnd.github.v3+json' }, body: JSON.stringify(body)}); if(!r.ok) throw new Error('Failed to save: ' + (await r.text())); return await r.json(); }
+  /* ===============================
+     IMPORT / EXPORT / BACKUP
+     =============================== */
+  function csvEscapeCell(v){ return `"${String(v||'').replace(/"/g,'""')}"`; }
+  async function exportCSV(filename='bikes_export.csv') {
+    const items = APP.items.slice();
+    if(items.length===0){ showToast('Nothing to export'); return; }
+    const header = ['id','no','owner','purchasePrice','repairCost','sellingPrice','netProfit','datePurchase','dateSelling','sold','notes','_updatedAt','_createdAt'];
+    const rows = items.map(it => header.map(h => csvEscapeCell(it[h])).join(',')).join('\n');
+    const blob = new Blob([header.join(',') + '\n' + rows], { type:'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+    showToast('CSV exported');
+  }
+  async function exportJSON(filename='bikes_export.json') {
+    const blob = new Blob([JSON.stringify(APP.items,null,2)], { type:'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+    showToast('JSON exported');
+  }
 
-    async function handleGitHubSync(){ const owner = prompt('GitHub owner (username or org)'); if(!owner) return; const repo = prompt('Repository name'); if(!repo) return; const path = prompt('Path in repo to save CSV', CSV_FILENAME); if(!path) return; const branch = prompt('Branch', 'main') || 'main'; const token = prompt('Personal access token (min: repo contents access) — keep this secret'); if(!token) return; try{ const existing = await githubLoad(owner, repo, path, branch, token); if(existing){ if(!confirm('Found existing CSV in repo. Replace it with current local data? (Cancel to merge by appending)')){ importCSVText(existing.text); alert('Merged remote file into local DB. You can now press Sync again to push merged file.'); return; } }
-        const header = ['no','owner','purchasePrice','repairCost','sellingPrice','netProfit','datePurchase','dateSelling'].join(',') + '\n'; const rows = db.map(r=> [r.no,r.owner,r.purchasePrice,r.repairCost,r.sellingPrice,r.netProfit,r.datePurchase||'',r.dateSelling||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n'); const content = header + rows; const res = await githubSave(owner, repo, path, branch, token, content, existing && existing.sha, 'Update bikes DB via app'); alert('Saved to GitHub: ' + res.content.path); }catch(e){ alert('GitHub sync failed: ' + e.message); } }
+  async function importFromText(text, opts={confirmReplace:true}) {
+    // naive CSV parser for exported format above OR JSON
+    if(!text) return;
+    // detect JSON
+    if(text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      try {
+        const arr = JSON.parse(text);
+        if(Array.isArray(arr)) {
+          // confirm replace?
+          if(opts.confirmReplace && !confirm('Importing JSON will MERGE with local data. Continue?')) return;
+          for(const r of arr) {
+            const rec = normalizeImportedRecord(r);
+            // if duplicate id or plate exists, create new id to avoid collision
+            const exists = APP.items.find(i=>i.no === rec.no);
+            if(exists) {
+              rec.id = rec.no + '_' + uid(4);
+            }
+            await idbPut(DB_STORE,rec);
+          }
+          await loadAllToMemory(); renderAll(); showToast('JSON imported');
+        }
+      } catch(e){ showToast('JSON parse failed') }
+      return;
+    }
 
-    function insertSample(){ pushUndo(); const sample = [ {no:'GJ05AB1234', owner:'Ravi Kumar', purchasePrice:25000, repairCost:1500, sellingPrice:32000, netProfit:round2(32000-(25000+1500)), datePurchase:'2024-08-01', dateSelling:''}, {no:'MH12CD4321', owner:'Sita Devi', purchasePrice:18000, repairCost:2000, sellingPrice:24000, netProfit:round2(24000-(18000+2000)), datePurchase:'2024-09-10', dateSelling:''} ]; sample.forEach(s=> db.push(s)); saveLocal(); }
+    // CSV parse (very tolerant)
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if(lines.length<2) return showToast('No CSV rows found');
+    const headers = lines.shift().split(',').map(h => h.replace(/^"|"$/g,'').trim());
+    for(const ln of lines) {
+      // simple regex to split quoted CSVs (handles cells with commas)
+      const cells = ln.match(/("([^"]|"")*"|[^,]+)/g).map(c => c.replace(/^"|"$/g,'').replace(/""/g,'"'));
+      const obj = {};
+      headers.forEach((h,i)=> obj[h]=cells[i]||'');
+      const rec = normalizeImportedRecord(obj);
+      const conflict = APP.items.find(i=>i.no === rec.no);
+      if(conflict) {
+        // ask to replace
+        if(opts.confirmReplace) {
+          const keep = confirm(`Record with plate ${rec.no} already exists. Replace? OK = replace, Cancel = keep both.`);
+          if(keep) {
+            // replace existing
+            rec.id = conflict.id;
+          } else {
+            rec.id = rec.no + '_' + uid(5);
+          }
+        } else {
+          rec.id = rec.no + '_' + uid(5);
+        }
+      }
+      await idbPut(DB_STORE,rec);
+    }
+    await loadAllToMemory(); renderAll(); showToast('CSV imported');
+  }
 
-    els.btnAdd.addEventListener('click', addRecord); els.btnSaveLocal.addEventListener('click', ()=>{ const rec=readForm(); if(!rec) return; pushUndo(); db.push(rec); saveLocal(); clearForm(); }); els.btnUpdate.addEventListener('click', updateRecord); els.btnDelete.addEventListener('click', deleteRecord); els.btnClear.addEventListener('click', ()=>{ if(confirm('Clear all data?')){ pushUndo(); db=[]; saveLocal(); clearForm(); }});
-    els.search.addEventListener('input', ()=>{ localStorage.setItem('bikes_search', els.search.value); render(); }); els.btnExportCSV.addEventListener('click', ()=>downloadCSV()); document.querySelector('#table thead').addEventListener('click', (e)=>{ const th = e.target.closest('th'); if(!th) return; const key = th.dataset.key; if(!key) return; if(sortState.key===key) sortState.dir *= -1; else { sortState.key=key; sortState.dir=1; } render(); }); els.btnSaveGithub.addEventListener('click', handleGitHubSync); els.btnUndo.addEventListener('click', undo); els.btnSample.addEventListener('click', insertSample); els.pageSize.addEventListener('change', ()=>{ localStorage.setItem('bikes_page_size', els.pageSize.value); render(); }); els.btnCopy.addEventListener('click', copyCSVToClipboard); els.btnPrint.addEventListener('click', ()=>{ window.print(); });
+  function normalizeImportedRecord(o){
+    const rec = {
+      id: o.id || ( (o.no? (o.no + '_' + uid(4)) : ('b_' + uid(8))) ),
+      no: (o.no||o.No||'').toString().toUpperCase(),
+      owner: o.owner || '',
+      purchasePrice: Number(o.purchasePrice||0),
+      repairCost: Number(o.repairCost||0),
+      sellingPrice: Number(o.sellingPrice||0),
+      netProfit: round2(Number(o.netProfit) || (Number(o.sellingPrice||0) - (Number(o.purchasePrice||0)+Number(o.repairCost||0)))),
+      datePurchase: o.datePurchase || '',
+      dateSelling: o.dateSelling || '',
+      notes: o.notes || '',
+      sold: (o.sold === true || o.sold === 'true' || (o.dateSelling && o.dateSelling.length>0)) ? true : false,
+      _createdAt: o._createdAt || nowISO(),
+      _updatedAt: nowISO()
+    };
+    return rec;
+  }
 
-    window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='i'){ e.preventDefault(); els.fileInput.click(); } if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='e'){ e.preventDefault(); downloadCSV(); } if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); saveLocal(); alert('Saved locally'); } });
+  /* ENCRYPTED BACKUP (Web Crypto AES-GCM) */
+  async function generateKeyFromPassword(pw, salt) {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name:'PBKDF2', salt: enc.encode(salt), iterations: 250000, hash:'SHA-256' }, baseKey, { name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
+    return key;
+  }
+  async function encryptBackup(password, json) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const salt = uid(12);
+    const key = await generateKeyFromPassword(password, salt);
+    const enc = new TextEncoder();
+    const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, enc.encode(json));
+    const combined = new Uint8Array(ct.byteLength + iv.byteLength);
+    combined.set(iv, 0); combined.set(new Uint8Array(ct), iv.byteLength);
+    // encode as base64 along with salt
+    const b64 = btoa(String.fromCharCode(...combined));
+    return { salt, data: b64 };
+  }
+  async function decryptBackup(password, salt, b64) {
+    const combined = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+    const iv = combined.slice(0,12);
+    const ct = combined.slice(12);
+    const key = await generateKeyFromPassword(password, salt);
+    const plain = await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct);
+    const dec = new TextDecoder().decode(plain);
+    return dec;
+  }
 
-    (function init(){ els.search.value = localStorage.getItem('bikes_search')||''; els.pageSize.value = localStorage.getItem('bikes_page_size')||'10'; load(); })();
+  async function backupNow() {
+    const items = await idbGetAll(DB_STORE);
+    const json = JSON.stringify({ meta:{v:APP_VERSION, at:nowISO()}, items }, null, 2);
+    // prompt for password for encryption
+    const pw = prompt('Enter a password to encrypt backup (leave blank to download unencrypted)');
+    if(pw) {
+      const { salt, data } = await encryptBackup(pw, json);
+      const payload = JSON.stringify({ salt, data });
+      const blob = new Blob([payload], { type:'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `bike_backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.encrypted.json`; a.click();
+      showToast('Encrypted backup downloaded');
+    } else {
+      const blob = new Blob([json], { type:'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `bike_backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`; a.click();
+      showToast('Backup downloaded');
+    }
+  }
+
+  /* ===============================
+     GIST SYNC MANAGER (public read; write with token)
+     =============================== */
+  async function fetchGist(gistId) {
+    // fetch gist metadata & files (public)
+    const url = `https://api.github.com/gists/${gistId}`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error(`Gist fetch failed: ${r.status}`);
+    return await r.json();
+  }
+  async function pushGist(gistId, token, filename, content, description='Bike Manager CSV backup') {
+    // if gistId provided, update existing gist (requires token & gist scope)
+    // else create new gist (requires token)
+    const baseUrl = gistId ? `https://api.github.com/gists/${gistId}` : `https://api.github.com/gists`;
+    const body = gistId ? { files: { [filename]: { content } }, description } : { files: { [filename]: { content } }, public: true, description };
+    const r = await fetch(baseUrl, { method: gistId ? 'PATCH' : 'POST', headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }, body: JSON.stringify(body) });
+    if(!r.ok) {
+      const txt = await r.text();
+      throw new Error(`Gist push failed: ${r.status} ${txt}`);
+    }
+    const j = await r.json();
+    return j;
+  }
+
+  async function syncNow() {
+    if(syncState.syncing) return showToast('Already syncing…');
+    syncState.syncing = true; updateSyncUI();
+    try {
+      if(!gistConfig.id) { showToast('No Gist ID configured — enter it in Settings'); syncState.syncing=false; updateSyncUI(); return; }
+      // 1) fetch gist contents
+      const gist = await fetchGist(gistConfig.id);
+      // pick first CSV-like file, or the one named bikes.csv
+      let file = null;
+      if(gist.files['bikes_db.csv']) file = gist.files['bikes_db.csv'];
+      else {
+        for(const k in gist.files){ if(gist.files[k].filename.toLowerCase().includes('bike')) { file = gist.files[k]; break; } }
+      }
+      if(!file) { showToast('No suitable file in gist'); syncState.syncing=false; updateSyncUI(); return; }
+      const csvText = file.content;
+      // parse gist csv -> records (merge by no using _updatedAt)
+      const remoteRecs = parseCsvToRecords(csvText);
+      // build map by plate or id
+      const remoteMap = new Map(remoteRecs.map(r=>[r.no, r]));
+      const local = await idbGetAll(DB_STORE);
+      const localMap = new Map(local.map(r=>[r.no, r]));
+
+      // merge strategy: compare _updatedAt (ISO) — higher wins. If conflict similar, mark for manual preview.
+      const merged = [];
+      const conflicts = [];
+      const allKeys = new Set([...localMap.keys(), ...remoteMap.keys()]);
+      for(const key of allKeys) {
+        const localRec = localMap.get(key);
+        const remoteRec = remoteMap.get(key);
+        if(localRec && remoteRec) {
+          const lt = new Date(localRec._updatedAt || 0).getTime();
+          const rt = new Date(remoteRec._updatedAt || 0).getTime();
+          if(Math.abs(lt-rt) < 1000) {
+            // near same time -> prefer local but keep remote meta
+            merged.push({...remoteRec, id: localRec.id, _updatedAt: localRec._updatedAt});
+          } else if(lt > rt) {
+            merged.push(localRec);
+          } else {
+            merged.push({...remoteRec, id: localRec.id || ('b_' + uid(6))});
+          }
+        } else if(localRec) merged.push(localRec);
+        else if(remoteRec) merged.push({...remoteRec, id: remoteRec.id || ('b_' + uid(6))});
+      }
+
+      // write merged back into DB
+      // clear and write merged set
+      const dbInstance = await openDb();
+      await new Promise((res,rej)=>{
+        const tx = dbInstance.transaction(DB_STORE,'readwrite');
+        const store = tx.objectStore(DB_STORE);
+        store.clear();
+        tx.oncomplete = async ()=>res(true);
+        tx.onerror = e=>rej(e);
+      });
+      for(const r of merged) await idbPut(DB_STORE, r);
+      await loadAllToMemory();
+      // push merged to gist if token available (update)
+      if(gistConfig.token) {
+        // create CSV text from merged
+        const header = ['id','no','owner','purchasePrice','repairCost','sellingPrice','netProfit','datePurchase','dateSelling','sold','notes','_updatedAt','_createdAt'];
+        const rows = merged.map(it => header.map(h => (it[h] === undefined ? '' : String(it[h]).replace(/"/g,'""'))).map(csvEscapeCell).join(',')).join('\n');
+        const csv = header.join(',') + '\n' + rows;
+        try {
+          await pushGist(gistConfig.id, gistConfig.token, 'bikes_db.csv', csv, 'Bike Manager sync ' + new Date().toISOString());
+          showToast('Synced with Gist ✓');
+        } catch(e) {
+          console.warn('Push to gist failed', e);
+          showToast('Merged locally. Push to Gist failed (check token)');
+        }
+      } else {
+        showToast('Merged remote into local (no token to push back)');
+      }
+      syncState.lastSync = nowISO(); syncState.syncing=false; syncState.status='online';
+      updateSyncUI();
+      renderAll();
+    } catch(err) {
+      console.error(err);
+      showToast('Sync failed: ' + (err.message || err));
+      syncState.syncing=false;
+      syncState.status='offline';
+      updateSyncUI();
+    }
+  }
+
+  function parseCsvToRecords(csvText) {
+    // very tolerant CSV parse for our exported format
+    const lines = csvText.split(/\r?\n/).filter(Boolean);
+    if(lines.length===0) return [];
+    const headers = lines.shift().split(',').map(h=>h.replace(/^"|"$/g,'').trim());
+    const out = [];
+    for(const ln of lines) {
+      const cells = ln.match(/("([^"]|"")*"|[^,]+)/g)?.map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"')) || [];
+      const o = {};
+      headers.forEach((h,i)=> o[h] = (cells[i] !== undefined ? cells[i] : ''));
+      out.push(normalizeImportedRecord(o));
+    }
+    return out;
+  }
+
+  /* ===============================
+     UI EVENTS & INTERACTIONS
+     =============================== */
+  function registerUI() {
+    // search
+    el('q').addEventListener('input', debounce(()=>{ APP.page=1; renderList(); }, 180));
+    el('clearSearch').addEventListener('click', ()=>{ el('q').value=''; renderList(); });
+
+    // paging
+    el('prevPage').addEventListener('click', ()=>{ APP.page = Math.max(1, APP.page-1); renderList(); });
+    el('nextPage').addEventListener('click', ()=>{ APP.page = APP.page + 1; renderList(); });
+
+    // sort
+    el('sortKey').addEventListener('change', (e)=>{ APP.sort.key = e.target.value; renderList(); });
+    el('sortDir').addEventListener('change', (e)=>{ APP.sort.dir = Number(e.target.value); renderList(); });
+
+    // add quick
+    el('addQuick').addEventListener('click', ()=>openEdit({id:null}));
+
+    // open edit & settings
+    el('openSettings').addEventListener('click', ()=>{ el('settings').style.display = 'block'; el('settings').focus(); loadSettingsUI(); });
+    el('closeSettings').addEventListener('click', ()=>{ el('settings').style.display='none'; saveSettingsUI(); });
+    el('closeEdit').addEventListener('click', ()=>{ el('editPanel').style.display='none'; });
+
+    // form live net compute
+    ['f_purchase','f_repair','f_selling'].forEach(id => el(id).addEventListener('input', ()=> {
+      const n = computeNetFromFields(el('f_purchase').value, el('f_repair').value, el('f_selling').value);
+      el('liveNet').textContent = fmtMoney(n);
+    }));
+
+    // save buttons
+    el('saveBtn').addEventListener('click', async ()=>{
+      const rec = gatherForm();
+      if(!rec) return;
+      await saveItem(rec, true);
+      el('editPanel').style.display='none';
+      haptic('light'); showToast('Saved locally ✓');
+    });
+    el('saveNewBtn').addEventListener('click', async ()=>{
+      const rec = gatherForm();
+      if(!rec) return;
+      await saveItem(rec, true);
+      clearFormInputs(); el('f_no').focus();
+      haptic('light'); showToast('Saved ✓ — add next');
+    });
+    el('deleteBtn').addEventListener('click', async ()=>{
+      const id = el('f_id')?.value || null;
+      if(!id) { showToast('Select an existing record to delete'); return; }
+      if(confirm('Delete this record?')) {
+        await deleteItemById(id);
+        el('editPanel').style.display='none';
+        showToast('Deleted ✓'); haptic('medium');
+      }
+    });
+
+    // import/export buttons
+    el('importBtn').addEventListener('click', ()=> el('fileInput').click());
+    el('fileInput').addEventListener('change', async (ev)=>{
+      const f = ev.target.files[0]; if(!f) return;
+      const text = await f.text();
+      await importFromText(text, {confirmReplace:true});
+      el('fileInput').value='';
+    });
+    el('exportBtn').addEventListener('click', ()=> {
+      const which = prompt('Export as: csv / json', 'csv');
+      if(which && which.toLowerCase().startsWith('j')) exportJSON();
+      else exportCSV();
+    });
+
+    el('syncNow').addEventListener('click', async ()=>{
+      // ask to store gist config if not set
+      const id = gistConfig.id || el('gistId').value || null;
+      const token = gistConfig.token || el('gistToken').value || null;
+      if(id) gistConfig.id = id;
+      if(token) gistConfig.token = token;
+      await saveMeta('gistConfig', gistConfig);
+      syncNow();
+    });
+
+    el('backupNow').addEventListener('click', backupNow);
+
+    // test gist
+    el('testGist').addEventListener('click', async ()=>{
+      const gid = el('gistId').value.trim();
+      const tok = el('gistToken').value.trim();
+      if(!gid) return showToast('Enter Gist ID first');
+      try {
+        const gist = await fetchGist(gid);
+        el('gistLabel').textContent = 'Gist: ' + (gist.description || gist.id);
+        showToast('Gist reachable ✓');
+      } catch(e){ showToast('Gist fetch failed'); }
+    });
+    el('createGist').addEventListener('click', async ()=>{
+      const tok = prompt('Paste GitHub token with gist scope to create a public gist (it will be saved locally)');
+      if(!tok) return;
+      // create small file
+      const sample = 'id,no,owner,purchasePrice,repairCost,sellingPrice,netProfit,datePurchase,dateSelling,sold,notes,_updatedAt,_createdAt\n';
+      try {
+        const res = await pushGist(null, tok, 'bikes_db.csv', sample, 'Bike Manager new gist');
+        gistConfig.id = res.id; gistConfig.token = tok;
+        await saveMeta('gistConfig', gistConfig);
+        el('gistId').value = gistConfig.id; el('gistToken').value = gistConfig.token;
+        el('gistLabel').textContent = 'Gist: ' + gistConfig.id;
+        showToast('Created Gist ' + gistConfig.id);
+      } catch(e){ showToast('Create gist failed'); }
+    });
+
+    // export/import backups in settings
+    el('exportAll').addEventListener('click', backupNow);
+    el('importAll').addEventListener('click', async ()=>{
+      const f = await pickFile(); if(!f) return;
+      const text = await f.text();
+      // detect encrypted
+      try {
+        const parsed = JSON.parse(text);
+        if(parsed.salt && parsed.data) {
+          const pw = prompt('Enter password to decrypt backup');
+          if(!pw) return;
+          try {
+            const dec = await decryptBackup(pw, parsed.salt, parsed.data);
+            const obj = JSON.parse(dec);
+            if(obj.items) {
+              if(confirm('Restore backup? This will merge with current data. OK to continue?')) {
+                for(const r of obj.items) await idbPut(DB_STORE, r);
+                await loadAllToMemory(); renderAll(); showToast('Restored');
+              }
+            }
+          } catch(e){ showToast('Decryption failed'); }
+        } else {
+          // plain backup
+          const obj = JSON.parse(text);
+          if(confirm('Restore backup? This will merge with current data. OK?')) {
+            for(const r of obj.items) await idbPut(DB_STORE, r);
+            await loadAllToMemory(); renderAll(); showToast('Restored');
+          }
+        }
+      } catch(e){ showToast('Backup read failed'); }
+    });
+
+    // reset all data
+    el('clearData').addEventListener('click', async ()=>{
+      if(!confirm('Reset all app data? This cannot be undone.')) return;
+      const db = await openDb();
+      const tx = db.transaction(DB_STORE, 'readwrite'); tx.objectStore(DB_STORE).clear();
+      const tx2 = db.transaction(META_STORE, 'readwrite'); tx2.objectStore(META_STORE).clear();
+      showToast('All data cleared'); await loadAllToMemory(); renderAll();
+    });
+
+    // undo/redo via keyboard (desktop)
+    window.addEventListener('keydown', (e)=>{
+      if((e.ctrlKey||e.metaKey) && e.key==='z') undo();
+      if((e.ctrlKey||e.metaKey) && (e.key==='y' || (e.shiftKey && e.key==='Z'))) redo();
+    });
+
+    // service worker update check
+    navigator.serviceWorker?.addEventListener('message', (ev)=>{
+      if(ev.data && ev.data.type === 'SW_UPDATE') {
+        if(confirm('New version available. Refresh now?')) location.reload();
+      }
+    });
+
+    // sync status UI
+    updateSyncUI();
+  }
+
+  /* helper: pick file using input */
+  function pickFile() {
+    return new Promise((resolve)=>{
+      const input = document.createElement('input'); input.type='file'; input.accept='.json,.encrypted.json';
+      input.onchange = ()=> {
+        resolve(input.files[0]);
+      };
+      input.click();
+    });
+  }
+
+  /* utility to escape html for output */
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[c])); }
+
+  /* open edit panel */
+  async function openEdit(data) {
+    // data may be null (new) or object with id
+    const panel = el('editPanel');
+    panel.style.display = 'block';
+    if(data && data.id) {
+      const item = APP.items.find(i=>i.id === data.id);
+      if(!item) { showToast('Item not found'); return; }
+      fillForm(item);
+    } else {
+      clearFormInputs();
+    }
+  }
+  window.openEditFromList = function openEditFromList(ev) {
+    ev.stopPropagation(); const id = ev.target.dataset.id; if(!id) return;
+    openEdit({id});
+    // fill by id
+    const item = APP.items.find(i=>i.id === id);
+    if(item) fillForm(item);
+  };
+  window.quickDuplicate = async function quickDuplicate(ev) {
+    ev.stopPropagation();
+    const id = ev.target.dataset.id;
+    const item = APP.items.find(i=>i.id===id);
+    if(!item) return;
+    const copy = {...item, id: item.no + '_' + uid(5), no: item.no + '_COPY', _createdAt: nowISO(), _updatedAt: nowISO()};
+    await idbPut(DB_STORE, copy);
+    await loadAllToMemory(); renderAll();
+    showToast('Copied record');
+  };
+
+  function fillForm(item) {
+    // create hidden id field if not present
+    if(!el('f_id')) {
+      const f = document.createElement('input'); f.type='hidden'; f.id='f_id'; document.getElementById('form').prepend(f);
+    }
+    el('f_id').value = item.id;
+    el('f_no').value = item.no;
+    el('f_owner').value = item.owner;
+    el('f_purchase').value = item.purchasePrice||0;
+    el('f_repair').value = item.repairCost||0;
+    el('f_selling').value = item.sellingPrice||0;
+    el('f_notes').value = item.notes||'';
+    el('f_datePurchase').value = item.datePurchase||'';
+    el('f_dateSelling').value = item.dateSelling||'';
+    el('f_sold').value = item.sold ? 'yes' : 'no';
+    el('liveNet').textContent = fmtMoney(item.netProfit||0);
+  }
+  function clearFormInputs() {
+    if(el('f_id')) el('f_id').value = '';
+    el('f_no').value=''; el('f_owner').value=''; el('f_purchase').value=''; el('f_repair').value='0'; el('f_selling').value=''; el('f_notes').value=''; el('f_datePurchase').value=''; el('f_dateSelling').value=''; el('f_sold').value='no'; el('liveNet').textContent = fmtMoney(0);
+  }
+  function gatherForm() {
+    const no = (el('f_no').value||'').trim().toUpperCase();
+    if(!isValidPlate(no)) { alert('Enter a valid plate (e.g. GJ05AB1234)'); return null; }
+    const owner = (el('f_owner').value||'').trim();
+    if(!owner) { alert('Owner required'); return null; }
+    const purchase = Number(el('f_purchase').value)||0;
+    const repair = Number(el('f_repair').value)||0;
+    const selling = Number(el('f_selling').value)||0;
+    const net = computeNetFromFields(purchase, repair, selling);
+    const id = el('f_id')?.value || (no + '_' + uid(5));
+    const rec = {
+      id, no, owner, purchasePrice:purchase, repairCost:repair, sellingPrice:selling, netProfit:net,
+      datePurchase: el('f_datePurchase').value || '', dateSelling: el('f_dateSelling').value || '',
+      notes: el('f_notes').value || '', sold: el('f_sold').value === 'yes',
+      _updatedAt: nowISO(),
+      _createdAt: el('f_id')?.value ? (APP.items.find(i=>i.id===el('f_id').value)? APP.items.find(i=>i.id===el('f_id').value)._createdAt : nowISO()) : nowISO()
+    };
+    return rec;
+  }
+
+  /* ===============================
+     SETTINGS META
+     =============================== */
+  async function saveMeta(k, v) { await idbPut(META_STORE, { k, v }); if(k==='gistConfig') { gistConfig = v; el('gistLabel').textContent = 'Gist: ' + (v.id||'—'); } }
+  async function loadMeta(k) { const got = await idbGet(META_STORE, k); return got ? got.v : null; }
+  async function loadSettingsUI() {
+    const gc = await loadMeta('gistConfig'); if(gc) { gistConfig = gc; el('gistId').value = gc.id || ''; el('gistToken').value = gc.token || ''; el('gistLabel').textContent = 'Gist: '+(gc.id||'—'); }
+    const ai = await loadMeta('autoBackupInterval'); if(ai) el('autoBackupInterval').value = ai || '0';
+  }
+  async function saveSettingsUI() {
+    const id = el('gistId').value.trim(); const tok = el('gistToken').value.trim();
+    gistConfig.id = id || null; gistConfig.token = tok || null; await saveMeta('gistConfig', gistConfig);
+    await saveMeta('autoBackupInterval', el('autoBackupInterval').value);
+    showToast('Settings saved');
+  }
+
+  /* ===============================
+     SERVICE WORKER (DYNAMIC BLOB) & MANIFEST (BLOB)
+     =============================== */
+  async function registerSWandManifest() {
+    // create manifest
+    const manifest = {
+      name: "Bike Manager",
+      short_name: "Bikes",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#071026",
+      theme_color: "#00D0FF",
+      icons: [
+        { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle fill='%2300D0FF' cx='50' cy='50' r='50'/%3E%3Ctext x='50' y='58' font-size='48' text-anchor='middle' font-family='sans-serif' fill='%23071226'%3E🚲%3C/text%3E%3C/svg%3E", sizes:"192x192", type:"image/svg+xml" }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+    const manifestURL = URL.createObjectURL(manifestBlob);
+    const link = document.createElement('link'); link.rel='manifest'; link.href = manifestURL; document.head.appendChild(link);
+
+    // service worker code (as string)
+    const swCode = `
+      const CACHE_NAME = 'bike-manager-v3-cache-${APP_VERSION}';
+      const ASSETS = [
+        '/', location.pathname,
+        // try to cache Chart.js from CDN as well (best-effort)
+        'https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js'
+      ];
+      self.addEventListener('install', evt => {
+        self.skipWaiting();
+        evt.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS).catch(()=>{})));
+      });
+      self.addEventListener('activate', evt => {
+        evt.waitUntil(clients.claim());
+        evt.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));
+      });
+      self.addEventListener('fetch', evt => {
+        if(evt.request.method !== 'GET') return;
+        evt.respondWith(caches.match(evt.request).then(r => r || fetch(evt.request).then(f=>{ try{ caches.open(CACHE_NAME).then(c=>c.put(evt.request, f.clone())); }catch(e){} return f; }).catch(()=>caches.match('/'))));
+      });
+      // simple update flow
+      self.addEventListener('message', (ev) => {
+        if(ev.data && ev.data.type === 'CHECK_UPDATE') {
+          self.clients.matchAll().then(clients => clients.forEach(c => c.postMessage({ type:'SW_UPDATE' })));
+        }
+      });
+    `;
+    try {
+      const swBlob = new Blob([swCode], { type: 'text/javascript' });
+      const swUrl = URL.createObjectURL(swBlob);
+      const reg = await navigator.serviceWorker.register(swUrl);
+      console.log('SW registered', reg);
+      // check for updates periodically
+      setInterval(()=>{ if(navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({type:'CHECK_UPDATE'}); }, 1000*60*60);
+    } catch (e) {
+      console.warn('SW register failed', e);
+    }
+  }
+
+  /* ===============================
+     SYNC UI
+     =============================== */
+  function updateSyncUI() {
+    const sIcon = el('syncIcon'), sText = el('syncText');
+    if(syncState.syncing) { sIcon.textContent='⏳'; sText.textContent='Syncing…'; }
+    else if(syncState.conflict) { sIcon.textContent='⚠️'; sText.textContent='Conflict'; }
+    else if(syncState.status === 'online') { sIcon.textContent='✅'; sText.textContent = (syncState.lastSync ? 'Up to date' : 'Online'); }
+    else { sIcon.textContent='⏺'; sText.textContent='Offline'; }
+  }
+
+  /* ===============================
+     HELPERS: debounce, haptics
+     =============================== */
+  function debounce(fn, t=200){ let id; return (...args)=>{ clearTimeout(id); id=setTimeout(()=>fn(...args), t); }; }
+  function haptic(type='light'){ try{ if(navigator.vibrate) { if(type==='light') navigator.vibrate(10); else if(type==='medium') navigator.vibrate([20,10,20]); } } catch(e){} }
+
+  /* ===============================
+     BOOTSTRAP: init app
+     =============================== */
+  async function renderAll() {
+    renderList();
+    updateSyncUI();
+  }
+
+  async function initApp() {
+    try {
+      // open db + migrate
+      await openDb();
+      await migrateFromLocalStorage();
+      await loadAllToMemory();
+      // load meta settings
+      const savedGist = await loadMeta('gistConfig');
+      if(savedGist) { gistConfig = savedGist; el('gistLabel').textContent = 'Gist: ' + (gistConfig.id||'—'); }
+      // init charts
+      initCharts();
+      // render UI
+      registerUI();
+      renderAll();
+      // service worker + manifest
+      if('serviceWorker' in navigator) await registerSWandManifest();
+      // check connectivity
+      window.addEventListener('online', ()=>{ syncState.status='online'; updateSyncUI(); showToast('Back online'); });
+      window.addEventListener('offline', ()=>{ syncState.status='offline'; updateSyncUI(); showToast('Offline mode'); });
+      if(navigator.onLine) syncState.status='online';
+      updateSyncUI();
+      // auto-backup interval load
+      const autoBackup = await loadMeta('autoBackupInterval'); if(autoBackup && Number(autoBackup)>0) {
+        setInterval(()=>{ backupNow(); }, Number(autoBackup)*3600*1000);
+      }
+    } catch(e){ console.error(e); showToast('Init error'); }
+  }
+
+  // invoke init
+  initApp();
+
+  /* ===============================
+     BOILERPLATE: helper functions used in inline handlers
+     =============================== */
+  // make some functions available globally for inline use (like openEditFromList defined earlier)
+  window.renderAll = renderAll;
+  window.exportCSV = exportCSV;
+  window.exportJSON = exportJSON;
+  window.undo = undo;
+  window.redo = redo;
+
+  // run initial render after short delay (to let chart init)
+  setTimeout(()=>{ loadAllToMemory().then(()=>renderAll()); }, 400);
 
   </script>
 </body>
