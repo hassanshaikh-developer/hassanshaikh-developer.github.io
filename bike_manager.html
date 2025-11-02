@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Bike Manager v6.1</title>
+  <title>Bike Manager v6.2</title>
   <meta name="description" content="Offline-first bike inventory manager with GitHub sync and analytics." />
   
   <meta http-equiv="Content-Security-Policy" content="
@@ -23,7 +23,7 @@
   <meta name="theme-color" content="#071b2b" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%2300D0FF'%3E%3Crect width='192' height='192' rx='32' fill='%23071b2b'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='96' font-family='sans-serif' fill='white' font-weight='bold'%3EBM%3C/text%3E%3C/svg%3E" />
 
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIiLA0KICAic2hvcnRfbmFtZSI6ICJCaWtlTWdyIiwNCiAgImRlc2NyaXB0aW9uIjogIk9mZmxpbmUtZmlyc3QgYmlrZSBpbnZlbnRvcnkgbWFuYWdlci4iLA0KICAic3RhcnRfdXJsIjogIi4vIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwNzEwMjYiLA0KICAidGhlbWVfY29sb3IiOiAiIzA3MWIyYiIsDQogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdC1primaryIiwNCiAgImljb25zIjogWw0KICAgIHsNCiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyBmaWxsPSclMjMwMEQwRkYnJTNFJTNDcmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5Micgcng9JzMyJyBmaWxsPSclMjMwNzFiMmInLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC13ZWlnaHQ9J2JvbGQnJTNFQk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsDQogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiDQogICAgfSwNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgNTEyIDUxMicgZmlsbD0nJTIzMDBEMEZGJTNFLTxyZWN0IHdpZHRoPSc1MTInIGhlaWdodD0nNTEyJyByeD0nNjQnIGZpbGw9JyUyMzA3MWIyYicvPiUzQ3RleHQgeD0nNTAlMjUnIHk9JzUwJTI1JyBkb21pbmFudC1iYXNlbGluZT0nY2VudHJhbCcgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zaXplPScyNTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC13ZWlnaHQ9J2JvbGQnJTNFRk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiNTEyeDUxMiINCiAgICB9DQogIF0NCn0=">
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIiLA0KICAic2hvcnRfbmFtZSI6ICJCaWtlTWdyIiwNCiAgImRlc2NyaXB0aW9uIjogIk9mZmxpbmUtZmlyc3QgYmlrZSBpbnZlbnRvcnkgbWFuYWdlci4iLA0KICAic3RhcnRfdXJsIjogIi4vIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwNzEwMjYiLA0KICAidGhlbWVfY29sb3IiOiAiIzA3MWIyYiIsDQogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdC1primaryIiwNCiAgImljb25zIjogWw0KICAgIHsNCiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyBmaWxsPSclMjMwMEQwRkYnJTNFJTNDcmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5Micgcng9JzMyJyBmaWxsPSclMjMwNzFiMmInLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC1WZWlnaHQ9J2JvbGQnJTNFQk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsDQogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiDQogICAgfSwNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgNTEyIDUxMicgZmlsbD0nJTIzMDBEMEZGJTNFLTxyZWN0IHdpZHRoPSc1MTInIGhlaWdodD0nNTEyJyByeD0nNjQnIGZpbGw9JyUyMzA3MWIyYicvPiUzQ3RleHQgeD0nNTAlMjUnIHk9JzUwJTI1JyBkb21pbmFudC1iYXNlbGluZT0nY2VudHJhbCcgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zaXplPScyNTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC1WZWlnaHQ9J2JvbGQnJTNFRk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiNTEyeDUxMiINCiAgICB9DQogIF0NCn0=">
 
 
   <style>
@@ -1103,6 +1103,10 @@
           
           this.updateLoaderStatus('Loading settings...');
           await this.loadSettings();
+
+          // [FIX] Run data cleaning *before* migration or rendering
+          this.updateLoaderStatus('Cleaning data (if any)...');
+          await this.cleanCorruptedData();
           
           this.updateLoaderStatus('Migrating old data (if any)...');
           await this.migrateFromLocalStorage();
@@ -1240,6 +1244,46 @@
         console.log("Database v6 initialized.");
       }
       
+      /**
+       * [FIX] New function in v6.2 to clean data corrupted by v6.1 sync bug.
+       */
+      async cleanCorruptedData() {
+        try {
+          console.log("Checking for data corruption...");
+          const bikesToFix = await this.db.bikes
+            .filter(b => typeof b.purchasePrice === 'string' || typeof b.netProfit === 'string' || b.no.startsWith('N'))
+            .toArray();
+            
+          if (bikesToFix.length > 0) {
+            console.log(`Found ${bikesToFix.length} corrupted records. Fixing...`);
+            this.showToast(`Fixing ${bikesToFix.length} corrupted data entries...`, 'info');
+            
+            const fixedBikes = bikesToFix.map(b => {
+              const purchasePrice = parseFloat(b.purchasePrice) || 0;
+              const repairCost = parseFloat(b.repairCost) || 0;
+              const sellingPrice = parseFloat(b.sellingPrice) || 0;
+              
+              return {
+                ...b, // Keep existing _id
+                no: (b.no || '').trim().toUpperCase().replace(/^N+/, ''), // Strip Ns
+                purchasePrice: purchasePrice,
+                repairCost: repairCost,
+                sellingPrice: sellingPrice,
+                netProfit: sellingPrice - (purchasePrice + repairCost), // Recalculate profit
+              };
+            });
+            
+            await this.db.bikes.bulkPut(fixedBikes);
+            console.log("Corruption fix complete.");
+          } else {
+            console.log("Data is clean.");
+          }
+        } catch (error) {
+          console.error("Failed during data cleaning:", error);
+          this.showToast("Failed to clean corrupted data.", 'error');
+        }
+      }
+
       async migrateFromLocalStorage() {
         const oldDataRaw = localStorage.getItem(OLD_STORAGE_KEY);
         if (!oldDataRaw) return;
@@ -1470,8 +1514,9 @@
         const soldBikes = bikes.filter(b => !!b.dateSelling);
         const unsoldBikes = bikes.filter(b => !b.dateSelling);
         
-        const totalProfit = soldBikes.reduce((sum, b) => sum + b.netProfit, 0);
-        const unsoldValue = unsoldBikes.reduce((sum, b) => sum + b.purchasePrice + b.repairCost, 0);
+        // [FIX] Use Number() to prevent string concatenation from corrupted data
+        const totalProfit = soldBikes.reduce((sum, b) => sum + Number(b.netProfit), 0);
+        const unsoldValue = unsoldBikes.reduce((sum, b) => sum + Number(b.purchasePrice) + Number(b.repairCost), 0);
         
         document.getElementById('stat-total-profit').textContent = this.formatCurrency(totalProfit);
         document.getElementById('stat-unsold-value').textContent = this.formatCurrency(unsoldValue);
@@ -1496,7 +1541,7 @@
         const monthlyData = soldBikes.reduce((acc, bike) => {
           if (!bike.dateSelling) return acc;
           const month = bike.dateSelling.substring(0, 7); // 'YYYY-MM'
-          acc[month] = (acc[month] || 0) + bike.netProfit;
+          acc[month] = (acc[month] || 0) + Number(bike.netProfit); // [FIX] Use Number()
           return acc;
         }, {});
         
@@ -1553,7 +1598,7 @@
         };
         
         soldBikes.forEach(b => {
-          const p = b.netProfit;
+          const p = Number(b.netProfit); // [FIX] Use Number()
           if (p < 0) profitBins['Loss (< 0)']++;
           else if (p === 0) profitBins['Break Even (0)']++;
           else if (p <= 1000) profitBins['Profit (0 - 1k)']++;
@@ -1602,7 +1647,7 @@
         const ctx = document.getElementById('chart-top-bikes').getContext('2d');
         
         const topBikes = [...soldBikes]
-          .sort((a, b) => b.netProfit - a.netProfit)
+          .sort((a, b) => Number(b.netProfit) - Number(a.netProfit)) // [FIX] Use Number()
           .slice(0, 5);
           
         const labels = topBikes.map(b => b.no);
@@ -1912,18 +1957,24 @@
             if (!Array.isArray(bikesToImport)) throw new Error("Invalid file format.");
             
             const now = new Date().toISOString();
-            const preparedBikes = bikesToImport.map(b => ({
-              no: (b.no || '').trim().toUpperCase(),
-              owner: b.owner || '',
-              purchasePrice: parseFloat(b.purchasePrice) || 0,
-              repairCost: parseFloat(b.repairCost) || 0,
-              sellingPrice: parseFloat(b.sellingPrice) || 0,
-              netProfit: parseFloat(b.netProfit) || (parseFloat(b.sellingPrice) - (parseFloat(b.purchasePrice) + parseFloat(b.repairCost))),
-              datePurchase: b.datePurchase || '',
-              dateSelling: b.dateSelling || '',
-              _updatedAt: b._updatedAt || now,
-              _deleted: b._deleted === 'true' || b._deleted === true || false,
-            })).filter(b => b.no);
+            const preparedBikes = bikesToImport.map(b => {
+              const purchasePrice = parseFloat(b.purchasePrice) || 0;
+              const repairCost = parseFloat(b.repairCost) || 0;
+              const sellingPrice = parseFloat(b.sellingPrice) || 0;
+              
+              return {
+                no: (b.no || '').trim().toUpperCase(),
+                owner: b.owner || '',
+                purchasePrice: purchasePrice,
+                repairCost: repairCost,
+                sellingPrice: sellingPrice,
+                netProfit: sellingPrice - (purchasePrice + repairCost),
+                datePurchase: b.datePurchase || '',
+                dateSelling: b.dateSelling || '',
+                _updatedAt: b._updatedAt || now,
+                _deleted: b._deleted === 'true' || b._deleted === true || false,
+              };
+            }).filter(b => b.no);
             
             if (confirm(`Found ${preparedBikes.length} records. This will ADD new records and UPDATE existing records based on bike plate. Continue?`)) {
               await this.db.bikes.bulkPut(preparedBikes);
@@ -1943,7 +1994,7 @@
         reader.readAsText(file);
       }
 
-      // --- 10. GIST SYNC (v6.1 - FIXED) ---
+      // --- 10. GIST SYNC (v6.2 - FIXED) ---
       
       async syncNow() {
         if (!this.isOnline) {
@@ -1966,11 +2017,29 @@
           
           let remoteBikes = [];
           if (remoteFile && remoteFile.content) {
-            // [FIX] No atob(). Process plain text directly.
-            remoteBikes = this.csvTojson(remoteFile.content);
+            const remoteBikesRaw = this.csvTojson(remoteFile.content);
+            
+            // [FIX] Parse all string numbers into floats and clean 'N' prefix
+            remoteBikes = remoteBikesRaw.map(b => {
+              const purchasePrice = parseFloat(b.purchasePrice) || 0;
+              const repairCost = parseFloat(b.repairCost) || 0;
+              const sellingPrice = parseFloat(b.sellingPrice) || 0;
+              
+              return {
+                ...b,
+                no: (b.no || '').trim().toUpperCase().replace(/^N+/, ''), // Strip Ns
+                owner: b.owner || '',
+                purchasePrice: purchasePrice,
+                repairCost: repairCost,
+                sellingPrice: sellingPrice,
+                netProfit: sellingPrice - (purchasePrice + repairCost),
+                _deleted: b._deleted === 'true' || b._deleted === true || false,
+              };
+            });
             this.settings.lastSyncSha = remoteFile.sha;
           }
           
+          // Local data should be clean thanks to cleanCorruptedData()
           const localBikes = await this.db.bikes.toArray();
           
           this.setSyncStatus('syncing', 'Merging data...');
@@ -1979,8 +2048,6 @@
           for (const bike of localBikes) { mergedBikesMap.set(bike.no, bike); }
           
           for (const remoteBike of remoteBikes) {
-            remoteBike._deleted = remoteBike._deleted === 'true' || remoteBike._deleted === true || false;
-            
             const localBike = mergedBikesMap.get(remoteBike.no);
             if (!localBike || new Date(remoteBike._updatedAt) > new Date(localBike._updatedAt)) {
               mergedBikesMap.set(remoteBike.no, remoteBike);
@@ -1996,12 +2063,9 @@
           });
           
           this.setSyncStatus('syncing', 'Pushing remote...');
-          // [FIX] csvContent is plain text
-          const csvContent = this.jsonToCsv(mergedBikes, false);
+          const csvContent = this.jsonToCsv(mergedBikes, false); // false = include deleted
           
-          // [FIX] Compare plain text to plain text
           if (!remoteFile || csvContent !== remoteFile.content) {
-            // [FIX] Pass plain text content to push
             const newSha = await this.pushToGist(csvContent, this.settings.lastSyncSha);
             this.settings.lastSyncSha = newSha;
           } else {
@@ -2011,7 +2075,7 @@
           this.settings.lastSync = new Date().toISOString();
           this.saveSettings();
           this.setSyncStatus('success', 'Up to date');
-          this.showToast("Sync complete.", 'success');
+          this.showToast("Sync complete. Data is now clean.", 'success');
           this.renderAll();
           
         } catch (error) {
@@ -2021,9 +2085,6 @@
         }
       }
       
-      /**
-       * [FIX] This function now correctly fetches and returns PLAIN TEXT.
-       */
       async fetchFromGist() {
         const { gistId, githubPat, gistFilename } = this.settings;
         const url = `https://api.github.com/gists/${gistId}`;
@@ -2033,7 +2094,7 @@
         });
         
         if (!response.ok) {
-          if (response.status === 404) return null; // Gist not found
+          if (response.status === 404) return null;
           throw new Error(`GitHub API error: ${response.statusText}`);
         }
         
@@ -2041,24 +2102,19 @@
         const file = gist.files[gistFilename];
         const latestSha = gist.history[0].version;
         
-        if (!file) return null; // File not in Gist
+        if (!file) return null;
         
         let content;
         if (file.truncated) {
-          // If file is too large, fetch its raw text
           const rawResponse = await fetch(file.raw_url);
           content = await rawResponse.text();
         } else {
-          // Otherwise, the content is already plain text
           content = file.content;
         }
         
         return { content, sha: latestSha };
       }
       
-      /**
-       * [FIX] This function now accepts and pushes PLAIN TEXT.
-       */
       async pushToGist(plainTextContent, sha) {
         const { gistId, githubPat, gistFilename } = this.settings;
         const url = `https://api.github.com/gists/${gistId}`;
@@ -2067,7 +2123,7 @@
           description: `Bike Manager DB updated ${new Date().toISOString()}`,
           files: {
             [gistFilename]: {
-              content: plainTextContent // [FIX] No atob()
+              content: plainTextContent
             }
           },
           sha: sha 
@@ -2087,7 +2143,7 @@
         }
         
         const result = await response.json();
-        return result.history[0].version; // Return the new SHA
+        return result.history[0].version;
       }
       
       triggerAutoSync = this.debounce(() => {
@@ -2257,7 +2313,8 @@
           ).join(',')
         );
         
-        return [headerRow, ...rows].join('\r\N');
+        // [FIX] Was '\r\N', now '\r\n'
+        return [headerRow, ...rows].join('\r\n');
       }
       
     }
