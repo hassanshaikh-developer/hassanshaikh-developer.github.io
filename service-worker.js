@@ -30,12 +30,16 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching app shell');
-        return cache.addAll(URLS_TO_CACHE.map(url => {
-          return new Request(url, { mode: 'no-cors' }).catch(() => {
-            // Some URLs might fail, continue with others
-            console.warn('[SW] Failed to cache:', url);
-          });
-        }));
+        // Cache URLs individually to handle failures gracefully
+        return Promise.allSettled(
+          URLS_TO_CACHE.map(url => {
+            return cache.add(url).catch(err => {
+              console.warn('[SW] Failed to cache:', url, err);
+              // Return resolved promise so Promise.allSettled continues
+              return Promise.resolve();
+            });
+          })
+        );
       })
       .then(() => {
         console.log('[SW] Service worker installed');

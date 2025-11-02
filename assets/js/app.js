@@ -85,7 +85,7 @@ class BikeManagerApp {
       await this.loadSettings();
       
       const corruptedCount = await bikeDB.cleanCorruptedData();
-      if (corruptedCount > 0) {
+      if (corruptedCount > 0 && toastManager) {
         toastManager.show(`Fixed ${corruptedCount} corrupted data entries`, 'info');
       }
       
@@ -484,36 +484,45 @@ class BikeManagerApp {
     if (this.currentFilters.search) {
       const search = this.currentFilters.search;
       bikes = bikes.filter(b => 
-        b.no.toLowerCase().includes(search) || 
-        b.owner.toLowerCase().includes(search)
+        (b.no && b.no.toLowerCase().includes(search)) || 
+        (b.owner && b.owner.toLowerCase().includes(search))
       );
     }
     
     // Apply advanced filters
-    if (this.currentFilters.owner) {
-      bikes = bikes.filter(b => b.owner.toLowerCase().includes(this.currentFilters.owner.toLowerCase()));
+    if (this.currentFilters.owner && this.currentFilters.owner.trim()) {
+      const ownerLower = this.currentFilters.owner.toLowerCase();
+      bikes = bikes.filter(b => b.owner && b.owner.toLowerCase().includes(ownerLower));
     }
     
-    if (this.currentFilters.profitMin !== null) {
+    if (this.currentFilters.profitMin !== null && !isNaN(this.currentFilters.profitMin)) {
       bikes = bikes.filter(b => parseFloat(b.netProfit || 0) >= this.currentFilters.profitMin);
     }
     
-    if (this.currentFilters.profitMax !== null) {
+    if (this.currentFilters.profitMax !== null && !isNaN(this.currentFilters.profitMax)) {
       bikes = bikes.filter(b => parseFloat(b.netProfit || 0) <= this.currentFilters.profitMax);
     }
     
     if (this.currentFilters.dateFrom) {
-      bikes = bikes.filter(b => {
-        if (!b.datePurchase) return false;
-        return new Date(b.datePurchase) >= new Date(this.currentFilters.dateFrom);
-      });
+      const fromDate = new Date(this.currentFilters.dateFrom);
+      if (!isNaN(fromDate.getTime())) {
+        bikes = bikes.filter(b => {
+          if (!b.datePurchase) return false;
+          const purchaseDate = new Date(b.datePurchase);
+          return !isNaN(purchaseDate.getTime()) && purchaseDate >= fromDate;
+        });
+      }
     }
     
     if (this.currentFilters.dateTo) {
-      bikes = bikes.filter(b => {
-        if (!b.datePurchase) return false;
-        return new Date(b.datePurchase) <= new Date(this.currentFilters.dateTo);
-      });
+      const toDate = new Date(this.currentFilters.dateTo);
+      if (!isNaN(toDate.getTime())) {
+        bikes = bikes.filter(b => {
+          if (!b.datePurchase) return false;
+          const purchaseDate = new Date(b.datePurchase);
+          return !isNaN(purchaseDate.getTime()) && purchaseDate <= toDate;
+        });
+      }
     }
     
     // Sort
@@ -555,21 +564,46 @@ class BikeManagerApp {
   }
 
   sortBikes(bikes, sortType) {
+    const sortedBikes = [...bikes]; // Create copy to avoid mutating original
     switch (sortType) {
       case 'latest':
-        return bikes.sort((a, b) => new Date(b._updatedAt || 0) - new Date(a._updatedAt || 0));
+        return sortedBikes.sort((a, b) => {
+          const dateA = new Date(a._updatedAt || 0).getTime();
+          const dateB = new Date(b._updatedAt || 0).getTime();
+          return dateB - dateA;
+        });
       case 'oldest':
-        return bikes.sort((a, b) => new Date(a._updatedAt || 0) - new Date(b._updatedAt || 0));
+        return sortedBikes.sort((a, b) => {
+          const dateA = new Date(a._updatedAt || 0).getTime();
+          const dateB = new Date(b._updatedAt || 0).getTime();
+          return dateA - dateB;
+        });
       case 'profit-high':
-        return bikes.sort((a, b) => (parseFloat(b.netProfit) || 0) - (parseFloat(a.netProfit) || 0));
+        return sortedBikes.sort((a, b) => {
+          const profitA = parseFloat(a.netProfit) || 0;
+          const profitB = parseFloat(b.netProfit) || 0;
+          return profitB - profitA;
+        });
       case 'profit-low':
-        return bikes.sort((a, b) => (parseFloat(a.netProfit) || 0) - (parseFloat(b.netProfit) || 0));
+        return sortedBikes.sort((a, b) => {
+          const profitA = parseFloat(a.netProfit) || 0;
+          const profitB = parseFloat(b.netProfit) || 0;
+          return profitA - profitB;
+        });
       case 'plate':
-        return bikes.sort((a, b) => a.no.localeCompare(b.no));
+        return sortedBikes.sort((a, b) => {
+          const noA = (a.no || '').toString();
+          const noB = (b.no || '').toString();
+          return noA.localeCompare(noB);
+        });
       case 'owner':
-        return bikes.sort((a, b) => a.owner.localeCompare(b.owner));
+        return sortedBikes.sort((a, b) => {
+          const ownerA = (a.owner || '').toString();
+          const ownerB = (b.owner || '').toString();
+          return ownerA.localeCompare(ownerB);
+        });
       default:
-        return bikes;
+        return sortedBikes;
     }
   }
 
@@ -591,13 +625,13 @@ class BikeManagerApp {
     const isSelected = this.selectedBikes.has(bike._id.toString());
     
     return `
-      <div class="bike-card ${isSelected ? 'selected' : ''}" data-id="${bike._id}" role="listitem">
+      <div class="bike-card ${isSelected ? 'selected' : ''}" data-id="${bike._id || ''}" role="listitem">
         <div class="bike-checkbox" role="checkbox" aria-checked="${isSelected}">
           <svg><use href="#icon-check"></use></svg>
         </div>
         <div class="bike-card-main">
-          <div class="bike-card-plate">${escapeHtml(bike.no)}</div>
-          <div class="bike-card-owner">${escapeHtml(bike.owner)}</div>
+          <div class="bike-card-plate">${escapeHtml(bike.no || '')}</div>
+          <div class="bike-card-owner">${escapeHtml(bike.owner || '')}</div>
         </div>
         <div class="bike-card-profit">
           <div class="${profitClass}">${profitDisplay}</div>
@@ -814,10 +848,15 @@ class BikeManagerApp {
         
         setTimeout(() => {
           this.openFormModal('buy');
-          document.getElementById('form-owner').value = bike.owner;
-          document.getElementById('form-purchasePrice').value = bike.purchasePrice;
-          document.getElementById('form-repairCost').value = bike.repairCost;
-          document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
+          const formOwner = document.getElementById('form-owner');
+          const formPurchasePrice = document.getElementById('form-purchasePrice');
+          const formRepairCost = document.getElementById('form-repairCost');
+          const formDatePurchase = document.getElementById('form-datePurchase');
+          
+          if (formOwner) formOwner.value = bike.owner || '';
+          if (formPurchasePrice) formPurchasePrice.value = bike.purchasePrice || '';
+          if (formRepairCost) formRepairCost.value = bike.repairCost || '';
+          if (formDatePurchase) formDatePurchase.value = new Date().toISOString().split('T')[0];
           toastManager.show("Fill in the new plate number", 'info');
         }, 300);
       }
@@ -900,8 +939,10 @@ class BikeManagerApp {
     if (saveBtnText) saveBtnText.textContent = "Save Purchase";
     if (buySection) buySection.classList.remove('readonly-section');
     if (sellSection) sellSection.classList.add('hidden');
-    document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
-    document.getElementById('form-bike-id').value = '';
+    const formDatePurchase = document.getElementById('form-datePurchase');
+    const formBikeId = document.getElementById('form-bike-id');
+    if (formDatePurchase) formDatePurchase.value = new Date().toISOString().split('T')[0];
+    if (formBikeId) formBikeId.value = '';
     
     if (mode === 'sell' && bike) {
       if (title) title.textContent = "Sell Bike";
@@ -913,7 +954,8 @@ class BikeManagerApp {
       if (sellSection) sellSection.classList.remove('hidden');
       
       this.fillForm(bike);
-      document.getElementById('form-dateSelling').value = new Date().toISOString().split('T')[0];
+      const formDateSelling = document.getElementById('form-dateSelling');
+      if (formDateSelling) formDateSelling.value = new Date().toISOString().split('T')[0];
     
     } else if (mode === 'view' && bike) {
       if (title) title.textContent = "View Sale";
@@ -935,14 +977,25 @@ class BikeManagerApp {
   }
 
   fillForm(bike) {
-    document.getElementById('form-bike-id').value = bike._id;
-    document.getElementById('form-no').value = bike.no;
-    document.getElementById('form-owner').value = bike.owner;
-    document.getElementById('form-datePurchase').value = bike.datePurchase || '';
-    document.getElementById('form-purchasePrice').value = bike.purchasePrice || '';
-    document.getElementById('form-repairCost').value = bike.repairCost || '';
-    document.getElementById('form-dateSelling').value = bike.dateSelling || '';
-    document.getElementById('form-sellingPrice').value = bike.sellingPrice || '';
+    if (!bike) return;
+    
+    const formId = document.getElementById('form-bike-id');
+    const formNo = document.getElementById('form-no');
+    const formOwner = document.getElementById('form-owner');
+    const formDatePurchase = document.getElementById('form-datePurchase');
+    const formPurchasePrice = document.getElementById('form-purchasePrice');
+    const formRepairCost = document.getElementById('form-repairCost');
+    const formDateSelling = document.getElementById('form-dateSelling');
+    const formSellingPrice = document.getElementById('form-sellingPrice');
+    
+    if (formId) formId.value = bike._id || '';
+    if (formNo) formNo.value = bike.no || '';
+    if (formOwner) formOwner.value = bike.owner || '';
+    if (formDatePurchase) formDatePurchase.value = bike.datePurchase || '';
+    if (formPurchasePrice) formPurchasePrice.value = bike.purchasePrice || '';
+    if (formRepairCost) formRepairCost.value = bike.repairCost || '';
+    if (formDateSelling) formDateSelling.value = bike.dateSelling || '';
+    if (formSellingPrice) formSellingPrice.value = bike.sellingPrice || '';
     this.calculateFormProfit();
   }
 
@@ -1176,14 +1229,25 @@ class BikeManagerApp {
 
   async syncNowInternal() {
     if (!this.isOnline) {
-      toastManager.show("Cannot sync. You are offline.", 'warning');
+      if (toastManager) {
+        toastManager.show("Cannot sync. You are offline.", 'warning');
+      }
       return;
     }
     
-    if (!gistSync) {
-      toastManager.show("Gist ID and GitHub PAT must be set in Settings.", 'error');
+    if (!this.settings.gistId || !this.settings.githubPat) {
+      if (toastManager) {
+        toastManager.show("Gist ID and GitHub PAT must be set in Settings.", 'error');
+      }
       this.navigateTo('view-settings');
       return;
+    }
+    
+    // Initialize sync if not already done
+    if (!gistSync) {
+      initGistSync(this.settings);
+    } else {
+      gistSync.updateSettings(this.settings);
     }
     
     this.setSyncStatus('syncing', 'Syncing...');
@@ -1415,6 +1479,7 @@ class BikeManagerApp {
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -1440,7 +1505,9 @@ class BikeManagerApp {
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      particles.forEach((p, i) => {
+      // Use reverse iteration to safely remove items
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
         ctx.beginPath();
         ctx.lineWidth = p.r / 2;
         ctx.strokeStyle = p.color;
@@ -1456,12 +1523,14 @@ class BikeManagerApp {
         if (p.y > canvas.height) {
           particles.splice(i, 1);
         }
-      });
+      }
       
       if (particles.length > 0) {
         animationFrame = requestAnimationFrame(draw);
       } else {
-        cancelAnimationFrame(animationFrame);
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+        }
       }
     };
     
@@ -1571,9 +1640,13 @@ if ('serviceWorker' in navigator) {
               if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New service worker available
                 modalManager.open('update-modal');
-                document.getElementById('update-refresh-btn')?.addEventListener('click', () => {
-                  window.location.reload();
-                });
+                // Use once flag to prevent duplicate listeners
+                const refreshBtn = document.getElementById('update-refresh-btn');
+                if (refreshBtn) {
+                  refreshBtn.addEventListener('click', () => {
+                    window.location.reload();
+                  }, { once: true });
+                }
               }
             };
           }

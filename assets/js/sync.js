@@ -222,14 +222,20 @@ export class GistSync {
     if (onProgress) onProgress('Merging data...');
     const mergedBikesMap = new Map();
     
-    for (const bike of localBikes) { 
-      mergedBikesMap.set(bike.no, bike); 
+    for (const bike of localBikes) {
+      if (bike && bike.no) {
+        mergedBikesMap.set(bike.no, bike); 
+      }
     }
     
     for (const remoteBike of remoteBikes) {
-      const localBike = mergedBikesMap.get(remoteBike.no);
-      if (!localBike || new Date(remoteBike._updatedAt || 0) > new Date(localBike._updatedAt || 0)) {
-        mergedBikesMap.set(remoteBike.no, remoteBike);
+      if (remoteBike && remoteBike.no) {
+        const localBike = mergedBikesMap.get(remoteBike.no);
+        const remoteTime = new Date(remoteBike._updatedAt || 0).getTime();
+        const localTime = new Date(localBike?._updatedAt || 0).getTime();
+        if (!localBike || (remoteTime > localTime && !isNaN(remoteTime))) {
+          mergedBikesMap.set(remoteBike.no, remoteBike);
+        }
       }
     }
     

@@ -104,7 +104,17 @@ export class ChartManager {
         scales: {
           x: {
             type: 'time',
-            time: { unit: 'month' },
+            time: { 
+              unit: 'month',
+              displayFormats: {
+                month: 'MMM yyyy'
+              }
+            },
+            adapters: {
+              date: {
+                locale: 'en-US'
+              }
+            },
             grid: { 
               color: 'rgba(255, 255, 255, 0.05)',
               drawBorder: false

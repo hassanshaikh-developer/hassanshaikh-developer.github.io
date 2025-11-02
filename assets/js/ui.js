@@ -288,9 +288,9 @@ export class SearchSuggestions {
 
     const matches = this.allBikes
       .filter(bike => 
-        !bike._deleted && (
-          this.fuzzyMatch(query, bike.no) || 
-          this.fuzzyMatch(query, bike.owner)
+        !bike._deleted && bike && (
+          (bike.no && this.fuzzyMatch(query, bike.no)) || 
+          (bike.owner && this.fuzzyMatch(query, bike.owner))
         )
       )
       .slice(0, 5);
@@ -302,8 +302,8 @@ export class SearchSuggestions {
 
     this.suggestionsEl.innerHTML = matches.map(bike => `
       <div class="search-suggestion" data-id="${bike._id}">
-        <div class="suggestion-plate">${escapeHtml(bike.no)}</div>
-        <div class="suggestion-owner">${escapeHtml(bike.owner)}</div>
+        <div class="suggestion-plate">${escapeHtml(bike.no || '')}</div>
+        <div class="suggestion-owner">${escapeHtml(bike.owner || '')}</div>
       </div>
     `).join('');
 
