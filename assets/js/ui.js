@@ -177,8 +177,18 @@ export class ModalManager {
     }, { once: true });
   }
 
-  close(modalElement = null) {
-    const modal = modalElement || this.activeModal;
+  close(modalIdOrElement = null) {
+    let modal = null;
+    
+    // Accept either a modal ID string or modal element
+    if (typeof modalIdOrElement === 'string') {
+      modal = document.getElementById(modalIdOrElement);
+    } else if (modalIdOrElement instanceof Element) {
+      modal = modalIdOrElement;
+    } else {
+      modal = this.activeModal;
+    }
+    
     if (!modal) return;
     
     modal.classList.remove('active');
@@ -229,7 +239,17 @@ export class SearchSuggestions {
     });
     
     document.addEventListener('click', (e) => {
-      if (!this.input.contains(e.target) && !this.suggestionsEl.contains(e.target)) {
+      const target = e.target;
+      const isInputClick = this.input && (
+        this.input === target || 
+        (this.input.contains && this.input.contains(target)) ||
+        (target.closest && target.closest('#' + this.input.id) === this.input)
+      );
+      const isSuggestionsClick = this.suggestionsEl && (
+        this.suggestionsEl === target || 
+        (this.suggestionsEl.contains && this.suggestionsEl.contains(target))
+      );
+      if (!isInputClick && !isSuggestionsClick) {
         this.hideSuggestions();
       }
     });

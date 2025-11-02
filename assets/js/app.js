@@ -70,6 +70,14 @@ class BikeManagerApp {
     this.dom.searchClear = document.getElementById('search-clear');
     this.dom.formModal = document.getElementById('form-modal');
     this.dom.bikeList = document.getElementById('bike-list');
+    
+    // Ensure DOM elements exist before proceeding
+    if (!this.dom.bikeList) {
+      console.warn('bike-list element not found');
+    }
+    if (!this.dom.loader) {
+      console.warn('app-loader element not found');
+    }
   }
 
   /**
@@ -247,15 +255,17 @@ class BikeManagerApp {
     // Search
     this.dom.searchInput?.addEventListener('input', (e) => {
       const value = e.target.value;
-      this.dom.searchClear.style.display = value ? 'block' : 'none';
+      if (this.dom.searchClear) {
+        this.dom.searchClear.style.display = value ? 'block' : 'none';
+      }
       this.currentFilters.search = value.toLowerCase();
       this.currentPage = 1;
       this.debouncedRenderList();
     });
     
     this.dom.searchClear?.addEventListener('click', () => {
-      this.dom.searchInput.value = '';
-      this.dom.searchClear.style.display = 'none';
+      if (this.dom.searchInput) this.dom.searchInput.value = '';
+      if (this.dom.searchClear) this.dom.searchClear.style.display = 'none';
       this.currentFilters.search = '';
       this.currentPage = 1;
       this.debouncedRenderList();
@@ -312,11 +322,16 @@ class BikeManagerApp {
       this.currentFilters.profitMax = null;
       this.currentFilters.dateFrom = null;
       this.currentFilters.dateTo = null;
-      document.getElementById('filter-owner').value = '';
-      document.getElementById('filter-profit-min').value = '';
-      document.getElementById('filter-profit-max').value = '';
-      document.getElementById('filter-date-from').value = '';
-      document.getElementById('filter-date-to').value = '';
+      const filterOwner = document.getElementById('filter-owner');
+      const filterProfitMin = document.getElementById('filter-profit-min');
+      const filterProfitMax = document.getElementById('filter-profit-max');
+      const filterDateFrom = document.getElementById('filter-date-from');
+      const filterDateTo = document.getElementById('filter-date-to');
+      if (filterOwner) filterOwner.value = '';
+      if (filterProfitMin) filterProfitMin.value = '';
+      if (filterProfitMax) filterProfitMax.value = '';
+      if (filterDateFrom) filterDateFrom.value = '';
+      if (filterDateTo) filterDateTo.value = '';
       this.currentPage = 1;
       this.renderBikeList();
       toastManager.show('Filters cleared', 'success');
@@ -427,15 +442,20 @@ class BikeManagerApp {
         e.preventDefault();
         this.handleNewBike();
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 's' && this.dom.formModal?.classList.contains('active')) {
-        e.preventDefault();
-        this.handleSaveBike();
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        const formModal = document.getElementById('form-modal');
+        if (formModal && formModal.classList.contains('active') && !e.target.matches('input, textarea')) {
+          e.preventDefault();
+          this.handleSaveBike();
+        }
       }
       if (e.key === 'Escape') {
-        if (this.dom.formModal?.classList.contains('active')) {
+        const formModal = document.getElementById('form-modal');
+        if (formModal && formModal.classList.contains('active')) {
           this.closeFormModal();
         }
-        document.getElementById('sort-menu')?.classList.remove('active');
+        const sortMenu = document.getElementById('sort-menu');
+        if (sortMenu) sortMenu.classList.remove('active');
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.target.matches('input, textarea')) {
         e.preventDefault();
@@ -544,7 +564,20 @@ class BikeManagerApp {
     if (emptyEl) emptyEl.classList.add('hidden');
     
     requestAnimationFrame(() => {
+      if (!this.dom.bikeList) return;
+      
       this.dom.bikeList.innerHTML = paginatedBikes.map(bike => this.createBikeCardHTML(bike)).join('');
+      
+      // Re-attach event listeners to bike cards for selection
+      this.dom.bikeList.querySelectorAll('.bike-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const card = checkbox.closest('.bike-card');
+          if (card && card.dataset.id) {
+            this.toggleBikeSelection(card.dataset.id);
+          }
+        });
+      });
       
       const pagination = document.getElementById('pagination');
       if (pagination) {
@@ -608,6 +641,8 @@ class BikeManagerApp {
   }
 
   createBikeCardHTML(bike) {
+    if (!bike) return '';
+    
     const isSold = !!(bike.dateSelling && bike.dateSelling !== '');
     const profit = parseFloat(bike.netProfit) || 0;
     let profitClass = 'profit-value';
@@ -622,10 +657,11 @@ class BikeManagerApp {
       profitClass = 'text-secondary';
     }
     
-    const isSelected = this.selectedBikes.has(bike._id.toString());
+    const bikeId = bike._id ? bike._id.toString() : '';
+    const isSelected = bikeId && this.selectedBikes.has(bikeId);
     
     return `
-      <div class="bike-card ${isSelected ? 'selected' : ''}" data-id="${bike._id || ''}" role="listitem">
+      <div class="bike-card ${isSelected ? 'selected' : ''}" data-id="${bikeId}" role="listitem">
         <div class="bike-checkbox" role="checkbox" aria-checked="${isSelected}">
           <svg><use href="#icon-check"></use></svg>
         </div>
@@ -762,8 +798,16 @@ class BikeManagerApp {
     const form = document.getElementById('bike-form');
     const id = document.getElementById('form-bike-id')?.value;
     
-    const plate = document.getElementById('form-no')?.value.trim().toUpperCase();
-    const owner = document.getElementById('form-owner')?.value.trim();
+    const plateInput = document.getElementById('form-no');
+    const ownerInput = document.getElementById('form-owner');
+    
+    if (!plateInput || !ownerInput) {
+      toastManager.show("Form fields not found.", 'error');
+      return;
+    }
+    
+    const plate = plateInput.value ? plateInput.value.trim().toUpperCase() : '';
+    const owner = ownerInput.value ? ownerInput.value.trim() : '';
     
     if (!plate || !owner) {
       toastManager.show("Bike Plate and Owner Name are required.", 'error');
@@ -1310,6 +1354,10 @@ class BikeManagerApp {
   }
 
   async undoDelete(bike) {
+    if (!bike || !bike._id) {
+      toastManager.show("Cannot undo: Invalid bike data", 'error');
+      return;
+    }
     try {
       await bikeDB.restoreBike(bike._id);
       toastManager.show("Deletion undone", 'success');
@@ -1323,6 +1371,10 @@ class BikeManagerApp {
   }
 
   async undoUpdate(oldBike) {
+    if (!oldBike || !oldBike._id) {
+      toastManager.show("Cannot undo: Invalid bike data", 'error');
+      return;
+    }
     try {
       await bikeDB.updateBike(oldBike._id, {
         ...oldBike,

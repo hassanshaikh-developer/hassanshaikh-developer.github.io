@@ -3,6 +3,11 @@
  * Handles all Chart.js rendering with proper cleanup to prevent memory leaks
  */
 
+// Ensure Chart.js is available (loaded globally via script tag)
+if (typeof Chart === 'undefined') {
+  console.error('Chart.js is not loaded. Please include Chart.js before this script.');
+}
+
 export class ChartManager {
   constructor() {
     this.charts = {};
@@ -38,7 +43,7 @@ export class ChartManager {
     const ctx = canvas.getContext('2d');
 
     const monthlyData = soldBikes.reduce((acc, bike) => {
-      if (!bike.dateSelling) return acc;
+      if (!bike || !bike.dateSelling || typeof bike.dateSelling !== 'string') return acc;
       const month = bike.dateSelling.substring(0, 7);
       acc[month] = (acc[month] || 0) + parseFloat(bike.netProfit || 0);
       return acc;
@@ -168,6 +173,7 @@ export class ChartManager {
     };
 
     soldBikes.forEach(b => {
+      if (!b) return;
       const p = parseFloat(b.netProfit || 0);
       if (p < 0) profitBins['Loss (< 0)']++;
       else if (p === 0) profitBins['Break Even (0)']++;
@@ -247,10 +253,11 @@ export class ChartManager {
     const ctx = canvas.getContext('2d');
 
     const topBikes = [...soldBikes]
+      .filter(b => b && b.no) // Filter out invalid bikes
       .sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0))
       .slice(0, 5);
 
-    const labels = topBikes.map(b => b.no);
+    const labels = topBikes.map(b => b.no || '');
     const data = topBikes.map(b => parseFloat(b.netProfit || 0));
 
     const chartConfig = {
@@ -321,18 +328,26 @@ export class ChartManager {
    */
   downloadChart(canvasId, filename) {
     const canvas = document.getElementById(canvasId);
-    if (!canvas) return false;
+    if (!canvas || !canvas.toBlob) return false;
 
-    canvas.toBlob((blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}-${new Date().toISOString().split('T')[0]}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }, 'image/png');
-
-    return true;
+    try {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('Failed to generate chart blob');
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}-${new Date().toISOString().split('T')[0]}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+      return true;
+    } catch (error) {
+      console.error('Chart download failed:', error);
+      return false;
+    }
   }
 
   /**

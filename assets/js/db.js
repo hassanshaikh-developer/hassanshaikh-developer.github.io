@@ -3,6 +3,11 @@
  * Handles all IndexedDB operations using Dexie
  */
 
+// Ensure Dexie is available (loaded globally via script tag)
+if (typeof Dexie === 'undefined') {
+  console.error('Dexie is not loaded. Please include Dexie before this script.');
+}
+
 const DB_NAME = 'BikeDB_v7';
 const OLD_STORAGE_KEY = 'bikes_db_v2';
 const SETTINGS_KEY = 'bike_manager_settings_v7';
