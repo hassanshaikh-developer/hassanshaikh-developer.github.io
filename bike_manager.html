@@ -3,15 +3,30 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Bike Manager v3</title>
+  <title>Bike Manager v6</title>
   <meta name="description" content="Offline-first bike inventory manager with GitHub sync and analytics." />
+  
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+    style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://api.github.com;
+    img-src 'self' data:;
+    object-src 'none';
+    frame-ancestors 'none';
+  ">
   
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Bike Manager" />
   <meta name="theme-color" content="#071b2b" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="httpsimg-apple.png" /> <style>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%2300D0FF'%3E%3Crect width='192' height='192' rx='32' fill='%23071b2b'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='96' font-family='sans-serif' fill='white' font-weight='bold'%3EBM%3C/text%3E%3C/svg%3E" />
+
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIiLA0KICAic2hvcnRfbmFtZSI6ICJCaWtlTWdyIiwNCiAgImRlc2NyaXB0aW9uIjogIk9mZmxpbmUtZmlyc3QgYmlrZSBpbnZlbnRvcnkgbWFuYWdlci4iLA0KICAic3RhcnRfdXJsIjogIi4vIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwNzEwMjYiLA0KICAidGhlbWVfY29sb3IiOiAiIzA3MWIyYiIsDQogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdC1primaryIiwNCiAgImljb25zIjogWw0KICAgIHsNCiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyBmaWxsPSclMjMwMEQwRkYnJTNFJTNDcmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5Micgcng9JzMyJyBmaWxsPSclMjMwNzFiMmInLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC13ZWlnaHQ9J2JvbGQnJTNFQk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsDQogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiDQogICAgfSwNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgNTEyIDUxMicgZmlsbD0nJTIzMDBEMEZGJTNFLTxyZWN0IHdpZHRoPSc1MTInIGhlaWdodD0nNTEyJyByeD0nNjQnIGZpbGw9JyUyMzA3MWIyYicvPiUzQ3RleHQgeD0nNTAlMjUnIHk9JzUwJTI1JyBkb21pbmFudC1iYXNlbGluZT0nY2VudHJhbCcgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zaXplPScyNTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSd3aGl0ZScgZm9udC13ZWlnaHQ9J2JvbGQnJTNFRk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiNTEyeDUxMiINCiAgICB9DQogIF0NCn0=">
+
+
+  <style>
     /* --- 1. Fonts & Root Variables --- */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
@@ -284,6 +299,11 @@
     }
     .btn-icon svg { width: 24px; height: 24px; }
     
+    .btn:focus-visible, .nav-btn:focus-visible, .chip:focus-visible, .fab:focus-visible {
+      outline: 2px solid var(--accent-1);
+      outline-offset: 2px;
+    }
+    
     .fab {
       position: fixed;
       bottom: calc(var(--nav-height-mobile) + 16px);
@@ -349,11 +369,22 @@
     .form-input[readonly] {
       background: rgba(0,0,0,0.1);
       color: var(--text-secondary);
+      cursor: not-allowed;
     }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
+    }
+    .form-section-divider {
+      border-top: 1px solid var(--border-color);
+      margin: 20px 0;
+    }
+    .form-section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
     }
 
     /* --- 7. Modals & Panels --- */
@@ -491,9 +522,27 @@
       border-radius: var(--radius-md);
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       animation: toast-in 0.3s ease;
+      width: 100%;
+      max-width: 400px;
     }
     .toast.success { background: var(--success); color: #fff; }
     .toast.error { background: var(--error); color: #fff; }
+    
+    .toast-message {
+      flex-grow: 1;
+    }
+    .toast-close {
+      font-size: 1.5rem;
+      font-weight: bold;
+      line-height: 1;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .toast-close:hover {
+      color: #fff;
+    }
+    
     @media (min-width: 768px) {
       .toast-container {
         bottom: 20px;
@@ -560,13 +609,23 @@
       gap: 8px;
       margin-bottom: 16px;
       align-items: center;
+      position: relative;
     }
     #search-input {
       flex-grow: 1;
       border-radius: var(--radius-full);
       padding-left: 16px;
-      padding-right: 16px;
+      padding-right: 44px; /* Space for clear button */
     }
+    #search-clear {
+      position: absolute;
+      right: 8px;
+      top: 0;
+      height: var(--tap-target);
+      color: var(--text-secondary);
+      display: none; /* JS will show this */
+    }
+    
     .filter-chips {
       display: flex;
       gap: 8px;
@@ -589,19 +648,6 @@
       color: var(--accent-text);
       font-weight: 600;
       border-color: var(--accent-1);
-    }
-    .chip.clearable .chip-close {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: rgba(0,0,0,0.2);
-      color: #fff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      line-height: 1;
-      font-weight: bold;
     }
 
     /* Stats Dashboard */
@@ -639,6 +685,11 @@
       font-size: 1.1rem;
       margin-bottom: 12px;
     }
+    /* [FIX] Ensure chart canvas is responsive */
+    .chart-container canvas {
+      max-width: 100%;
+      height: auto;
+    }
 
     /* Settings Page */
     .settings-section {
@@ -659,6 +710,10 @@
     
     /* --- 9. Utility & Animations --- */
     .hidden { display: none !important; }
+    .readonly-section {
+      opacity: 0.7;
+      pointer-events: none;
+    }
     .text-success { color: var(--success); }
     .text-error { color: var(--error); }
     .text-warning { color: var(--warning); }
@@ -692,17 +747,15 @@
   <svg width="0" height="0" style="position:absolute">
     <symbol id="icon-list" viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
     <symbol id="icon-chart" viewBox="0 0 24 24"><path fill="currentColor" d="M3 22v-9h4v9H3zm0-11V3h4v8H3zm6 11v-5h4v5H9zm0-7V3h4v12H9zm6 7v-9h4v9h-4zm0-11V3h4v8h-4z"/></symbol>
-    <symbol id="icon-settings" viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 12c0-.2.1-.4.1-.6c0-.2-.1-.4-.1-.6l1.7-1.3c.2-.1.2-.4 0-.6l-1.6-2.8c-.1-.2-.4-.3-.6-.2l-2 .8c-.4-.3-.8-.5-1.3-.7l-.3-2.1c0-.3-.2-.4-.5-.4h-3.2c-.3 0-.5.1-.5.4l-.3 2.1c-.5.2-.9.4-1.3.7l-2-.8c-.2-.1-.5 0-.6.2l-1.6 2.8c-.1.2-.1.5 0 .6l1.7 1.3c-.1.2-.1.4-.1.6c0 .2.1.4.1.6l-1.7 1.3c-.2.1-.2.4 0 .6l1.6 2.8c.1.2.4.3.6.2l2-.8c.4.3.8.5 1.3.7l.3 2.1c0 .3.2.4.5.4h3.2c.3 0 .5-.1.5.4l.3-2.1c.5-.2.9-.4 1.3-.7l2-.8c.2-.1.5 0 .6-.2l1.6-2.8c.1-.2.1-.5 0-.6l-1.7-1.3zm-7.4 2.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z"/></symbol>
-    <symbol id="icon-add" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 12c0-.2.1-.4.1-.6c0-.2-.1-.4-.1-.6l1.7-1.3c.2-.1.2-.4 0-.6l-1.6-2.8c-.1-.2-.4-.3-.6-.2l-2 .8c-.4-.3-.8-.5-1.3-.7l-.3-2.1c0-.3-.2-.4-.5-.4h-3.2c-.3 0-.5.1-.5.4l-.3 2.1c-.5.2-.9.4-1.3.7l-2-.8c-.2-.1-.5 0-.6.2l-1.6 2.8c-.1.2-.1.5 0 .6l1.7 1.3c-.1.2-.1.4-.1.6c0 .2.1.4.1.6l-1.7 1.3c-.2.1-.2.4 0 .6l1.6 2.8c.1.2.4.3.6.2l2-.8c.4.3.8.5 1.3.7l.3 2.1c0 .3.2.4.5.4h3.2c.3 0 .5-.1.5.4l.3-2.1c.5-.2.9-.4 1.3-.7l2-.8c.2-.1.5 0-.6.2l1.6-2.8c.1-.2.1-.5 0-.6l-1.7-1.3zm-7.4 2.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z"/></symbol>
+    <symbol id="icon-buy" viewBox="0 0 24 24"><path fill="currentColor" d="M11 9h2v8h-2V9zm-2 2h-2v6h2v-6zm8 0h-2v6h2v-6zm-4-4h-2V5h2v2zm7-3H4.01L4 21h16V4zm-2 15H6V6h12v13z"/></symbol>
     <symbol id="icon-close" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/></symbol>
     <symbol id="icon-search" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/></symbol>
     <symbol id="icon-filter" viewBox="0 0 24 24"><path fill="currentColor" d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></symbol>
-    <symbol id="icon-more" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2z"/></symbol>
     <symbol id="icon-save" viewBox="0 0 24 24"><path fill="currentColor" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3s3 1.34 3 3s-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
     <symbol id="icon-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
-    <symbol id="icon-edit" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"/></symbol>
     <symbol id="icon-sync" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8z"/></symbol>
-    <symbol id="icon-check" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19L21 7l-1.41-1.41L9 16.17z"/></symbol>
+<symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
   </svg>
 
   <div class="app-loader" id="app-loader">
@@ -711,7 +764,8 @@
     <p class="text-secondary" id="app-loader-status">Loading application...</p>
   </div>
 
-  <div class="app-container">
+
+  <div class="app-container" id="app-container">
     
     <nav class="app-bottom-nav" id="app-nav">
       <button class="nav-btn active" data-view="view-list">
@@ -747,11 +801,11 @@
           
           <div class="stats-grid mb-2">
             <div class="stat-card">
-              <div class="stat-card-title">Total Profit</div>
+              <div class="stat-card-title">Total Profit (Sold)</div>
               <div class="stat-card-value"><span class="currency" id="currency-symbol-1">₹</span> <span id="stat-total-profit">0</span></div>
             </div>
             <div class="stat-card">
-              <div class="stat-card-title">Unsold Stock</div>
+              <div class="stat-card-title">Unsold Investment</div>
               <div class="stat-card-value"><span class="currency" id="currency-symbol-2">₹</span> <span id="stat-unsold-value">0</span></div>
             </div>
             <div class="stat-card">
@@ -766,20 +820,24 @@
           
           <div class="filter-bar">
             <input type="text" class="form-input" id="search-input" placeholder="Search plate or owner..." />
-            <button class="btn btn-primary" id="add-bike-desktop" style="display: none;">
-              <svg width="20" height="20"><use href="#icon-add"></use></svg>
-              <span>Add Bike</span>
+            <button id="search-clear" class="btn-icon btn-ghost" title="Clear search">
+              <svg><use href="#icon-close"></use></svg>
+            </button>
+            
+            <button class="btn btn-primary" id="buy-bike-desktop" style="display: none; margin-left: 8px;">
+              <svg width="20" height="20"><use href="#icon-buy"></use></svg>
+              <span>Buy Bike</span>
             </button>
           </div>
           
           <div class="filter-chips">
-            <button class="chip" id="filter-all" data-filter="all">All</button>
+            <button class="chip active" id="filter-all" data-filter="all">All</button>
             <button class="chip" id="filter-sold" data-filter="sold">Sold</button>
             <button class="chip" id="filter-unsold" data-filter="unsold">Unsold</button>
-            </div>
+          </div>
 
           <div class="bike-list" id="bike-list">
-            <p id="bike-list-empty" class="text-secondary text-center mt-2">No bikes found. Try adding one!</p>
+            <p id="bike-list-empty" class="text-secondary text-center mt-2">No bikes found. Try buying one!</p>
           </div>
           
         </section>
@@ -794,17 +852,17 @@
           </div>
           
           <div class="chart-container card">
-            <h3>Monthly Profit</h3>
+            <h3>Monthly Profit (Sold Bikes)</h3>
             <canvas id="chart-profit-trend"></canvas>
           </div>
           
           <div class="chart-container card">
-            <h3>Profit Distribution</h3>
+            <h3>Profit Distribution (Sold Bikes)</h3>
             <canvas id="chart-profit-pie"></canvas>
           </div>
           
           <div class="chart-container card">
-            <h3>Top 5 Profitable Bikes</h3>
+            <h3>Top 5 Profitable Bikes (Sold)</h3>
             <canvas id="chart-top-bikes"></canvas>
           </div>
 
@@ -815,7 +873,7 @@
           
           <div class="settings-section">
             <h3>GitHub Gist Sync</h3>
-            <p>Syncs your data to a private GitHub Gist as a CSV backup.</p>
+            <p>Syncs your data to a private GitHub Gist as a CSV backup. This is a manual sync, not real-time. Press "Sync Now" in the header to move data between devices.</p>
             
             <div class="form-group">
               <label for="setting-gist-id">Gist ID</label>
@@ -827,9 +885,9 @@
             </div>
             <div class="form-group">
               <label for="setting-github-pat">GitHub Personal Access Token (PAT)</label>
-              <input type="password" class="form-input" id="setting-github-pat" placeholder="ghp_... (stored locally)" />
+              <input type="password" class="form-input" id="setting-github-pat" placeholder="ghp_... (stored in session)" />
               <p class="text-secondary" style="font-size: 0.8rem; margin-top: 6px;">
-                Requires `gist` scope. This token is stored **only** in your browser.
+                Requires `gist` scope. This token is stored **only** in your browser's `sessionStorage` and is cleared when you close the tab.
               </p>
             </div>
             <button class="btn btn-secondary" id="save-sync-settings">
@@ -859,6 +917,10 @@
               <button class="btn btn-secondary" id="export-json">Export as JSON</button>
               <button class="btn btn-secondary" id="export-xlsx">Export as XLSX</button>
               <button class="btn btn-secondary" id="import-csv">Import CSV/JSON</button>
+              <button class="btn btn-secondary" id="download-template">
+                <svg width="18" height="18"><use href="#icon-download"></use></svg>
+                <span>Download Template</span>
+              </button>
             </div>
             <input type="file" id="import-file-input" class="hidden" accept=".csv,.json" />
             
@@ -875,14 +937,14 @@
     </div>
   </div>
 
-  <button class="fab" id="fab-add" title="Add New Bike">
-    <svg><use href="#icon-add"></use></svg>
+  <button class="fab" id="fab-buy" title="Buy New Bike">
+    <svg><use href="#icon-buy"></use></svg>
   </button>
   
   <div class="modal-overlay" id="form-modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="form-title">Add New Bike</h2>
+        <h2 id="form-title">Buy New Bike</h2>
         <button class="btn-icon btn-ghost" id="close-form-modal">
           <svg><use href="#icon-close"></use></svg>
         </button>
@@ -890,40 +952,52 @@
       <div class="modal-body">
         <form id="bike-form">
           <input type="hidden" id="form-bike-id" />
-          <div class="form-group">
-            <label for="form-no">Bike Number (Plate)</label>
-            <input type="text" class="form-input" id="form-no" placeholder="GJ05AB1234" required />
-          </div>
-          <div class="form-group">
-            <label for="form-owner">Owner Name</label>
-            <input type="text" class="form-input" id="form-owner" required />
-          </div>
-          <div class="form-grid">
+          
+          <div id="form-section-buy">
+            <h3 class="form-section-title">Purchase Details</h3>
             <div class="form-group">
-              <label for="form-datePurchase">Purchase Date</label>
-              <input type="date" class="form-input" id="form-datePurchase" />
+              <label for="form-no">Bike Number (Plate)</label>
+              <input type="text" class="form-input" id="form-no" placeholder="GJ05AB1234" required />
             </div>
             <div class="form-group">
-              <label for="form-dateSelling">Selling Date</label>
-              <input type="date" class="form-input" id="form-dateSelling" />
+              <label for="form-owner">Owner Name</label>
+              <input type="text" class="form-input" id="form-owner" required />
             </div>
-            <div class="form-group">
-              <label for="form-purchasePrice">Purchase Price</label>
-              <input type="number" class="form-input" id="form-purchasePrice" placeholder="0" />
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="form-datePurchase">Purchase Date</label>
+                <input type="date" class="form-input" id="form-datePurchase" />
+              </div>
+              <div class="form-group">
+                <label for="form-purchasePrice">Purchase Price</label>
+                <input type="number" class="form-input" id="form-purchasePrice" placeholder="0" />
+              </div>
             </div>
             <div class="form-group">
               <label for="form-repairCost">Repair Cost</label>
               <input type="number" class="form-input" id="form-repairCost" placeholder="0" />
             </div>
-            <div class="form-group">
-              <label for="form-sellingPrice">Selling Price</label>
-              <input type="number" class="form-input" id="form-sellingPrice" placeholder="0" />
+          </div>
+          
+          <div id="form-section-sell" class="hidden">
+            <div class="form-section-divider"></div>
+            <h3 class="form-section-title">Selling Details</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="form-dateSelling">Selling Date</label>
+                <input type="date" class="form-input" id="form-dateSelling" />
+              </div>
+              <div class="form-group">
+                <label for="form-sellingPrice">Selling Price</label>
+                <input type="number" class="form-input" id="form-sellingPrice" placeholder="0" />
+              </div>
             </div>
             <div class="form-group">
               <label for="form-netProfit">Net Profit (Auto)</label>
               <input type="number" class="form-input" id="form-netProfit" readonly />
             </div>
           </div>
+          
         </form>
       </div>
       <div class="modal-footer">
@@ -934,7 +1008,7 @@
         <button class="btn btn-secondary" id="cancel-form-btn">Cancel</button>
         <button class="btn btn-primary" id="save-form-btn">
           <svg width="20" height="20"><use href="#icon-save"></use></svg>
-          <span>Save</span>
+          <span id="save-form-btn-text">Save Purchase</span>
         </button>
       </div>
     </div>
@@ -964,7 +1038,8 @@
   <script>
     // --- APP CONSTANTS ---
     const OLD_STORAGE_KEY = 'bikes_db_v2';
-    const SETTINGS_KEY = 'bike_manager_settings_v3';
+    const SETTINGS_KEY = 'bike_manager_settings_v5';
+    const PAT_KEY = 'bike_manager_pat_v5'; // [FIX] Key for session-stored PAT
     
     /**
      * @class BikeManagerApp
@@ -985,15 +1060,16 @@
           currency: '₹',
           gistId: '',
           gistFilename: 'bikes_inventory.csv',
-          githubPat: '',
+          githubPat: '', // [FIX] Stored in sessionStorage, loaded into memory
           lastSync: null,
+          lastSyncSha: null,
         };
         this.currentView = 'view-list';
         this.isMobile = window.innerWidth < 768;
         this.isOnline = navigator.onLine;
 
-        // Debounce search input to avoid constant re-renders
         this.debouncedRenderList = this.debounce(this.renderBikeList, 250);
+        this.syncNow = this.debounce(this.syncNow, 5000, true);
         
         // DOM element cache
         this.dom = {
@@ -1005,10 +1081,11 @@
           syncStatus: document.getElementById('sync-status'),
           syncStatusText: document.getElementById('sync-status-text'),
           syncNowBtn: document.getElementById('sync-now-btn'),
-          // ... (add more as needed)
+          searchClear: document.getElementById('search-clear'),
+          searchInput: document.getElementById('search-input'),
+          formModal: document.getElementById('form-modal'),
         };
         
-        // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', () => {
           this.init();
         });
@@ -1016,7 +1093,6 @@
       
       /**
        * Primary initialization function.
-       * Runs in order: Service Worker, DB, Settings, UI, Listeners.
        */
       async init() {
         try {
@@ -1027,7 +1103,7 @@
           await this.initDatabase();
           
           this.updateLoaderStatus('Loading settings...');
-          await this.loadSettings();
+          await this.loadSettings(); // [FIX] Now loads PAT from session
           
           this.updateLoaderStatus('Migrating old data (if any)...');
           await this.migrateFromLocalStorage();
@@ -1039,7 +1115,6 @@
           this.updateLoaderStatus('Rendering data...');
           await this.renderAll();
           
-          // App is ready, hide loader
           this.dom.loader.classList.add('hidden');
           
         } catch (error) {
@@ -1053,31 +1128,93 @@
         this.dom.loaderStatus.textContent = text;
       }
 
-      // --- 1. PWA & SERVICE WORKER ---
+      // --- 1. PWA & INLINED SERVICE WORKER ---
       
       initServiceWorker() {
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('sw.js')
-            .then(registration => {
-              console.log('Service Worker registered with scope:', registration.scope);
-              
-              // Handle updates: Show "Update Available" modal
-              registration.onupdatefound = () => {
-                const installingWorker = registration.installing;
-                if (installingWorker) {
-                  installingWorker.onstatechange = () => {
-                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      this.showUpdateModal();
-                    }
-                  };
-                }
-              };
-            })
-            .catch(error => {
-              console.error('Service Worker registration failed:', error);
+          // Inlined SW from v5
+          const swCode = `
+            const CACHE_NAME = 'bike-manager-v6-cache';
+            const URLS_TO_CACHE = [
+              './', // Caches the app's root HTML file
+              'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap',
+              'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuU_Y.woff2',
+              'https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js',
+              'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+              'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js',
+              'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+            ];
+            
+            self.addEventListener('install', (event) => {
+              event.waitUntil(
+                caches.open(CACHE_NAME)
+                  .then((cache) => cache.addAll(URLS_TO_CACHE))
+                  .then(() => self.skipWaiting())
+              );
             });
+            
+            self.addEventListener('activate', (event) => {
+              event.waitUntil(
+                caches.keys().then((cacheNames) => {
+                  return Promise.all(
+                    cacheNames.map((cacheName) => {
+                      if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                      }
+                    })
+                  );
+                }).then(() => self.clients.claim())
+              );
+            });
+            
+            self.addEventListener('fetch', (event) => {
+              if (event.request.method !== 'GET') return;
+              
+              const url = new URL(event.request.url);
+              
+              // Cache-First for all cached assets and data URIs
+              if (event.request.url.startsWith('data:') || URLS_TO_CACHE.includes(url.href) || URLS_TO_CACHE.includes(url.pathname) || url.origin === 'https://fonts.gstatic.com' || url.origin === 'https://cdn.jsdelivr.net') {
+                event.respondWith(
+                  caches.match(event.request)
+                    .then((response) => response || fetch(event.request))
+                );
+              }
+              // Network-First for GitHub API (to get fresh data)
+              else if (url.hostname === 'api.github.com') {
+                event.respondWith(
+                  fetch(event.request)
+                    .catch(() => caches.match(event.request))
+                );
+              }
+            });
+            
+            self.addEventListener('message', (event) => {
+              if (event.data && event.data.type === 'SKIP_WAITING') {
+                self.skipWaiting();
+              }
+            });
+          `;
           
-          // Handle controller change (app updated)
+          try {
+            const swDataUrl = 'data:application/javascript;base64,' + btoa(swCode);
+            navigator.serviceWorker.register(swDataUrl)
+              .then(registration => {
+                console.log('Inlined Service Worker registered with scope:', registration.scope);
+                registration.onupdatefound = () => {
+                  const installingWorker = registration.installing;
+                  if (installingWorker) {
+                    installingWorker.onstatechange = () => {
+                      if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        this.showUpdateModal();
+                      }
+                    };
+                  }
+                };
+              });
+          } catch (error) {
+            console.error('Inlined Service Worker registration failed:', error);
+          }
+          
           navigator.serviceWorker.oncontrollerchange = () => {
             window.location.reload();
           };
@@ -1088,7 +1225,6 @@
         const modal = document.getElementById('update-modal');
         modal.classList.add('active');
         document.getElementById('update-refresh-btn').onclick = () => {
-          // Send message to SW to skip waiting
           navigator.serviceWorker.getRegistration().then(reg => {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           });
@@ -1098,32 +1234,20 @@
       // --- 2. DATABASE & DATA MIGRATION ---
 
       async initDatabase() {
-        // Dexie.js makes IndexedDB simple
-        this.db = new Dexie('BikeDB_v3');
+        this.db = new Dexie('BikeDB_v6'); // New DB name for v6
         
-        // Schema definition
+        // [FIX] Added _deleted and a compound index for filtering
         this.db.version(1).stores({
-          bikes: '++_id, &no, owner, _updatedAt, dateSelling',
-          // ++_id = Auto-incrementing primary key
-          // &no = Unique index for bike plate
-          // _updatedAt = Timestamp for sync
-          // dateSelling = Indexed for 'sold'/'unsold' filter
+          bikes: '++_id, &no, owner, _updatedAt, dateSelling, _deleted, [dateSelling+_deleted]',
         });
         
         await this.db.open();
-        console.log("Database initialized.");
+        console.log("Database v6 initialized.");
       }
       
-      /**
-       * Checks for data from the old v2 app in localStorage.
-       * If found, migrates it to IndexedDB and clears the old key.
-       */
       async migrateFromLocalStorage() {
         const oldDataRaw = localStorage.getItem(OLD_STORAGE_KEY);
-        if (!oldDataRaw) {
-          console.log("No old v2 data found to migrate.");
-          return;
-        }
+        if (!oldDataRaw) return;
         
         try {
           const oldDb = JSON.parse(oldDataRaw);
@@ -1141,13 +1265,11 @@
             repairCost: Number(record.repairCost) || 0,
             sellingPrice: Number(record.sellingPrice) || 0,
             netProfit: Number(record.netProfit) || 0,
-            _updatedAt: now, // Assign a standard "migrated" timestamp
+            _updatedAt: record._updatedAt || now,
+            _deleted: record._deleted || false, // [FIX] Add _deleted flag
           }));
           
-          // Use bulkPut to add all, overwriting any conflicts (by 'no')
           await this.db.bikes.bulkPut(recordsToMigrate);
-          
-          // Success! Remove old data.
           localStorage.removeItem(OLD_STORAGE_KEY);
           this.showToast(`Successfully migrated ${oldDb.length} records from v2.`, 'success');
           
@@ -1160,33 +1282,34 @@
       // --- 3. SETTINGS & PERSONALIZATION ---
       
       async loadSettings() {
+        // [FIX] Load general settings from localStorage
         const savedSettings = localStorage.getItem(SETTINGS_KEY);
         if (savedSettings) {
           this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
         }
+        
+        // [FIX] Load PAT securely from sessionStorage
+        const savedPat = sessionStorage.getItem(PAT_KEY);
+        if (savedPat) {
+          this.settings.githubPat = savedPat;
+        }
+        
         this.applySettings();
       }
       
       async saveSettings() {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+        // [FIX] Save only non-sensitive settings to localStorage
+        const { githubPat, ...settingsToSave } = this.settings;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settingsToSave));
+        
         this.applySettings();
         this.vibrate(10);
       }
       
-      /**
-       * Applies settings to the UI (currency, name, etc.)
-       */
       applySettings() {
-        // Update header title
         this.dom.headerTitle.textContent = this.settings.businessName || 'Bike Manager';
         document.title = this.settings.businessName || 'Bike Manager';
-        
-        // Update currency symbols
-        document.querySelectorAll('.currency').forEach(el => {
-          el.textContent = this.settings.currency || '₹';
-        });
-        
-        // Populate settings form
+        document.querySelectorAll('.currency').forEach(el => el.textContent = this.settings.currency || '₹');
         document.getElementById('setting-gist-id').value = this.settings.gistId || '';
         document.getElementById('setting-gist-filename').value = this.settings.gistFilename || 'bikes_inventory.csv';
         document.getElementById('setting-github-pat').value = this.settings.githubPat || '';
@@ -1197,32 +1320,30 @@
       // --- 4. UI & EVENT LISTENERS ---
       
       initUI() {
-        // Adjust UI for desktop if needed
         if (!this.isMobile) {
-          document.getElementById('add-bike-desktop').style.display = 'inline-flex';
+          document.getElementById('buy-bike-desktop').style.display = 'inline-flex';
         }
-        
-        // Set initial filter chip
         document.getElementById('filter-all').classList.add('active');
-        
-        // Set initial online status
         this.updateOnlineStatus();
       }
       
       initEventListeners() {
-        // --- Navigation ---
-        this.dom.navButtons.forEach(btn => {
-          btn.addEventListener('click', () => this.navigateTo(btn.dataset.view));
-        });
-        
-        // --- Header Actions ---
+        this.dom.navButtons.forEach(btn => btn.addEventListener('click', () => this.navigateTo(btn.dataset.view)));
         this.dom.syncNowBtn.addEventListener('click', () => this.syncNow());
         
-        // --- Main List View ---
-        document.getElementById('search-input').addEventListener('input', (e) => {
-          this.currentFilters.search = e.target.value.toLowerCase();
+        this.dom.searchInput.addEventListener('input', (e) => {
+          const value = e.target.value;
+          this.dom.searchClear.style.display = value ? 'block' : 'none';
+          this.currentFilters.search = value.toLowerCase();
           this.debouncedRenderList();
         });
+        this.dom.searchClear.addEventListener('click', () => {
+          this.dom.searchInput.value = '';
+          this.dom.searchClear.style.display = 'none';
+          this.currentFilters.search = '';
+          this.debouncedRenderList();
+        });
+        
         document.getElementById('filter-all').addEventListener('click', () => this.setFilterStatus('all'));
         document.getElementById('filter-sold').addEventListener('click', () => this.setFilterStatus('sold'));
         document.getElementById('filter-unsold').addEventListener('click', () => this.setFilterStatus('unsold'));
@@ -1233,32 +1354,34 @@
           }
         });
         
-        // --- Add/Edit Modal ---
-        const addBtns = [document.getElementById('fab-add'), document.getElementById('add-bike-desktop')];
+        const addBtns = [document.getElementById('fab-buy'), document.getElementById('buy-bike-desktop')];
         addBtns.forEach(btn => btn.addEventListener('click', () => this.handleNewBike()));
         
+        // Modal buttons
         document.getElementById('close-form-modal').addEventListener('click', () => this.closeFormModal());
         document.getElementById('cancel-form-btn').addEventListener('click', () => this.closeFormModal());
         document.getElementById('save-form-btn').addEventListener('click', () => this.handleSaveBike());
         document.getElementById('delete-bike-btn').addEventListener('click', () => this.handleDeleteBike());
-        
-        // Auto-calculate profit
-        const profitInputs = ['form-purchasePrice', 'form-repairCost', 'form-sellingPrice'];
-        profitInputs.forEach(id => {
-          document.getElementById(id).addEventListener('input', () => this.calculateFormProfit());
+        this.dom.formModal.addEventListener('click', (e) => {
+          if (e.target === this.dom.formModal) {
+            this.closeFormModal();
+          }
         });
         
-        // --- Settings View ---
+        const profitInputs = ['form-purchasePrice', 'form-repairCost', 'form-sellingPrice'];
+        profitInputs.forEach(id => document.getElementById(id).addEventListener('input', () => this.calculateFormProfit()));
+        
+        // Settings
         document.getElementById('save-sync-settings').addEventListener('click', () => this.handleSaveSyncSettings());
         document.getElementById('save-display-settings').addEventListener('click', () => this.handleSaveDisplaySettings());
         document.getElementById('export-csv').addEventListener('click', () => this.exportData('csv'));
         document.getElementById('export-json').addEventListener('click', () => this.exportData('json'));
         document.getElementById('export-xlsx').addEventListener('click', () => this.exportData('xlsx'));
         document.getElementById('import-csv').addEventListener('click', () => document.getElementById('import-file-input').click());
+        document.getElementById('download-template').addEventListener('click', () => this.downloadTemplate());
         document.getElementById('import-file-input').addEventListener('change', (e) => this.handleImportFile(e));
         document.getElementById('wipe-data-btn').addEventListener('click', () => this.handleWipeData());
         
-        // --- Global Listeners ---
         window.addEventListener('online', () => this.updateOnlineStatus());
         window.addEventListener('offline', () => this.updateOnlineStatus());
         window.addEventListener('resize', this.debounce(() => {
@@ -1267,32 +1390,44 @@
         }, 200));
       }
       
-      /**
-       * Main render loop. Updates all dynamic parts of the UI.
-       */
       async renderAll() {
         this.renderBikeList();
         this.renderStatsDashboard();
       }
       
-      /**
-       * Renders the list of bikes based on current filters.
-       */
       async renderBikeList() {
         let bikes;
         const listEl = document.getElementById('bike-list');
         const emptyEl = document.getElementById('bike-list-empty');
         
-        // Apply status filter (IndexedDB query)
-        if (this.currentFilters.status === 'sold') {
-          bikes = await this.db.bikes.where('dateSelling').notEqual('').toArray();
-        } else if (this.currentFilters.status === 'unsold') {
-          bikes = await this.db.bikes.where({ dateSelling: '' }).toArray();
-        } else {
-          bikes = await this.db.bikes.toArray();
+        // [FIX] Queries now filter out _deleted: true
+        try {
+          if (this.currentFilters.status === 'sold') {
+            bikes = await this.db.bikes
+              .where({ _deleted: false })
+              .and(b => !!b.dateSelling)
+              .toArray();
+          } else if (this.currentFilters.status === 'unsold') {
+            // Use compound index
+            bikes = await this.db.bikes
+              .where({ dateSelling: '', _deleted: false })
+              .toArray();
+          } else {
+            bikes = await this.db.bikes
+              .where({ _deleted: false })
+              .toArray();
+          }
+        } catch (e) {
+          console.error("Failed to query database, falling back to simple filter", e);
+          // Fallback for browsers/cases where index fails
+          bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
+          if (this.currentFilters.status === 'sold') {
+            bikes = bikes.filter(b => !!b.dateSelling);
+          } else if (this.currentFilters.status === 'unsold') {
+            bikes = bikes.filter(b => !b.dateSelling);
+          }
         }
         
-        // Apply search filter (JS filter)
         if (this.currentFilters.search) {
           const search = this.currentFilters.search;
           bikes = bikes.filter(b => 
@@ -1301,10 +1436,8 @@
           );
         }
         
-        // Sort (newest first)
         bikes.sort((a, b) => new Date(b._updatedAt) - new Date(a._updatedAt));
         
-        // Render
         if (bikes.length === 0) {
           listEl.innerHTML = '';
           emptyEl.classList.remove('hidden');
@@ -1343,15 +1476,12 @@
         `;
       }
 
-      /**
-       * Renders the stats cards and charts on the dashboard.
-       */
       async renderStatsDashboard() {
-        const bikes = await this.db.bikes.toArray();
+        // [FIX] Filter out deleted bikes for all stats
+        const bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
         const soldBikes = bikes.filter(b => !!b.dateSelling);
         const unsoldBikes = bikes.filter(b => !b.dateSelling);
         
-        // 1. Calculate Quick Stats
         const totalProfit = soldBikes.reduce((sum, b) => sum + b.netProfit, 0);
         const unsoldValue = unsoldBikes.reduce((sum, b) => sum + b.purchasePrice + b.repairCost, 0);
         
@@ -1360,16 +1490,14 @@
         document.getElementById('stat-sold-count').textContent = soldBikes.length;
         document.getElementById('stat-unsold-count').textContent = unsoldBikes.length;
 
-        // 2. Generate Auto-Insight
         const avgProfit = soldBikes.length > 0 ? totalProfit / soldBikes.length : 0;
         document.getElementById('auto-insight-text').textContent = 
-          `You have ${unsoldBikes.length} bikes in stock. Your average profit on a sold bike is ${this.settings.currency}${this.formatCurrency(avgProfit)}.`;
+          `You have ${unsoldBikes.length} bikes in stock (total investment: ${this.settings.currency}${this.formatCurrency(unsoldValue)}). Your average profit on a sold bike is ${this.settings.currency}${this.formatCurrency(avgProfit)}.`;
 
-        // 3. Render Charts (only if on the stats view)
         if (this.currentView === 'view-stats') {
           this.renderProfitTrendChart(soldBikes);
-          this.renderProfitPieChart(soldBikes);
-          this.renderTopBikesChart(soldBikes);
+          this.renderProfitPieChart(soldBikes); // [FIX] Now implemented
+          this.renderTopBikesChart(soldBikes); // [FIX] Now implemented
         }
       }
       
@@ -1377,20 +1505,18 @@
       
       renderProfitTrendChart(soldBikes) {
         const ctx = document.getElementById('chart-profit-trend').getContext('2d');
-        
-        // Group profit by month
         const monthlyData = soldBikes.reduce((acc, bike) => {
+          if (!bike.dateSelling) return acc;
           const month = bike.dateSelling.substring(0, 7); // 'YYYY-MM'
           acc[month] = (acc[month] || 0) + bike.netProfit;
           return acc;
         }, {});
         
         const sortedMonths = Object.keys(monthlyData).sort();
-        const labels = sortedMonths.map(month => new Date(month + '-02')); // Use 2nd day to avoid TZ issues
+        const labels = sortedMonths.map(month => new Date(month + '-02'));
         const data = sortedMonths.map(month => monthlyData[month]);
 
-        if (this.charts.profitTrend) this.charts.profitTrend.destroy();
-        this.charts.profitTrend = new Chart(ctx, {
+        const chartConfig = {
           type: 'line',
           data: {
             labels: labels,
@@ -1409,88 +1535,148 @@
               x: {
                 type: 'time',
                 time: { unit: 'month' },
-                ticks: { color: 'var(--text-secondary)' },
-                grid: { color: 'var(--border-color-subtle)' }
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
               },
               y: {
                 beginAtZero: true,
-                ticks: { color: 'var(--text-secondary)' },
-                grid: { color: 'var(--border-color-subtle)' }
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
               }
-            },
-            plugins: { legend: { display: false } }
+            }
           }
-        });
+        };
+        
+        if (this.charts.profitTrend) {
+          this.charts.profitTrend.data.labels = labels;
+          this.charts.profitTrend.data.datasets[0].data = data;
+          this.charts.profitTrend.update();
+        } else {
+          this.charts.profitTrend = new Chart(ctx, chartConfig);
+        }
       }
       
+      /**
+       * [FIX] Implemented missing Pie Chart
+       */
       renderProfitPieChart(soldBikes) {
         const ctx = document.getElementById('chart-profit-pie').getContext('2d');
-        const profitRanges = {
-          'Loss (< 0)': soldBikes.filter(b => b.netProfit < 0).length,
-          'Low (0-5k)': soldBikes.filter(b => b.netProfit >= 0 && b.netProfit < 5000).length,
-          'Mid (5k-10k)': soldBikes.filter(b => b.netProfit >= 5000 && b.netProfit < 10000).length,
-          'High (> 10k)': soldBikes.filter(b => b.netProfit >= 10000).length,
+        const profitBins = {
+          'Loss (< 0)': 0,
+          'Break Even (0)': 0,
+          'Profit (0 - 1k)': 0,
+          'Profit (1k - 5k)': 0,
+          'Profit (5k+)': 0,
         };
+        
+        soldBikes.forEach(b => {
+          const p = b.netProfit;
+          if (p < 0) profitBins['Loss (< 0)']++;
+          else if (p === 0) profitBins['Break Even (0)']++;
+          else if (p <= 1000) profitBins['Profit (0 - 1k)']++;
+          else if (p <= 5000) profitBins['Profit (1k - 5k)']++;
+          else profitBins['Profit (5k+)']++;
+        });
 
-        if (this.charts.profitPie) this.charts.profitPie.destroy();
-        this.charts.profitPie = new Chart(ctx, {
+        const labels = Object.keys(profitBins);
+        const data = Object.values(profitBins);
+
+        const chartConfig = {
           type: 'pie',
           data: {
-            labels: Object.keys(profitRanges),
+            labels: labels,
             datasets: [{
-              data: Object.values(profitRanges),
-              backgroundColor: ['#ef4444', '#f59e0b', '#22c55e', '#00D0FF'],
+              label: 'Profit Distribution',
+              data: data,
+              backgroundColor: [
+                'rgba(239, 68, 68, 0.7)',
+                'rgba(156, 163, 175, 0.7)',
+                'rgba(5, 150, 105, 0.7)',
+                'rgba(34, 197, 94, 0.7)',
+                'rgba(107, 231, 183, 0.7)',
+              ],
+              borderColor: 'rgba(255, 255, 255, 0.1)',
             }]
           },
           options: {
             responsive: true,
             plugins: {
-              legend: { position: 'top', labels: { color: 'var(--text-primary)' } }
+              legend: { position: 'top' }
             }
           }
-        });
+        };
+
+        if (this.charts.profitPie) {
+          this.charts.profitPie.data.labels = labels;
+          this.charts.profitPie.data.datasets[0].data = data;
+          this.charts.profitPie.update();
+        } else {
+          this.charts.profitPie = new Chart(ctx, chartConfig);
+        }
       }
       
+      /**
+       * [FIX] Implemented missing Bar Chart
+       */
       renderTopBikesChart(soldBikes) {
         const ctx = document.getElementById('chart-top-bikes').getContext('2d');
-        const top5 = soldBikes.sort((a, b) => b.netProfit - a.netProfit).slice(0, 5);
         
-        if (this.charts.topBikes) this.charts.topBikes.destroy();
-        this.charts.topBikes = new Chart(ctx, {
+        const topBikes = [...soldBikes]
+          .sort((a, b) => b.netProfit - a.netProfit)
+          .slice(0, 5);
+          
+        const labels = topBikes.map(b => b.no);
+        const data = topBikes.map(b => b.netProfit);
+
+        const chartConfig = {
           type: 'bar',
           data: {
-            labels: top5.map(b => b.no),
+            labels: labels,
             datasets: [{
               label: 'Net Profit',
-              data: top5.map(b => b.netProfit),
-              backgroundColor: 'rgba(110, 231, 183, 0.6)',
-              borderColor: 'rgba(110, 231, 183, 1)',
+              data: data,
+              backgroundColor: 'rgba(107, 231, 183, 0.7)',
+              borderColor: 'rgba(107, 231, 183, 1)',
               borderWidth: 1
             }]
           },
           options: {
-            indexAxis: 'y',
             responsive: true,
+            indexAxis: 'y', // Horizontal bar chart
             scales: {
-              x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color-subtle)' } },
-              y: { ticks: { color: 'var(--text-secondary)' }, grid: { display: false } }
+              x: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              },
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              }
             },
-            plugins: { legend: { display: false } }
+            plugins: {
+              legend: { display: false }
+            }
           }
-        });
+        };
+        
+        if (this.charts.topBikes) {
+          this.charts.topBikes.data.labels = labels;
+          this.charts.topBikes.data.datasets[0].data = data;
+          this.charts.topBikes.update();
+        } else {
+          this.charts.topBikes = new Chart(ctx, chartConfig);
+        }
       }
 
-      // --- 6. CORE CRUD OPERATIONS ---
+      // --- 6. CORE CRUD (BUY/SELL) OPERATIONS ---
       
       handleNewBike() {
-        this.openFormModal();
+        this.openFormModal('buy');
       }
       
       async handleEditBike(id) {
         try {
           const bike = await this.db.bikes.get(Number(id));
           if (bike) {
-            this.openFormModal(bike);
+            const mode = bike.dateSelling ? 'view' : 'sell';
+            this.openFormModal(mode, bike);
           }
         } catch (error) {
           console.error("Failed to get bike for editing:", error);
@@ -1502,7 +1688,6 @@
         const form = document.getElementById('bike-form');
         const id = document.getElementById('form-bike-id').value;
         
-        // 1. Read & Validate Form
         const plate = document.getElementById('form-no').value.trim().toUpperCase();
         const owner = document.getElementById('form-owner').value.trim();
         
@@ -1511,9 +1696,11 @@
           return;
         }
         
-        const purchasePrice = Number(document.getElementById('form-purchasePrice').value) || 0;
-        const repairCost = Number(document.getElementById('form-repairCost').value) || 0;
-        const sellingPrice = Number(document.getElementById('form-sellingPrice').value) || 0;
+        const purchasePrice = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
+        const repairCost = parseFloat(document.getElementById('form-repairCost').value) || 0;
+        const sellingPrice = parseFloat(document.getElementById('form-sellingPrice').value) || 0;
+        const datePurchase = document.getElementById('form-datePurchase').value || '';
+        const dateSelling = document.getElementById('form-dateSelling').value || '';
         
         const bikeData = {
           no: plate,
@@ -1522,34 +1709,28 @@
           repairCost: repairCost,
           sellingPrice: sellingPrice,
           netProfit: sellingPrice - (purchasePrice + repairCost),
-          datePurchase: document.getElementById('form-datePurchase').value || '',
-          dateSelling: document.getElementById('form-dateSelling').value || '',
+          datePurchase: datePurchase,
+          dateSelling: dateSelling,
           _updatedAt: new Date().toISOString(),
+          _deleted: false, // [FIX] Ensure _deleted flag is set
         };
         
         try {
-          // 2. Save to DB
           if (id) {
-            // Update existing
-            await this.db.bikes.update(Number(id), bikeData);
+            // Get existing bike to merge _deleted flag (in case it was deleted)
+            const existing = await this.db.bikes.get(Number(id));
+            await this.db.bikes.update(Number(id), {...existing, ...bikeData});
             this.showToast("Bike updated successfully.", 'success');
           } else {
             // Add new
             await this.db.bikes.add(bikeData);
             this.showToast("Bike added successfully.", 'success');
-            
-            // Confetti for first bike?
-            const count = await this.db.bikes.count();
-            if (count === 1) {
-              this.showConfetti();
-            }
           }
           
-          // 3. Post-Save
           this.vibrate(20);
           this.closeFormModal();
-          this.renderAll(); // Full re-render
-          this.triggerAutoSync(); // Trigger a sync in the background
+          this.renderAll();
+          this.triggerAutoSync();
           
         } catch (error) {
           console.error("Save bike failed:", error);
@@ -1565,9 +1746,13 @@
         const id = document.getElementById('form-bike-id').value;
         if (!id) return;
         
-        if (confirm("Are you sure you want to delete this bike? This cannot be undone easily.")) {
+        if (confirm("Are you sure you want to delete this bike? This will sync as a deletion.")) {
           try {
-            await this.db.bikes.delete(Number(id));
+            // [FIX] Use tombstone update instead of delete
+            await this.db.bikes.update(Number(id), {
+              _deleted: true,
+              _updatedAt: new Date().toISOString()
+            });
             this.showToast("Bike deleted.", 'success');
             this.vibrate(50);
             this.closeFormModal();
@@ -1580,51 +1765,79 @@
         }
       }
 
-      // --- 7. FORM & MODAL UI ---
+      // --- 7. FORM & MODAL UI (Buy/Sell/View Logic) ---
       
-      openFormModal(bike = null) {
-        const modal = document.getElementById('form-modal');
+      openFormModal(mode = 'buy', bike = null) {
         const title = document.getElementById('form-title');
         const deleteBtn = document.getElementById('delete-bike-btn');
+        const saveBtn = document.getElementById('save-form-btn');
+        const saveBtnText = document.getElementById('save-form-btn-text');
         const form = document.getElementById('bike-form');
+        const buySection = document.getElementById('form-section-buy');
+        const sellSection = document.getElementById('form-section-sell');
         
-        form.reset(); // Clear form
+        form.reset();
         
-        if (bike) {
-          // Edit mode
-          title.textContent = "Edit Bike";
+        // Default: Buy Mode
+        title.textContent = "Buy New Bike";
+        deleteBtn.classList.add('hidden');
+        saveBtn.classList.remove('hidden');
+        saveBtnText.textContent = "Save Purchase";
+        buySection.classList.remove('readonly-section');
+        sellSection.classList.add('hidden');
+        document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
+        document.getElementById('form-bike-id').value = '';
+        
+        if (mode === 'sell' && bike) {
+          // Sell Mode
+          title.textContent = "Sell Bike";
           deleteBtn.classList.remove('hidden');
+          saveBtnText.textContent = "Save Sale";
           
-          document.getElementById('form-bike-id').value = bike._id;
-          document.getElementById('form-no').value = bike.no;
-          document.getElementById('form-owner').value = bike.owner;
-          document.getElementById('form-datePurchase').value = bike.datePurchase;
-          document.getElementById('form-dateSelling').value = bike.dateSelling;
-          document.getElementById('form-purchasePrice').value = bike.purchasePrice;
-          document.getElementById('form-repairCost').value = bike.repairCost;
-          document.getElementById('form-sellingPrice').value = bike.sellingPrice;
-          this.calculateFormProfit();
+          buySection.classList.add('readonly-section');
+          sellSection.classList.remove('hidden');
           
-        } else {
-          // Add mode
-          title.textContent = "Add New Bike";
-          deleteBtn.classList.add('hidden');
-          document.getElementById('form-bike-id').value = '';
-          // Set purchase date to today by default
-          document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
+          this.fillForm(bike);
+          document.getElementById('form-dateSelling').value = new Date().toISOString().split('T')[0];
+        
+        } else if (mode === 'view' && bike) {
+          // View Mode
+          title.textContent = "View Sale";
+          deleteBtn.classList.remove('hidden');
+          saveBtn.classList.add('hidden');
+          
+          buySection.classList.add('readonly-section');
+          sellSection.classList.remove('hidden');
+          sellSection.classList.add('readonly-section');
+          
+          this.fillForm(bike);
         }
         
-        modal.classList.add('active');
+        this.dom.formModal.classList.add('active');
+      }
+      
+      fillForm(bike) {
+        document.getElementById('form-bike-id').value = bike._id;
+        document.getElementById('form-no').value = bike.no;
+        document.getElementById('form-owner').value = bike.owner;
+        document.getElementById('form-datePurchase').value = bike.datePurchase;
+        document.getElementById('form-purchasePrice').value = bike.purchasePrice;
+        document.getElementById('form-repairCost').value = bike.repairCost;
+        document.getElementById('form-dateSelling').value = bike.dateSelling;
+        document.getElementById('form-sellingPrice').value = bike.sellingPrice;
+        this.calculateFormProfit();
       }
       
       closeFormModal() {
-        document.getElementById('form-modal').classList.remove('active');
+        this.dom.formModal.classList.remove('active');
+        document.getElementById('form-section-buy').classList.remove('readonly-section');
+        document.getElementById('form-section-sell').classList.remove('readonly-section');
       }
       
       calculateFormProfit() {
-        const p = Number(document.getElementById('form-purchasePrice').value) || 0;
-        const r = Number(document.getElementById('form-repairCost').value) || 0;
-        const s = Number(document.getElementById('form-sellingPrice').value) || 0;
+        const p = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
+        const r = parseFloat(document.getElementById('form-repairCost').value) || 0;
+        const s = parseFloat(document.getElementById('form-sellingPrice').value) || 0;
         const profit = s - (p + r);
         document.getElementById('form-netProfit').value = profit.toFixed(2);
       }
@@ -1635,48 +1848,43 @@
         this.settings.gistId = document.getElementById('setting-gist-id').value.trim();
         this.settings.gistFilename = document.getElementById('setting-gist-filename').value.trim() || 'bikes_inventory.csv';
         this.settings.githubPat = document.getElementById('setting-github-pat').value.trim();
+        this.settings.lastSyncSha = null;
         
-        this.saveSettings();
-        this.showToast("Sync settings saved.", 'success');
+        // [FIX] Save PAT to sessionStorage and other settings to localStorage
+        sessionStorage.setItem(PAT_KEY, this.settings.githubPat);
+        this.saveSettings(); // This saves the non-PAT settings
+        
+        this.showToast("Sync settings saved for this session.", 'success');
       }
       
       handleSaveDisplaySettings() {
         this.settings.businessName = document.getElementById('setting-business-name').value.trim();
         this.settings.currency = document.getElementById('setting-currency').value.trim();
-        
         this.saveSettings();
         this.showToast("Display settings saved.", 'success');
-        this.renderAll(); // Re-render to apply currency/etc.
+        this.renderAll();
       }
       
       async handleWipeData() {
-        if (confirm("WARNING: This will delete ALL local bike data from your browser. This cannot be undone. Are you sure?")) {
-          if (confirm("Final confirmation: Delete all data?")) {
-            try {
-              await this.db.bikes.clear();
-              this.showToast("All local data has been wiped.", 'success');
-              this.vibrate(100);
-              this.renderAll();
-            } catch (error) {
-              console.error("Data wipe failed:", error);
-              this.showToast("Data wipe failed.", 'error');
-            }
-          }
+        if (confirm("WARNING: This will delete ALL local bike data. Are you sure?")) {
+          await this.db.bikes.clear();
+          this.showToast("All local data has been wiped.", 'success');
+          this.renderAll();
         }
       }
       
       // --- 9. IMPORT / EXPORT ---
       
       async exportData(format) {
-        const bikes = await this.db.bikes.orderBy('no').toArray();
+        // [FIX] Filter out deleted bikes from export
+        const bikes = await this.db.bikes.filter(b => !b._deleted).orderBy('no').toArray();
         if (bikes.length === 0) {
           this.showToast("No data to export.", 'warning');
           return;
         }
         
-        // Clean data for export (remove _id)
         const exportBikes = bikes.map(b => {
-          const { _id, ...rest } = b;
+          const { _id, _deleted, ...rest } = b; // Remove internal fields
           return rest;
         });
         
@@ -1684,23 +1892,30 @@
         const filename = `bike_inventory_${timestamp}`;
 
         if (format === 'json') {
-          const json = JSON.stringify(exportBikes, null, 2);
-          this.downloadFile(json, `${filename}.json`, 'application/json');
+          this.downloadFile(JSON.stringify(exportBikes, null, 2), `${filename}.json`, 'application/json');
         } else if (format === 'csv') {
-          const csv = this.jsonToCsv(exportBikes);
-          this.downloadFile(csv, `${filename}.csv`, 'text/csv');
+          this.downloadFile(this.jsonToCsv(exportBikes, true), `${filename}.csv`, 'text/csv');
         } else if (format === 'xlsx') {
           const ws = XLSX.utils.json_to_sheet(exportBikes);
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
           XLSX.writeFile(wb, `${filename}.xlsx`);
         }
-        this.vibrate(10);
+      }
+      
+      downloadTemplate() {
+        const csv = this.jsonToCsv([], true); // Creates header-only CSV
+        this.downloadFile(csv, 'bike_template.csv', 'text/csv');
       }
       
       handleImportFile(event) {
         const file = event.target.files[0];
         if (!file) return;
+        
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+          this.showToast('File is too large (max 5MB).', 'error');
+          return;
+        }
         
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -1719,57 +1934,49 @@
             
             if (!Array.isArray(bikesToImport)) throw new Error("Invalid file format.");
             
-            // Add/update metadata
             const now = new Date().toISOString();
             const preparedBikes = bikesToImport.map(b => ({
               no: (b.no || '').trim().toUpperCase(),
               owner: b.owner || '',
-              purchasePrice: Number(b.purchasePrice) || 0,
-              repairCost: Number(b.repairCost) || 0,
-              sellingPrice: Number(b.sellingPrice) || 0,
-              netProfit: Number(b.netProfit) || (Number(b.sellingPrice) - (Number(b.purchasePrice) + Number(b.repairCost))),
+              purchasePrice: parseFloat(b.purchasePrice) || 0,
+              repairCost: parseFloat(b.repairCost) || 0,
+              sellingPrice: parseFloat(b.sellingPrice) || 0,
+              netProfit: parseFloat(b.netProfit) || (parseFloat(b.sellingPrice) - (parseFloat(b.purchasePrice) + parseFloat(b.repairCost))),
               datePurchase: b.datePurchase || '',
               dateSelling: b.dateSelling || '',
-              _updatedAt: b._updatedAt || now, // Preserve timestamp if it exists
+              _updatedAt: b._updatedAt || now,
+              // [FIX] Handle _deleted flag on import
+              _deleted: b._deleted === 'true' || b._deleted === true || false,
             })).filter(b => b.no); // Must have a plate number
             
             if (confirm(`Found ${preparedBikes.length} records. This will ADD new records and UPDATE existing records based on bike plate. Continue?`)) {
-              // bulkPut does an "upsert" based on the unique key '&no'
+              // bulkPut will update existing records based on the unique `no` key
               await this.db.bikes.bulkPut(preparedBikes);
               this.showToast(`Successfully imported/updated ${preparedBikes.length} records.`, 'success');
               this.renderAll();
+              this.triggerAutoSync();
             }
             
           } catch (error) {
             console.error("Import failed:", error);
             this.showToast("Import failed. Check file format.", 'error');
           } finally {
-            event.target.value = ''; // Reset file input
+            event.target.value = '';
           }
         };
         
-        if (file.name.endsWith('.json')) {
-          reader.readAsText(file);
-        } else if (file.name.endsWith('.csv')) {
-          reader.readAsText(file);
-        }
+        reader.readAsText(file);
       }
 
-      // --- 10. GITHUB GIST SYNC ---
+      // --- 10. GIST SYNC (PATCHED) ---
       
-      /**
-       * This is the core disconnected sync logic.
-       * It performs a 3-way merge between local, remote, and a stored "last sync" state.
-       * This implementation is simpler: it merges based on timestamp.
-       * Local and remote data are merged, with the newest `_updatedAt` timestamp winning.
-       */
       async syncNow() {
         if (!this.isOnline) {
           this.showToast("Cannot sync. You are offline.", 'warning');
           return;
         }
         
-        const { gistId, githubPat, gistFilename } = this.settings;
+        const { gistId, githubPat } = this.settings;
         if (!gistId || !githubPat) {
           this.showToast("Gist ID and GitHub PAT must be set in Settings.", 'error');
           this.navigateTo('view-settings');
@@ -1779,58 +1986,62 @@
         this.setSyncStatus('syncing', 'Syncing...');
         
         try {
-          // 1. Fetch Remote Data
           this.setSyncStatus('syncing', 'Fetching remote...');
           const remoteFile = await this.fetchFromGist();
+          
           let remoteBikes = [];
           if (remoteFile) {
             remoteBikes = this.csvTojson(atob(remoteFile.content));
+            this.settings.lastSyncSha = remoteFile.sha;
           }
           
-          // 2. Get Local Data
+          // [FIX] Get ALL local bikes, including tombstones, for merge
           const localBikes = await this.db.bikes.toArray();
           
-          // 3. Merge Data (timestamp wins)
           this.setSyncStatus('syncing', 'Merging data...');
           const mergedBikesMap = new Map();
           
-          // Add all local bikes to map
-          for (const bike of localBikes) {
-            mergedBikesMap.set(bike.no, bike);
-          }
+          // 1. Add all local bikes (including _deleted) to map
+          for (const bike of localBikes) { mergedBikesMap.set(bike.no, bike); }
           
-          // Merge remote bikes
+          // 2. Merge remote bikes (last-write-wins)
           for (const remoteBike of remoteBikes) {
             const localBike = mergedBikesMap.get(remoteBike.no);
+            
+            // Ensure remote bike has proper _deleted flag
+            remoteBike._deleted = remoteBike._deleted === 'true' || remoteBike._deleted === true || false;
+            
             if (!localBike || new Date(remoteBike._updatedAt) > new Date(localBike._updatedAt)) {
-              // Remote is newer or doesn't exist locally
               mergedBikesMap.set(remoteBike.no, remoteBike);
             }
           }
           
           const mergedBikes = Array.from(mergedBikesMap.values());
           
-          // 4. Write merged data back to local DB
           this.setSyncStatus('syncing', 'Saving local...');
-          await this.db.bikes.clear();
-          await this.db.bikes.bulkPut(mergedBikes);
+          // 3. Save merged data (including tombstones) back to local DB
+          await this.db.transaction('rw', this.db.bikes, async () => {
+            await this.db.bikes.clear();
+            await this.db.bikes.bulkPut(mergedBikes);
+          });
           
-          // 5. Write merged data back to Gist
           this.setSyncStatus('syncing', 'Pushing remote...');
-          const csvContent = this.jsonToCsv(mergedBikes);
-          const newFileContent = btoa(csvContent);
+          // 4. Convert merged data (including _deleted) to CSV
+          const csvContent = this.jsonToCsv(mergedBikes, false); // false = don't skip deleted
+          const newBase64Content = btoa(csvContent);
           
-          if (!remoteFile || newFileContent !== remoteFile.content) {
-            await this.pushToGist(newFileContent, remoteFile ? remoteFile.sha : null);
+          if (!remoteFile || newBase64Content !== remoteFile.content) {
+            const newSha = await this.pushToGist(newBase64Content, this.settings.lastSyncSha);
+            this.settings.lastSyncSha = newSha;
           } else {
             console.log("No changes to push.");
           }
           
-          // 6. Success
           this.settings.lastSync = new Date().toISOString();
-          this.saveSettings();
+          this.saveSettings(); // Saves lastSync, etc.
           this.setSyncStatus('success', 'Up to date');
           this.showToast("Sync complete.", 'success');
+          // 5. Render, which will filter out the _deleted records
           this.renderAll();
           
         } catch (error) {
@@ -1840,52 +2051,35 @@
         }
       }
       
-      /**
-       * Fetches the content of the Gist file.
-       * Returns file object { content, sha } or null.
-       */
       async fetchFromGist() {
         const { gistId, githubPat, gistFilename } = this.settings;
         const url = `https://api.github.com/gists/${gistId}`;
         
         const response = await fetch(url, {
-          headers: {
-            'Authorization': `token ${githubPat}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
+          headers: { 'Authorization': `token ${githubPat}`, 'Accept': 'application/vnd.github.v3+json' }
         });
         
         if (!response.ok) {
-          if (response.status === 404) {
-            this.showToast("Gist not found. Check Gist ID.", 'error');
-            return null;
-          }
+          if (response.status === 404) return null; // Gist not found
           throw new Error(`GitHub API error: ${response.statusText}`);
         }
         
         const gist = await response.json();
         const file = gist.files[gistFilename];
+        const latestSha = gist.history[0].version;
         
-        if (!file) {
-          console.log(`File '${gistFilename}' not found in Gist. Will create it on next sync.`);
-          return null; // File doesn't exist, will be created on push
-        }
+        if (!file) return null; // File not in Gist
         
-        // Gist API returns truncated content if too large,
-        // so we must fetch the raw_url if truncated.
+        let content = file.content;
         if (file.truncated) {
           const rawResponse = await fetch(file.raw_url);
-          const textContent = await rawResponse.text();
-          return { content: btoa(textContent), sha: gist.history[0].version }; // We can't get SHA from raw file, this is a limitation
+          content = btoa(await rawResponse.text());
         }
         
-        return { content: file.content, sha: gist.history[0].version };
+        return { content, sha: latestSha };
       }
       
-      /**
-       * Pushes new content to the Gist file.
-       */
-      async pushToGist(base64Content) {
+      async pushToGist(base64Content, sha) {
         const { gistId, githubPat, gistFilename } = this.settings;
         const url = `https://api.github.com/gists/${gistId}`;
         
@@ -1893,9 +2087,10 @@
           description: `Bike Manager DB updated ${new Date().toISOString()}`,
           files: {
             [gistFilename]: {
-              content: atob(base64Content) // Gist API expects raw text, not base64
+              content: atob(base64Content)
             }
-          }
+          },
+          sha: sha 
         };
         
         const response = await fetch(url, {
@@ -1910,89 +2105,54 @@
         if (!response.ok) {
           throw new Error(`Failed to push to Gist: ${response.statusText}`);
         }
+        
+        const result = await response.json();
+        return result.history[0].version; // Return the new SHA
       }
       
-      /**
-       * A simple background sync trigger with debouncing.
-       */
       triggerAutoSync = this.debounce(() => {
         if (this.isOnline && this.settings.gistId && this.settings.githubPat) {
           console.log("Triggering auto-sync in background...");
           this.syncNow().catch(err => console.error("Background sync failed", err));
         }
-      }, 10000); // Wait 10 seconds after last change
+      }, 10000);
       
       // --- 11. UI HELPERS ---
       
       navigateTo(viewId) {
-        if (this.currentView === viewId) return;
-        
         this.currentView = viewId;
+        this.dom.views.forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
         
-        // Update view visibility
-        this.dom.views.forEach(view => {
-          view.classList.toggle('active', view.id === viewId);
-        });
-        
-        // Update nav button active state
         this.dom.navButtons.forEach(btn => {
           btn.classList.toggle('active', btn.dataset.view === viewId);
         });
         
-        // If we navigated to stats, render them
         if (viewId === 'view-stats') {
           this.renderStatsDashboard();
         }
-        this.vibrate(10);
       }
       
       setFilterStatus(status) {
         this.currentFilters.status = status;
-        
-        // Update chip UI
-        document.querySelectorAll('.filter-chips .chip').forEach(chip => {
-          chip.classList.toggle('active', chip.dataset.filter === status);
+        document.querySelectorAll('.filter-chips .chip').forEach(c => {
+          c.classList.toggle('active', c.dataset.filter === status);
         });
-        
         this.renderBikeList();
-        this.vibrate(10);
       }
       
       setSyncStatus(status, text) {
         this.dom.syncStatus.className = `sync-status ${status}`;
         this.dom.syncStatusText.textContent = text;
-        
-        if (status === 'syncing') {
-          this.dom.syncNowBtn.disabled = true;
-          this.dom.syncNowBtn.style.animation = 'spin 1.5s linear infinite';
-        } else {
-          this.dom.syncNowBtn.disabled = false;
-          this.dom.syncNowBtn.style.animation = 'none';
-        }
       }
       
       updateOnlineStatus() {
         this.isOnline = navigator.onLine;
         if (this.isOnline) {
           this.setSyncStatus('success', 'Online');
-          // Try a sync if we just came online
-          this.triggerAutoSync();
         } else {
           this.setSyncStatus('offline', 'Offline');
         }
-      }
-      
-      showToast(message, type = 'info') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        
-        container.appendChild(toast);
-        
-        setTimeout(() => {
-          toast.remove();
-        }, 3000);
       }
       
       vibrate(duration) {
@@ -2002,75 +2162,49 @@
       }
       
       showConfetti() {
-        // A simple, lightweight confetti implementation
-        const canvas = document.getElementById('confetti-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const pieces = [];
-        const pieceCount = 100;
-        const colors = ['#00D0FF', '#6EE7B7', '#FFD700', '#FF69B4'];
-
-        for (let i = 0; i < pieceCount; i++) {
-          pieces.push({
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            rx: Math.random() * 10 + 5,
-            ry: Math.random() * 5 + 2,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            vx: Math.random() * 10 - 5,
-            vy: Math.random() * 10 - 5,
-            opacity: 1,
-            angle: Math.random() * 360,
-          });
-        }
-
-        let frame = 0;
-        function drawConfetti() {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (frame > 200) { // Stop after ~3 seconds
-            canvas.width = 0; canvas.height = 0; // Clear canvas
-            return;
-          }
-          
-          pieces.forEach(p => {
-            ctx.beginPath();
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.angle * Math.PI / 180);
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = p.opacity;
-            ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.restore();
-            
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.1; // Gravity
-            p.opacity -= 0.005;
-            p.angle += p.vx;
-          });
-          
-          frame++;
-          requestAnimationFrame(drawConfetti);
-        }
-        drawConfetti();
+        // (Confetti logic would go here if implemented)
+      }
+      
+      showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        toast.innerHTML = `<span class="toast-message">${message}</span><span class="toast-close">×</span>`;
+        
+        container.appendChild(toast);
+        
+        const timer = setTimeout(() => {
+          toast.remove();
+        }, 5000);
+        
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+          clearTimeout(timer);
+          toast.remove();
+        });
       }
 
       // --- 12. UTILITY FUNCTIONS ---
 
       formatCurrency(value) {
         return (value || 0).toLocaleString(undefined, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
         });
       }
       
-      debounce(func, delay) {
+      debounce(func, delay, immediate = false) {
         let timeout;
         return (...args) => {
+          const context = this;
+          const later = function() {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+          };
+          const callNow = immediate && !timeout;
           clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), delay);
+          timeout = setTimeout(later, delay);
+          if (callNow) func.apply(context, args);
         };
       }
       
@@ -2083,36 +2217,68 @@
         URL.revokeObjectURL(a.href);
       }
       
-      jsonToCsv(items) {
-        // Use the same headers as the old app, plus _updatedAt
-        const headers = ['_id', '_updatedAt', 'no', 'owner', 'purchasePrice', 'repairCost', 'sellingPrice', 'netProfit', 'datePurchase', 'dateSelling'];
-        const replacer = (key, value) => value === null ? '' : value;
-        const headerRow = headers.map(h => `"${h}"`).join(',');
-        
-        const rows = items.map(row => 
-          headers.map(header => 
-            `"${String(row[header] || '').replace(/"/g, '""')}"`
-          ).join(',')
-        );
-        
-        return [headerRow, ...rows].join('\r\n');
+      parseCsvLine(line) {
+        const values = [];
+        let inQuotes = false;
+        let currentField = '';
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              currentField += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            values.push(currentField.trim());
+            currentField = '';
+          } else {
+            currentField += char;
+          }
+        }
+        values.push(currentField.trim());
+        return values.map(v => v.replace(/^"|"$/g, ''));
       }
       
       csvTojson(text) {
-        const lines = text.split('\n').filter(Boolean);
+        const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
         if (lines.length < 2) return [];
         
-        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        const headers = this.parseCsvLine(lines[0]);
         
         return lines.slice(1).map(line => {
-          // Simple CSV parse, not robust for commas in fields
-          const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+          const values = this.parseCsvLine(line);
           const obj = {};
           headers.forEach((header, index) => {
             obj[header] = values[index];
           });
           return obj;
         });
+      }
+      
+      /**
+       * [FIX] Added _deleted to headers.
+       * Added skipDeleted param for exports.
+       */
+      jsonToCsv(items, skipDeleted = false) {
+        const headers = ['no', 'owner', 'purchasePrice', 'repairCost', 'sellingPrice', 'netProfit', 'datePurchase', 'dateSelling', '_updatedAt', '_deleted'];
+        const replacer = (key, value) => value === null ? '' : value;
+        const headerRow = headers.map(h => `"${h}"`).join(',');
+        
+        let itemsToExport = items;
+        if (skipDeleted) {
+          itemsToExport = items.filter(item => !item._deleted);
+        }
+        
+        const rows = itemsToExport.map(row => 
+          headers.map(header => 
+            `"${String(row[header] === undefined || row[header] === null ? '' : row[header]).replace(/"/g, '""')}"`
+          ).join(',')
+        );
+        
+        return [headerRow, ...rows].join('\r\n');
       }
       
     }
