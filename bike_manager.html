@@ -1666,18 +1666,16 @@
   <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  
   <script>
-    // --- CONSTANTS ---
+    // --- APP CONSTANTS ---
     const OLD_STORAGE_KEY = 'bikes_db_v2';
     const SETTINGS_KEY = 'bike_manager_settings_v6';
     const PAT_KEY = 'bike_manager_pat_v6';
     const THEME_KEY = 'bike_manager_theme';
     const UNDO_KEY = 'bike_manager_undo';
-    const ITEMS_PER_PAGE = 50; // For pagination
+    const ITEMS_PER_PAGE = 50;
 
     /**
-     * <!-- [v6.3 BUGFIX] Fixed debounce losing 'this' context by using arrow function wrapper -->
      * @class BikeManagerApp
      * Main application class managing all components, views, database, and sync logic.
      */
@@ -1685,11 +1683,11 @@
       
       constructor() {
         this.db = null;
-        this.charts = {}; // <!-- [v6.3 BUGFIX] Properly track chart instances for cleanup -->
+        this.charts = {};
         this.currentFilters = {
           search: '',
           status: 'all',
-          sort: 'latest', // <!-- [v6.3 FEATURE] Sorting state -->
+          sort: 'latest',
         };
         this.settings = {
           businessName: 'Bike Manager',
@@ -1699,18 +1697,17 @@
           githubPat: '',
           lastSync: null,
           lastSyncSha: null,
-          listDensity: 'comfortable', // <!-- [v6.3 FEATURE] -->
+          listDensity: 'comfortable',
         };
         this.currentView = 'view-list';
         this.isMobile = window.innerWidth < 768;
         this.isOnline = navigator.onLine;
-        this.selectedBikes = new Set(); // <!-- [v6.3 FEATURE] Multi-select -->
-        this.undoStack = []; // <!-- [v6.3 FEATURE] Undo history -->
-        this.currentPage = 1; // <!-- [v6.3 FEATURE] Pagination -->
+        this.selectedBikes = new Set();
+        this.undoStack = [];
+        this.currentPage = 1;
         this.totalPages = 1;
-        this.statsDateFilter = { from: null, to: null }; // <!-- [v6.3 FEATURE] -->
+        this.statsDateFilter = { from: null, to: null };
 
-        // <!-- [v6.3 BUGFIX] Proper debounce that maintains 'this' context -->
         this.debouncedRenderList = this.debounce(() => this.renderBikeList(), 250);
         this.debouncedSyncNow = this.debounce(() => this.syncNowInternal(), 5000, true);
         
@@ -1740,6 +1737,7 @@
        */
       async init() {
         try {
+          console.log('Starting initialization...');
           this.vibrate(10);
           this.initServiceWorker();
           
@@ -1749,7 +1747,6 @@
           this.updateLoaderStatus('Loading settings...');
           await this.loadSettings();
 
-          // <!-- [v6.3 BUGFIX] Run data cleaning *before* migration or rendering -->
           this.updateLoaderStatus('Cleaning data (if any)...');
           await this.cleanCorruptedData();
           
@@ -1763,759 +1760,25 @@
           this.updateLoaderStatus('Rendering data...');
           await this.renderAll();
           
-          // <!-- [v6.3 FEATURE] Check if PAT needs re-entry -->
           this.checkPATStatus();
           
+          console.log('Initialization complete!');
           this.dom.loader.classList.add('hidden');
           
         } catch (error) {
           console.error("Critical initialization failed:", error);
-          this.dom.loaderStatus.textContent = "Error loading app. Please refresh.";
+          this.dom.loaderStatus.textContent = "Error loading app: " + error.message;
           this.dom.loaderStatus.classList.add('text-error');
         }
       }
       
       updateLoaderStatus(text) {
+        console.log('Status:', text);
         this.dom.loaderStatus.textContent = text;
       }
 
       // --- 1. PWA & SERVICE WORKER ---
       
-      /**
-       * <!-- [v6.3 FEATURE] Create bike card HTML with multi-select checkbox -->
-       */
-      createBikeCardHTML(bike) {
-        const isSold = !!(bike.dateSelling && bike.dateSelling !== '');
-        const profit = parseFloat(bike.netProfit) || 0;
-        let profitClass = 'profit-value';
-        let profitDisplay = `${this.settings.currency} ${this.formatCurrency(profit)}`;
-        
-        if (!isSold) {
-          profitClass += ' unrealized';
-          profitDisplay = 'Unsold';
-        } else if (profit < 0) {
-          profitClass += ' loss';
-        } else if (profit === 0) {
-          profitClass = 'text-secondary';
-        }
-        
-        const isSelected = this.selectedBikes.has(bike._id.toString());
-        
-        return `
-          <div class="bike-card ${isSelected ? 'selected' : ''}" data-id="${bike._id}" role="listitem">
-            <div class="bike-checkbox" role="checkbox" aria-checked="${isSelected}">
-              <svg><use href="#icon-check"></use></svg>
-            </div>
-            <div class="bike-card-main">
-              <div class="bike-card-plate">${this.escapeHtml(bike.no)}</div>
-              <div class="bike-card-owner">${this.escapeHtml(bike.owner)}</div>
-            </div>
-            <div class="bike-card-profit">
-              <div class="${profitClass}">${profitDisplay}</div>
-            </div>
-          </div>
-        `;
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Multi-select functionality -->
-       */
-      toggleBikeSelection(id) {
-        const idStr = id.toString();
-        if (this.selectedBikes.has(idStr)) {
-          this.selectedBikes.delete(idStr);
-        } else {
-          this.selectedBikes.add(idStr);
-        }
-        
-        this.updateBulkActionBar();
-        this.renderBikeList();
-      }
-      
-      updateBulkActionBar() {
-        const bar = document.getElementById('bulk-action-bar');
-        const count = this.selectedBikes.size;
-        document.getElementById('selected-count').textContent = count;
-        
-        if (count > 0) {
-          bar.classList.add('active');
-        } else {
-          bar.classList.remove('active');
-        }
-      }
-      
-      clearSelection() {
-        this.selectedBikes.clear();
-        this.updateBulkActionBar();
-        this.renderBikeList();
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Pagination controls -->
-       */
-      changePage(delta) {
-        const newPage = this.currentPage + delta;
-        if (newPage >= 1 && newPage <= this.totalPages) {
-          this.currentPage = newPage;
-          this.renderBikeList();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }
-
-      /**
-       * <!-- [v6.3 FEATURE] Enhanced stats dashboard with date filtering -->
-       */
-      async renderStatsDashboard() {
-        let bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
-        
-        // Apply date filter if set
-        if (this.statsDateFilter.from || this.statsDateFilter.to) {
-          bikes = bikes.filter(b => {
-            if (!b.dateSelling) return false;
-            const saleDate = new Date(b.dateSelling);
-            if (this.statsDateFilter.from && saleDate < new Date(this.statsDateFilter.from)) return false;
-            if (this.statsDateFilter.to && saleDate > new Date(this.statsDateFilter.to)) return false;
-            return true;
-          });
-        }
-        
-        const soldBikes = bikes.filter(b => b.dateSelling && b.dateSelling !== '');
-        const unsoldBikes = bikes.filter(b => !b.dateSelling || b.dateSelling === '');
-        
-        // <!-- [v6.3 BUGFIX] Use parseFloat to prevent string concatenation -->
-        const totalProfit = soldBikes.reduce((sum, b) => sum + parseFloat(b.netProfit || 0), 0);
-        const unsoldValue = unsoldBikes.reduce((sum, b) => sum + parseFloat(b.purchasePrice || 0) + parseFloat(b.repairCost || 0), 0);
-        
-        document.getElementById('stat-total-profit').textContent = this.formatCurrency(totalProfit);
-        document.getElementById('stat-unsold-value').textContent = this.formatCurrency(unsoldValue);
-        document.getElementById('stat-sold-count').textContent = soldBikes.length;
-        document.getElementById('stat-unsold-count').textContent = unsoldBikes.length;
-
-        const avgProfit = soldBikes.length > 0 ? totalProfit / soldBikes.length : 0;
-        
-        // <!-- [v6.3 FEATURE] Enhanced insights with actionable tips -->
-        let insightText = `You have ${unsoldBikes.length} bikes in stock (total investment: ${this.settings.currency}${this.formatCurrency(unsoldValue)}).`;
-        if (soldBikes.length > 0) {
-          insightText += ` Your average profit per bike is ${this.settings.currency}${this.formatCurrency(avgProfit)}.`;
-          
-          if (avgProfit < 0) {
-            insightText += ` ⚠️ Review pricing strategy - average loss detected.`;
-          } else if (totalProfit > 100000) {
-            insightText += ` 🎉 Congratulations on crossing ₹1 lakh in profits!`;
-          }
-        }
-        document.getElementById('auto-insight-text').textContent = insightText;
-        
-        // <!-- [v6.3 FEATURE] Performance metrics -->
-        this.renderPerformanceMetrics(soldBikes);
-
-        if (this.currentView === 'view-stats') {
-          this.renderProfitTrendChart(soldBikes);
-          this.renderProfitPieChart(soldBikes);
-          this.renderTopBikesChart(soldBikes);
-        }
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Calculate and display performance metrics -->
-       */
-      renderPerformanceMetrics(soldBikes) {
-        if (soldBikes.length === 0) {
-          document.getElementById('stat-avg-roi').textContent = '0%';
-          document.getElementById('stat-best-bike').textContent = '-';
-          document.getElementById('stat-worst-bike').textContent = '-';
-          document.getElementById('stat-avg-days').textContent = '0';
-          return;
-        }
-        
-        // Calculate ROI
-        let totalROI = 0;
-        soldBikes.forEach(b => {
-          const investment = parseFloat(b.purchasePrice || 0) + parseFloat(b.repairCost || 0);
-          if (investment > 0) {
-            const roi = (parseFloat(b.netProfit || 0) / investment) * 100;
-            totalROI += roi;
-          }
-        });
-        const avgROI = totalROI / soldBikes.length;
-        document.getElementById('stat-avg-roi').textContent = avgROI.toFixed(1) + '%';
-        
-        // Best and worst performers
-        const sorted = [...soldBikes].sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0));
-        document.getElementById('stat-best-bike').textContent = sorted[0]?.no || '-';
-        document.getElementById('stat-worst-bike').textContent = sorted[sorted.length - 1]?.no || '-';
-        
-        // Average days to sell
-        let totalDays = 0;
-        let validCount = 0;
-        soldBikes.forEach(b => {
-          if (b.datePurchase && b.dateSelling) {
-            const days = (new Date(b.dateSelling) - new Date(b.datePurchase)) / (1000 * 60 * 60 * 24);
-            if (days >= 0) {
-              totalDays += days;
-              validCount++;
-            }
-          }
-        });
-        const avgDays = validCount > 0 ? Math.round(totalDays / validCount) : 0;
-        document.getElementById('stat-avg-days').textContent = avgDays;
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Apply date filter to stats -->
-       */
-      applyStatsDateFilter() {
-        this.statsDateFilter.from = document.getElementById('stats-date-from').value;
-        this.statsDateFilter.to = document.getElementById('stats-date-to').value;
-        this.renderStatsDashboard();
-        this.showToast('Date filter applied', 'success');
-      }
-      
-      resetStatsDateFilter() {
-        this.statsDateFilter = { from: null, to: null };
-        document.getElementById('stats-date-from').value = '';
-        document.getElementById('stats-date-to').value = '';
-        this.renderStatsDashboard();
-        this.showToast('Date filter reset', 'success');
-      }
-      
-      // --- 5. CHART.JS IMPLEMENTATION ---
-      
-      /**
-       * <!-- [v6.3 BUGFIX] Properly destroy chart before recreating to prevent memory leaks -->
-       * <!-- [v6.3 FEATURE] Added moving average line -->
-       */
-      renderProfitTrendChart(soldBikes) {
-        const canvas = document.getElementById('chart-profit-trend');
-        const ctx = canvas.getContext('2d');
-        
-        // <!-- [v6.3 BUGFIX] Destroy existing chart instance -->
-        if (this.charts.profitTrend) {
-          this.charts.profitTrend.destroy();
-          this.charts.profitTrend = null;
-        }
-        
-        const monthlyData = soldBikes.reduce((acc, bike) => {
-          if (!bike.dateSelling) return acc;
-          const month = bike.dateSelling.substring(0, 7); // 'YYYY-MM'
-          acc[month] = (acc[month] || 0) + parseFloat(bike.netProfit || 0);
-          return acc;
-        }, {});
-        
-        const sortedMonths = Object.keys(monthlyData).sort();
-        const labels = sortedMonths.map(month => new Date(month + '-02'));
-        const data = sortedMonths.map(month => monthlyData[month]);
-        
-        // <!-- [v6.3 FEATURE] Calculate moving average (3-month) -->
-        const movingAvg = data.map((val, idx, arr) => {
-          if (idx < 2) return val;
-          return (arr[idx] + arr[idx - 1] + arr[idx - 2]) / 3;
-        });
-
-        const chartConfig = {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: 'Monthly Profit',
-                data: data,
-                borderColor: 'rgba(0, 208, 255, 1)',
-                backgroundColor: 'rgba(0, 208, 255, 0.2)',
-                fill: true,
-                tension: 0.3,
-              },
-              {
-                label: '3-Month Moving Avg',
-                data: movingAvg,
-                borderColor: 'rgba(110, 231, 183, 1)',
-                backgroundColor: 'transparent',
-                borderDash: [5, 5],
-                tension: 0.3,
-                pointRadius: 0,
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-              legend: { display: true },
-              tooltip: { mode: 'index', intersect: false }
-            },
-            scales: {
-              x: {
-                type: 'time',
-                time: { unit: 'month' },
-                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              },
-              y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              }
-            }
-          }
-        };
-        
-        this.charts.profitTrend = new Chart(ctx, chartConfig);
-      }
-      
-      /**
-       * <!-- [v6.3 BUGFIX] Destroy chart before recreating -->
-       */
-      renderProfitPieChart(soldBikes) {
-        const canvas = document.getElementById('chart-profit-pie');
-        const ctx = canvas.getContext('2d');
-        
-        if (this.charts.profitPie) {
-          this.charts.profitPie.destroy();
-          this.charts.profitPie = null;
-        }
-        
-        const profitBins = {
-          'Loss (< 0)': 0,
-          'Break Even (0)': 0,
-          'Profit (0 - 1k)': 0,
-          'Profit (1k - 5k)': 0,
-          'Profit (5k+)': 0,
-        };
-        
-        soldBikes.forEach(b => {
-          const p = parseFloat(b.netProfit || 0);
-          if (p < 0) profitBins['Loss (< 0)']++;
-          else if (p === 0) profitBins['Break Even (0)']++;
-          else if (p <= 1000) profitBins['Profit (0 - 1k)']++;
-          else if (p <= 5000) profitBins['Profit (1k - 5k)']++;
-          else profitBins['Profit (5k+)']++;
-        });
-
-        const labels = Object.keys(profitBins);
-        const data = Object.values(profitBins);
-
-        const chartConfig = {
-          type: 'pie',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Profit Distribution',
-              data: data,
-              backgroundColor: [
-                'rgba(239, 68, 68, 0.7)',
-                'rgba(156, 163, 175, 0.7)',
-                'rgba(5, 150, 105, 0.7)',
-                'rgba(34, 197, 94, 0.7)',
-                'rgba(107, 231, 183, 0.7)',
-              ],
-              borderColor: 'rgba(255, 255, 255, 0.1)',
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-              legend: { position: 'top' }
-            }
-          }
-        };
-
-        this.charts.profitPie = new Chart(ctx, chartConfig);
-      }
-      
-      /**
-       * <!-- [v6.3 BUGFIX] Destroy chart before recreating -->
-       */
-      renderTopBikesChart(soldBikes) {
-        const canvas = document.getElementById('chart-top-bikes');
-        const ctx = canvas.getContext('2d');
-        
-        if (this.charts.topBikes) {
-          this.charts.topBikes.destroy();
-          this.charts.topBikes = null;
-        }
-        
-        const topBikes = [...soldBikes]
-          .sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0))
-          .slice(0, 5);
-          
-        const labels = topBikes.map(b => b.no);
-        const data = topBikes.map(b => parseFloat(b.netProfit || 0));
-
-        const chartConfig = {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Net Profit',
-              data: data,
-              backgroundColor: 'rgba(107, 231, 183, 0.7)',
-              borderColor: 'rgba(107, 231, 183, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            indexAxis: 'y',
-            scales: {
-              x: {
-                beginAtZero: true,
-                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              },
-              y: {
-                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              }
-            },
-            plugins: {
-              legend: { display: false }
-            }
-          }
-        };
-        
-        this.charts.topBikes = new Chart(ctx, chartConfig);
-      }
-
-      /**
-       * <!-- [v6.3 FEATURE] Download chart as PNG -->
-       */
-      downloadChart(canvasId, filename) {
-        const canvas = document.getElementById(canvasId);
-        canvas.toBlob((blob) => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${filename}-${new Date().toISOString().split('T')[0]}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-          this.showToast('Chart downloaded', 'success');
-        });
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Export chart data as CSV -->
-       */
-      async exportChartData(chartType) {
-        const soldBikes = (await this.db.bikes.filter(b => !b._deleted && b.dateSelling).toArray());
-        
-        if (chartType === 'profit') {
-          const monthlyData = soldBikes.reduce((acc, bike) => {
-            if (!bike.dateSelling) return acc;
-            const month = bike.dateSelling.substring(0, 7);
-            acc[month] = (acc[month] || 0) + parseFloat(bike.netProfit || 0);
-            return acc;
-          }, {});
-          
-          const csvData = Object.keys(monthlyData).sort().map(month => ({
-            month,
-            profit: monthlyData[month]
-          }));
-          
-          const csv = this.jsonToCsv(csvData, true);
-          this.downloadFile(csv, `profit-trend-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
-          this.showToast('Chart data exported', 'success');
-        }
-      }
-
-      // --- 6. CORE CRUD (BUY/SELL) OPERATIONS ---
-      
-      handleNewBike() {
-        this.openFormModal('buy');
-      }
-      
-      async handleEditBike(id) {
-        try {
-          const bike = await this.db.bikes.get(Number(id));
-          if (bike) {
-            const mode = (bike.dateSelling && bike.dateSelling !== '') ? 'view' : 'sell';
-            this.openFormModal(mode, bike);
-          }
-        } catch (error) {
-          console.error("Failed to get bike for editing:", error);
-          this.showToast("Could not load bike data.", 'error');
-        }
-      }
-      
-      /**
-       * <!-- [v6.3 BUGFIX] Enhanced validation and numeric parsing -->
-       * <!-- [v6.3 FEATURE] Undo stack support -->
-       */
-      async handleSaveBike() {
-        const form = document.getElementById('bike-form');
-        const id = document.getElementById('form-bike-id').value;
-        
-        const plate = document.getElementById('form-no').value.trim().toUpperCase();
-        const owner = document.getElementById('form-owner').value.trim();
-        
-        if (!plate || !owner) {
-          this.showToast("Bike Plate and Owner Name are required.", 'error');
-          return;
-        }
-        
-        // <!-- [v6.3 BUGFIX] Use parseFloat for all numeric fields -->
-        const purchasePrice = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
-        const repairCost = parseFloat(document.getElementById('form-repairCost').value) || 0;
-        const sellingPrice = parseFloat(document.getElementById('form-sellingPrice').value) || 0;
-        const datePurchase = document.getElementById('form-datePurchase').value || '';
-        const dateSelling = document.getElementById('form-dateSelling').value || '';
-        
-        const bikeData = {
-          no: plate,
-          owner: owner,
-          purchasePrice: purchasePrice,
-          repairCost: repairCost,
-          sellingPrice: sellingPrice,
-          netProfit: sellingPrice - (purchasePrice + repairCost),
-          datePurchase: datePurchase,
-          dateSelling: dateSelling,
-          _updatedAt: new Date().toISOString(),
-          _deleted: false,
-        };
-        
-        try {
-          let oldBike = null;
-          if (id) {
-            oldBike = await this.db.bikes.get(Number(id));
-            await this.db.bikes.update(Number(id), {...oldBike, ...bikeData});
-            this.showToast("Bike updated successfully.", 'success');
-          } else {
-            await this.db.bikes.add(bikeData);
-            this.showToast("Bike added successfully.", 'success');
-            
-            // <!-- [v6.3 FEATURE] Confetti on first sale -->
-            if (dateSelling) {
-              this.showConfetti();
-            }
-          }
-          
-          // <!-- [v6.3 FEATURE] Add to undo stack -->
-          this.addToUndoStack('update', oldBike || bikeData);
-          
-          this.vibrate(20);
-          this.closeFormModal();
-          await this.renderAll();
-          this.triggerAutoSync();
-          
-        } catch (error) {
-          console.error("Save bike failed:", error);
-          if (error.name === 'ConstraintError') {
-            this.showToast("A bike with this plate number already exists.", 'error');
-          } else {
-            this.showToast("Failed to save bike.", 'error');
-          }
-        }
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Undo support for delete -->
-       */
-      async handleDeleteBike() {
-        const id = document.getElementById('form-bike-id').value;
-        if (!id) return;
-        
-        if (confirm("Are you sure you want to delete this bike? You can undo this action.")) {
-          try {
-            const bike = await this.db.bikes.get(Number(id));
-            await this.db.bikes.update(Number(id), {
-              _deleted: true,
-              _updatedAt: new Date().toISOString()
-            });
-            
-            // <!-- [v6.3 FEATURE] Add to undo stack -->
-            this.addToUndoStack('delete', bike);
-            
-            this.showToastWithUndo("Bike deleted.", () => this.undoDelete(bike));
-            this.vibrate(50);
-            this.closeFormModal();
-            await this.renderAll();
-            this.triggerAutoSync();
-          } catch (error) {
-            console.error("Delete failed:", error);
-            this.showToast("Failed to delete bike.", 'error');
-          }
-        }
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Duplicate bike functionality -->
-       */
-      async handleDuplicateBike() {
-        const id = document.getElementById('form-bike-id').value;
-        if (!id) return;
-        
-        try {
-          const bike = await this.db.bikes.get(Number(id));
-          if (bike) {
-            this.closeFormModal();
-            
-            // Open new form with pre-filled data (except plate and dates)
-            setTimeout(() => {
-              this.openFormModal('buy');
-              document.getElementById('form-owner').value = bike.owner;
-              document.getElementById('form-purchasePrice').value = bike.purchasePrice;
-              document.getElementById('form-repairCost').value = bike.repairCost;
-              document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
-              this.showToast("Fill in the new plate number", 'info');
-            }, 300);
-          }
-        } catch (error) {
-          console.error("Duplicate failed:", error);
-          this.showToast("Failed to duplicate bike.", 'error');
-        }
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Bulk mark as sold -->
-       */
-      async handleBulkMarkSold() {
-        if (this.selectedBikes.size === 0) return;
-        
-        const sellDate = prompt("Enter selling date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (!sellDate) return;
-        
-        const sellPriceStr = prompt("Enter selling price for all selected bikes:");
-        const sellPrice = parseFloat(sellPriceStr);
-        if (isNaN(sellPrice)) {
-          this.showToast("Invalid selling price", 'error');
-          return;
-        }
-        
-        try {
-          for (const idStr of this.selectedBikes) {
-            const bike = await this.db.bikes.get(Number(idStr));
-            if (bike && (!bike.dateSelling || bike.dateSelling === '')) {
-              await this.db.bikes.update(Number(idStr), {
-                dateSelling: sellDate,
-                sellingPrice: sellPrice,
-                netProfit: sellPrice - (parseFloat(bike.purchasePrice || 0) + parseFloat(bike.repairCost || 0)),
-                _updatedAt: new Date().toISOString()
-              });
-            }
-          }
-          
-          this.showToast(`${this.selectedBikes.size} bikes marked as sold`, 'success');
-          this.clearSelection();
-          await this.renderAll();
-          this.triggerAutoSync();
-        } catch (error) {
-          console.error("Bulk mark sold failed:", error);
-          this.showToast("Failed to mark bikes as sold", 'error');
-        }
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Bulk export selected bikes -->
-       */
-      async handleBulkExport() {
-        if (this.selectedBikes.size === 0) return;
-        
-        const bikes = [];
-        for (const idStr of this.selectedBikes) {
-          const bike = await this.db.bikes.get(Number(idStr));
-          if (bike) {
-            const { _id, _deleted, ...rest } = bike;
-            bikes.push(rest);
-          }
-        }
-        
-        const csv = this.jsonToCsv(bikes, true);
-        const filename = `selected-bikes-${new Date().toISOString().split('T')[0]}.csv`;
-        this.downloadFile(csv, filename, 'text/csv');
-        this.showToast(`Exported ${bikes.length} bikes`, 'success');
-      }
-
-      // --- 7. FORM & MODAL UI (Buy/Sell/View Logic) ---
-      
-      openFormModal(mode = 'buy', bike = null) {
-        const title = document.getElementById('form-title');
-        const deleteBtn = document.getElementById('delete-bike-btn');
-        const duplicateBtn = document.getElementById('duplicate-bike-btn');
-        const saveBtn = document.getElementById('save-form-btn');
-        const saveBtnText = document.getElementById('save-form-btn-text');
-        const form = document.getElementById('bike-form');
-        const buySection = document.getElementById('form-section-buy');
-        const sellSection = document.getElementById('form-section-sell');
-        
-        form.reset();
-        
-        // Default: Buy Mode
-        title.textContent = "Buy New Bike";
-        deleteBtn.classList.add('hidden');
-        duplicateBtn.classList.add('hidden');
-        saveBtn.classList.remove('hidden');
-        saveBtnText.textContent = "Save Purchase";
-        buySection.classList.remove('readonly-section');
-        sellSection.classList.add('hidden');
-        document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
-        document.getElementById('form-bike-id').value = '';
-        
-        if (mode === 'sell' && bike) {
-          // Sell Mode
-          title.textContent = "Sell Bike";
-          deleteBtn.classList.remove('hidden');
-          duplicateBtn.classList.remove('hidden');
-          saveBtnText.textContent = "Save Sale";
-          
-          buySection.classList.add('readonly-section');
-          sellSection.classList.remove('hidden');
-          
-          this.fillForm(bike);
-          document.getElementById('form-dateSelling').value = new Date().toISOString().split('T')[0];
-        
-        } else if (mode === 'view' && bike) {
-          // View Mode
-          title.textContent = "View Sale";
-          deleteBtn.classList.remove('hidden');
-          duplicateBtn.classList.remove('hidden');
-          saveBtn.classList.add('hidden');
-          
-          buySection.classList.add('readonly-section');
-          sellSection.classList.remove('hidden');
-          sellSection.classList.add('readonly-section');
-          
-          this.fillForm(bike);
-        }
-        
-        this.dom.formModal.classList.add('active');
-        // <!-- [v6.3 FEATURE] Focus first input for accessibility -->
-        setTimeout(() => document.getElementById('form-no').focus(), 100);
-      }
-      
-      fillForm(bike) {
-        document.getElementById('form-bike-id').value = bike._id;
-        document.getElementById('form-no').value = bike.no;
-        document.getElementById('form-owner').value = bike.owner;
-        document.getElementById('form-datePurchase').value = bike.datePurchase || '';
-        document.getElementById('form-purchasePrice').value = bike.purchasePrice || '';
-        document.getElementById('form-repairCost').value = bike.repairCost || '';
-        document.getElementById('form-dateSelling').value = bike.dateSelling || '';
-        document.getElementById('form-sellingPrice').value = bike.sellingPrice || '';
-        this.calculateFormProfit();
-      }
-      
-      closeFormModal() {
-        this.dom.formModal.classList.remove('active');
-        document.getElementById('form-section-buy').classList.remove('readonly-section');
-        document.getElementById('form-section-sell').classList.remove('readonly-section');
-      }
-      
-      calculateFormProfit() {
-        const p = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
-        const r = parseFloat(document.getElementById('form-repairCost').value) || 0;
-        const s = parseFloat(document.getElementById('form-sellingPrice').value) || 0;
-        const profit = s - (p + r);
-        document.getElementById('form-netProfit').value = profit.toFixed(2);
-      }
-      
-      // --- 8. SETTINGS HANDLERS ---
-      
-      /**
-       * <!-- [v6.3 FEATURE] Trigger browser password manager save prompt -->
-       */
-      handleSaveSyncSettings() {
-        this.settings.gistId = document.getElementById('setting-gist-id').value.trim();
-        this.settings.gistFilename = document.getElementById('setting-gist-filename').value.trim() || 'bikes_inventory.csv';
-        this.settings.githubPat = document.getElementById('setting-github-pat').value.trim();
-        this.settings.3 BUGFIX] Improved service worker registration with better error handling -->
-       */
       initServiceWorker() {
         if ('serviceWorker' in navigator) {
           const swCode = `
@@ -2556,7 +1819,6 @@
               
               const url = new URL(event.request.url);
               
-              // Cache-first for static assets
               if (URLS_TO_CACHE.some(u => event.request.url.includes(u)) || 
                   url.origin.includes('fonts.gstatic.com') || 
                   url.origin.includes('cdn.jsdelivr.net')) {
@@ -2573,7 +1835,6 @@
                     .catch(() => caches.match(event.request))
                 );
               }
-              // Network-first for GitHub API
               else if (url.hostname === 'api.github.com') {
                 event.respondWith(
                   fetch(event.request)
@@ -2636,31 +1897,29 @@
       
       // --- 2. DATABASE & DATA MIGRATION ---
 
-      /**
-       * <!-- [v6.3 BUGFIX] Added proper error handling and index optimization -->
-       */
       async initDatabase() {
-        this.db = new Dexie('BikeDB_v6');
-        
-        // <!-- [v6.3 BUGFIX] Fixed compound index syntax - removed invalid [dateSelling+_deleted] -->
-        this.db.version(1).stores({
-          bikes: '++_id, &no, owner, _updatedAt, dateSelling, _deleted',
-        });
-        
-        await this.db.open();
-        console.log("Database v6.3 initialized.");
+        try {
+          console.log('Initializing Dexie database...');
+          this.db = new Dexie('BikeDB_v6');
+          
+          this.db.version(1).stores({
+            bikes: '++_id, &no, owner, _updatedAt, dateSelling, _deleted',
+          });
+          
+          await this.db.open();
+          console.log("Database v6.3 initialized successfully");
+        } catch (error) {
+          console.error("Database initialization failed:", error);
+          throw new Error("Failed to initialize database: " + error.message);
+        }
       }
       
-      /**
-       * <!-- [v6.3 BUGFIX] Enhanced data cleaning to handle all corruption cases from v6.1 -->
-       */
       async cleanCorruptedData() {
         try {
           console.log("Checking for data corruption...");
           const allBikes = await this.db.bikes.toArray();
           
           const bikesToFix = allBikes.filter(b => {
-            // <!-- [v6.3 BUGFIX] Detect string numbers and 'N' prefix corruption -->
             return typeof b.purchasePrice === 'string' || 
                    typeof b.netProfit === 'string' || 
                    typeof b.repairCost === 'string' ||
@@ -2673,14 +1932,13 @@
             this.showToast(`Fixing ${bikesToFix.length} corrupted data entries...`, 'info');
             
             const fixedBikes = bikesToFix.map(b => {
-              // <!-- [v6.3 BUGFIX] Use parseFloat instead of Number to handle edge cases -->
               const purchasePrice = parseFloat(b.purchasePrice) || 0;
               const repairCost = parseFloat(b.repairCost) || 0;
               const sellingPrice = parseFloat(b.sellingPrice) || 0;
               
               return {
                 ...b,
-                no: (b.no || '').trim().toUpperCase().replace(/^N+/, ''), // Strip leading Ns
+                no: (b.no || '').trim().toUpperCase().replace(/^N+/, ''),
                 purchasePrice: purchasePrice,
                 repairCost: repairCost,
                 sellingPrice: sellingPrice,
@@ -2695,7 +1953,6 @@
           }
         } catch (error) {
           console.error("Failed during data cleaning:", error);
-          this.showToast("Failed to clean corrupted data.", 'error');
         }
       }
 
@@ -2729,7 +1986,6 @@
           
         } catch (error) {
           console.error("Migration failed:", error);
-          this.showToast("Failed to migrate old data.", 'error');
         }
       }
 
@@ -2741,19 +1997,18 @@
           this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
         }
         
-        // <!-- [v6.3 FEATURE] Load PAT from sessionStorage (cleared on tab close) -->
         const savedPat = sessionStorage.getItem(PAT_KEY);
         if (savedPat) {
           this.settings.githubPat = savedPat;
         }
         
-        // <!-- [v6.3 FEATURE] Load theme preference -->
         const savedTheme = localStorage.getItem(THEME_KEY);
         if (savedTheme) {
           document.body.classList.toggle('theme-light', savedTheme === 'light');
           document.body.classList.toggle('theme-dark', savedTheme === 'dark');
         }
         
+        this.loadUndoStack();
         this.applySettings();
       }
       
@@ -2768,25 +2023,23 @@
         this.dom.headerTitle.textContent = this.settings.businessName || 'Bike Manager';
         document.title = this.settings.businessName || 'Bike Manager';
         document.querySelectorAll('.currency').forEach(el => el.textContent = this.settings.currency || '₹');
-        document.getElementById('setting-gist-id').value = this.settings.gistId || '';
-        document.getElementById('setting-gist-filename').value = this.settings.gistFilename || 'bikes_inventory.csv';
-        document.getElementById('setting-github-pat').value = this.settings.githubPat || '';
-        document.getElementById('setting-business-name').value = this.settings.businessName || '';
-        document.getElementById('setting-currency').value = this.settings.currency || '';
-        document.getElementById('list-density').value = this.settings.listDensity || 'comfortable';
         
-        // <!-- [v6.3 FEATURE] Apply list density -->
+        if (document.getElementById('setting-gist-id')) {
+          document.getElementById('setting-gist-id').value = this.settings.gistId || '';
+          document.getElementById('setting-gist-filename').value = this.settings.gistFilename || 'bikes_inventory.csv';
+          document.getElementById('setting-github-pat').value = this.settings.githubPat || '';
+          document.getElementById('setting-business-name').value = this.settings.businessName || '';
+          document.getElementById('setting-currency').value = this.settings.currency || '';
+          document.getElementById('list-density').value = this.settings.listDensity || 'comfortable';
+        }
+        
         this.dom.bikeList.classList.toggle('compact', this.settings.listDensity === 'compact');
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Check if PAT was cleared and prompt re-entry -->
-       */
       checkPATStatus() {
-        if (this.settings.gistId && !this.settings.githubPat) {
-          // User has Gist configured but PAT was cleared (session ended)
+        if (this.settings.gistId && !this.settings.githubPat && localStorage.getItem('pat_needs_reentry') === 'true') {
           const modal = document.getElementById('pat-modal');
-          modal.classList.add('active');
+          if (modal) modal.classList.add('active');
         }
       }
       
@@ -2794,25 +2047,23 @@
       
       initUI() {
         if (!this.isMobile) {
-          document.getElementById('buy-bike-desktop').style.display = 'inline-flex';
+          const desktopBtn = document.getElementById('buy-bike-desktop');
+          if (desktopBtn) desktopBtn.style.display = 'inline-flex';
         }
         
-        // <!-- [v6.3 FEATURE] Show Web Share button if supported -->
         if (navigator.share) {
-          document.getElementById('share-data').classList.remove('hidden');
+          const shareBtn = document.getElementById('share-data');
+          if (shareBtn) shareBtn.classList.remove('hidden');
         }
         
         document.getElementById('filter-all').classList.add('active');
         this.updateOnlineStatus();
         
-        // <!-- [v6.3 FEATURE] Set theme toggle state -->
         const isDark = !document.body.classList.contains('theme-light');
-        document.getElementById('theme-switch').classList.toggle('active', isDark);
+        const themeSwitch = document.getElementById('theme-switch');
+        if (themeSwitch) themeSwitch.classList.toggle('active', isDark);
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Comprehensive event listener setup with keyboard shortcuts -->
-       */
       initEventListeners() {
         // Navigation
         this.dom.navButtons.forEach(btn => btn.addEventListener('click', () => this.navigateTo(btn.dataset.view)));
@@ -2823,7 +2074,7 @@
           const value = e.target.value;
           this.dom.searchClear.style.display = value ? 'block' : 'none';
           this.currentFilters.search = value.toLowerCase();
-          this.currentPage = 1; // Reset to page 1
+          this.currentPage = 1;
           this.debouncedRenderList();
         });
         this.dom.searchClear.addEventListener('click', () => {
@@ -2834,10 +2085,14 @@
           this.debouncedRenderList();
         });
         
-        // <!-- [v6.3 FEATURE] Sort dropdown -->
-        document.getElementById('sort-btn').addEventListener('click', () => {
-          document.getElementById('sort-menu').classList.toggle('active');
-        });
+        // Sort dropdown
+        const sortBtn = document.getElementById('sort-btn');
+        if (sortBtn) {
+          sortBtn.addEventListener('click', () => {
+            document.getElementById('sort-menu').classList.toggle('active');
+          });
+        }
+        
         document.querySelectorAll('.sort-option').forEach(opt => {
           opt.addEventListener('click', () => {
             this.currentFilters.sort = opt.dataset.sort;
@@ -2850,10 +2105,10 @@
           });
         });
         
-        // Close sort dropdown when clicking outside
         document.addEventListener('click', (e) => {
           if (!e.target.closest('.sort-dropdown')) {
-            document.getElementById('sort-menu').classList.remove('active');
+            const sortMenu = document.getElementById('sort-menu');
+            if (sortMenu) sortMenu.classList.remove('active');
           }
         });
         
@@ -2862,7 +2117,7 @@
         document.getElementById('filter-sold').addEventListener('click', () => this.setFilterStatus('sold'));
         document.getElementById('filter-unsold').addEventListener('click', () => this.setFilterStatus('unsold'));
         
-        // <!-- [v6.3 FEATURE] Bike card click with multi-select support -->
+        // Bike list interactions
         this.dom.bikeList.addEventListener('click', (e) => {
           const card = e.target.closest('.bike-card');
           if (card) {
@@ -2874,43 +2129,36 @@
           }
         });
         
-        // <!-- [v6.3 FEATURE] Long-press for mobile context menu -->
-        let longPressTimer;
-        this.dom.bikeList.addEventListener('touchstart', (e) => {
-          const card = e.target.closest('.bike-card');
-          if (card) {
-            longPressTimer = setTimeout(() => {
-              this.vibrate(50);
-              this.showBikeContextMenu(card.dataset.id, e.touches[0]);
-            }, 500);
-          }
-        });
-        this.dom.bikeList.addEventListener('touchend', () => {
-          clearTimeout(longPressTimer);
-        });
-        this.dom.bikeList.addEventListener('touchmove', () => {
-          clearTimeout(longPressTimer);
-        });
-        
         // Add bike buttons
         const addBtns = [document.getElementById('fab-buy'), document.getElementById('buy-bike-desktop')];
-        addBtns.forEach(btn => btn.addEventListener('click', () => this.handleNewBike()));
+        addBtns.forEach(btn => {
+          if (btn) btn.addEventListener('click', () => this.handleNewBike());
+        });
         
-        // <!-- [v6.3 FEATURE] Bulk actions -->
-        document.getElementById('bulk-mark-sold').addEventListener('click', () => this.handleBulkMarkSold());
-        document.getElementById('bulk-export').addEventListener('click', () => this.handleBulkExport());
-        document.getElementById('bulk-deselect').addEventListener('click', () => this.clearSelection());
+        // Bulk actions
+        const bulkMarkSold = document.getElementById('bulk-mark-sold');
+        const bulkExport = document.getElementById('bulk-export');
+        const bulkDeselect = document.getElementById('bulk-deselect');
         
-        // <!-- [v6.3 FEATURE] Pagination -->
-        document.getElementById('prev-page').addEventListener('click', () => this.changePage(-1));
-        document.getElementById('next-page').addEventListener('click', () => this.changePage(1));
+        if (bulkMarkSold) bulkMarkSold.addEventListener('click', () => this.handleBulkMarkSold());
+        if (bulkExport) bulkExport.addEventListener('click', () => this.handleBulkExport());
+        if (bulkDeselect) bulkDeselect.addEventListener('click', () => this.clearSelection());
+        
+        // Pagination
+        const prevPage = document.getElementById('prev-page');
+        const nextPage = document.getElementById('next-page');
+        if (prevPage) prevPage.addEventListener('click', () => this.changePage(-1));
+        if (nextPage) nextPage.addEventListener('click', () => this.changePage(1));
         
         // Modal buttons
         document.getElementById('close-form-modal').addEventListener('click', () => this.closeFormModal());
         document.getElementById('cancel-form-btn').addEventListener('click', () => this.closeFormModal());
         document.getElementById('save-form-btn').addEventListener('click', () => this.handleSaveBike());
         document.getElementById('delete-bike-btn').addEventListener('click', () => this.handleDeleteBike());
-        document.getElementById('duplicate-bike-btn').addEventListener('click', () => this.handleDuplicateBike());
+        
+        const duplicateBtn = document.getElementById('duplicate-bike-btn');
+        if (duplicateBtn) duplicateBtn.addEventListener('click', () => this.handleDuplicateBike());
+        
         this.dom.formModal.addEventListener('click', (e) => {
           if (e.target === this.dom.formModal) {
             this.closeFormModal();
@@ -2919,80 +2167,109 @@
         
         // Form profit calculation
         const profitInputs = ['form-purchasePrice', 'form-repairCost', 'form-sellingPrice'];
-        profitInputs.forEach(id => document.getElementById(id).addEventListener('input', () => this.calculateFormProfit()));
-        
-        // Settings - Sync
-        document.getElementById('save-sync-settings').addEventListener('click', () => this.handleSaveSyncSettings());
-        
-        // Settings - Display
-        document.getElementById('save-display-settings').addEventListener('click', () => this.handleSaveDisplaySettings());
-        
-        // <!-- [v6.3 FEATURE] Theme toggle -->
-        document.getElementById('theme-switch').addEventListener('click', () => this.toggleTheme());
-        document.getElementById('list-density').addEventListener('change', (e) => {
-          this.settings.listDensity = e.target.value;
-          this.saveSettings();
-          this.renderBikeList();
+        profitInputs.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('input', () => this.calculateFormProfit());
         });
+        
+        // Settings
+        const saveSyncBtn = document.getElementById('save-sync-settings');
+        const saveDisplayBtn = document.getElementById('save-display-settings');
+        if (saveSyncBtn) saveSyncBtn.addEventListener('click', () => this.handleSaveSyncSettings());
+        if (saveDisplayBtn) saveDisplayBtn.addEventListener('click', () => this.handleSaveDisplaySettings());
+        
+        // Theme toggle
+        const themeSwitch = document.getElementById('theme-switch');
+        if (themeSwitch) themeSwitch.addEventListener('click', () => this.toggleTheme());
+        
+        const listDensity = document.getElementById('list-density');
+        if (listDensity) {
+          listDensity.addEventListener('change', (e) => {
+            this.settings.listDensity = e.target.value;
+            this.saveSettings();
+            this.renderBikeList();
+          });
+        }
         
         // Data management
-        document.getElementById('export-csv').addEventListener('click', () => this.exportData('csv'));
-        document.getElementById('export-json').addEventListener('click', () => this.exportData('json'));
-        document.getElementById('export-xlsx').addEventListener('click', () => this.exportData('xlsx'));
-        document.getElementById('import-csv').addEventListener('click', () => document.getElementById('import-file-input').click());
-        document.getElementById('download-template').addEventListener('click', () => this.downloadTemplate());
-        document.getElementById('share-data').addEventListener('click', () => this.handleShareData());
-        document.getElementById('import-file-input').addEventListener('change', (e) => this.handleImportFile(e));
-        document.getElementById('wipe-data-btn').addEventListener('click', () => this.handleWipeData());
+        const exportCsv = document.getElementById('export-csv');
+        const exportJson = document.getElementById('export-json');
+        const exportXlsx = document.getElementById('export-xlsx');
+        const importCsv = document.getElementById('import-csv');
+        const downloadTemplate = document.getElementById('download-template');
+        const shareData = document.getElementById('share-data');
+        const importFileInput = document.getElementById('import-file-input');
+        const wipeDataBtn = document.getElementById('wipe-data-btn');
         
-        // <!-- [v6.3 FEATURE] Stats date filters -->
-        document.getElementById('apply-date-filter').addEventListener('click', () => this.applyStatsDateFilter());
-        document.getElementById('reset-date-filter').addEventListener('click', () => this.resetStatsDateFilter());
+        if (exportCsv) exportCsv.addEventListener('click', () => this.exportData('csv'));
+        if (exportJson) exportJson.addEventListener('click', () => this.exportData('json'));
+        if (exportXlsx) exportXlsx.addEventListener('click', () => this.exportData('xlsx'));
+        if (importCsv) importCsv.addEventListener('click', () => document.getElementById('import-file-input').click());
+        if (downloadTemplate) downloadTemplate.addEventListener('click', () => this.downloadTemplate());
+        if (shareData) shareData.addEventListener('click', () => this.handleShareData());
+        if (importFileInput) importFileInput.addEventListener('change', (e) => this.handleImportFile(e));
+        if (wipeDataBtn) wipeDataBtn.addEventListener('click', () => this.handleWipeData());
         
-        // <!-- [v6.3 FEATURE] Chart download buttons -->
-        document.getElementById('download-profit-chart').addEventListener('click', () => this.downloadChart('chart-profit-trend', 'profit-trend'));
-        document.getElementById('export-profit-csv').addEventListener('click', () => this.exportChartData('profit'));
-        document.getElementById('download-pie-chart').addEventListener('click', () => this.downloadChart('chart-profit-pie', 'profit-distribution'));
-        document.getElementById('download-top-chart').addEventListener('click', () => this.downloadChart('chart-top-bikes', 'top-bikes'));
+        // Stats date filters
+        const applyDateFilter = document.getElementById('apply-date-filter');
+        const resetDateFilter = document.getElementById('reset-date-filter');
+        if (applyDateFilter) applyDateFilter.addEventListener('click', () => this.applyStatsDateFilter());
+        if (resetDateFilter) resetDateFilter.addEventListener('click', () => this.resetStatsDateFilter());
         
-        // <!-- [v6.3 FEATURE] PAT modal -->
-        document.getElementById('pat-skip').addEventListener('click', () => {
-          document.getElementById('pat-modal').classList.remove('active');
-        });
-        document.getElementById('pat-submit').addEventListener('click', () => {
-          const pat = document.getElementById('pat-reenter').value.trim();
-          if (pat) {
-            this.settings.githubPat = pat;
-            sessionStorage.setItem(PAT_KEY, pat);
+        // Chart download buttons
+        const downloadProfitChart = document.getElementById('download-profit-chart');
+        const exportProfitCsv = document.getElementById('export-profit-csv');
+        const downloadPieChart = document.getElementById('download-pie-chart');
+        const downloadTopChart = document.getElementById('download-top-chart');
+        
+        if (downloadProfitChart) downloadProfitChart.addEventListener('click', () => this.downloadChart('chart-profit-trend', 'profit-trend'));
+        if (exportProfitCsv) exportProfitCsv.addEventListener('click', () => this.exportChartData('profit'));
+        if (downloadPieChart) downloadPieChart.addEventListener('click', () => this.downloadChart('chart-profit-pie', 'profit-distribution'));
+        if (downloadTopChart) downloadTopChart.addEventListener('click', () => this.downloadChart('chart-top-bikes', 'top-bikes'));
+        
+        // PAT modal
+        const patSkip = document.getElementById('pat-skip');
+        const patSubmit = document.getElementById('pat-submit');
+        if (patSkip) {
+          patSkip.addEventListener('click', () => {
             document.getElementById('pat-modal').classList.remove('active');
-            this.showToast('PAT restored for this session.', 'success');
-          }
-        });
+            localStorage.removeItem('pat_needs_reentry');
+          });
+        }
+        if (patSubmit) {
+          patSubmit.addEventListener('click', () => {
+            const pat = document.getElementById('pat-reenter').value.trim();
+            if (pat) {
+              this.settings.githubPat = pat;
+              sessionStorage.setItem(PAT_KEY, pat);
+              document.getElementById('pat-modal').classList.remove('active');
+              localStorage.removeItem('pat_needs_reentry');
+              this.showToast('PAT restored for this session.', 'success');
+            }
+          });
+        }
         
-        // <!-- [v6.3 FEATURE] Keyboard shortcuts -->
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-          // Ctrl+N or Cmd+N: New bike
           if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
             this.handleNewBike();
           }
-          // Ctrl+S or Cmd+S: Save (when modal open)
           if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
             if (this.dom.formModal.classList.contains('active')) {
               this.handleSaveBike();
             }
           }
-          // Escape: Close modal
           if (e.key === 'Escape') {
             if (this.dom.formModal.classList.contains('active')) {
               this.closeFormModal();
             }
-            if (document.getElementById('sort-menu').classList.contains('active')) {
-              document.getElementById('sort-menu').classList.remove('active');
+            const sortMenu = document.getElementById('sort-menu');
+            if (sortMenu && sortMenu.classList.contains('active')) {
+              sortMenu.classList.remove('active');
             }
           }
-          // Ctrl+Z or Cmd+Z: Undo
           if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
             e.preventDefault();
             this.performUndo();
@@ -3009,18 +2286,13 @@
           this.initUI();
         }, 200));
         
-        // <!-- [v6.3 FEATURE] Clear PAT on beforeunload -->
         window.addEventListener('beforeunload', () => {
-          // PAT stays in sessionStorage but we could add a flag to show the prompt next time
           if (this.settings.githubPat) {
             localStorage.setItem('pat_needs_reentry', 'true');
           }
         });
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Toggle theme with localStorage persistence -->
-       */
       toggleTheme() {
         const isDark = document.body.classList.contains('theme-dark') || 
                       !document.body.classList.contains('theme-light');
@@ -3045,31 +2317,18 @@
         await this.renderStatsDashboard();
       }
       
-      /**
-       * <!-- [v6.3 BUGFIX] Fixed Dexie query with proper filtering and sorting -->
-       * <!-- [v6.3 FEATURE] Added pagination support -->
-       */
       async renderBikeList() {
         let bikes;
         const listEl = this.dom.bikeList;
         const emptyEl = document.getElementById('bike-list-empty');
         
         try {
-          // <!-- [v6.3 BUGFIX] Use simple where clause instead of compound index -->
+          bikes = await this.db.bikes.where('_deleted').equals(false).toArray();
+          
           if (this.currentFilters.status === 'sold') {
-            bikes = await this.db.bikes
-              .where('_deleted').equals(false)
-              .toArray();
             bikes = bikes.filter(b => b.dateSelling && b.dateSelling !== '');
           } else if (this.currentFilters.status === 'unsold') {
-            bikes = await this.db.bikes
-              .where('_deleted').equals(false)
-              .toArray();
             bikes = bikes.filter(b => !b.dateSelling || b.dateSelling === '');
-          } else {
-            bikes = await this.db.bikes
-              .where('_deleted').equals(false)
-              .toArray();
           }
         } catch (e) {
           console.error("Failed to query database:", e);
@@ -3081,7 +2340,6 @@
           }
         }
         
-        // Search filter
         if (this.currentFilters.search) {
           const search = this.currentFilters.search;
           bikes = bikes.filter(b => 
@@ -3090,10 +2348,8 @@
           );
         }
         
-        // <!-- [v6.3 FEATURE] Sorting -->
         bikes = this.sortBikes(bikes, this.currentFilters.sort);
         
-        // <!-- [v6.3 FEATURE] Pagination -->
         this.totalPages = Math.ceil(bikes.length / ITEMS_PER_PAGE);
         const startIdx = (this.currentPage - 1) * ITEMS_PER_PAGE;
         const paginatedBikes = bikes.slice(startIdx, startIdx + ITEMS_PER_PAGE);
@@ -3101,41 +2357,40 @@
         if (bikes.length === 0) {
           listEl.innerHTML = '';
           emptyEl.classList.remove('hidden');
-          document.getElementById('pagination').classList.add('hidden');
+          const pagination = document.getElementById('pagination');
+          if (pagination) pagination.classList.add('hidden');
           return;
         }
         
         emptyEl.classList.add('hidden');
         
-        // <!-- [v6.3 FEATURE] Use requestAnimationFrame for smooth rendering -->
         requestAnimationFrame(() => {
           listEl.innerHTML = paginatedBikes.map(bike => this.createBikeCardHTML(bike)).join('');
           
-          // Update pagination
-          if (this.totalPages > 1) {
-            document.getElementById('pagination').classList.remove('hidden');
-            document.getElementById('page-info').textContent = `Page ${this.currentPage} of ${this.totalPages}`;
-            document.getElementById('prev-page').disabled = this.currentPage === 1;
-            document.getElementById('next-page').disabled = this.currentPage === this.totalPages;
-          } else {
-            document.getElementById('pagination').classList.add('hidden');
+          const pagination = document.getElementById('pagination');
+          if (pagination) {
+            if (this.totalPages > 1) {
+              pagination.classList.remove('hidden');
+              document.getElementById('page-info').textContent = `Page ${this.currentPage} of ${this.totalPages}`;
+              document.getElementById('prev-page').disabled = this.currentPage === 1;
+              document.getElementById('next-page').disabled = this.currentPage === this.totalPages;
+            } else {
+              pagination.classList.add('hidden');
+            }
           }
         });
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Sort bikes by various criteria -->
-       */
       sortBikes(bikes, sortType) {
         switch (sortType) {
           case 'latest':
-            return bikes.sort((a, b) => new Date(b._updatedAt) - new Date(a._updatedAt));
+            return bikes.sort((a, b) => new Date(b._updatedAt || 0) - new Date(a._updatedAt || 0));
           case 'oldest':
-            return bikes.sort((a, b) => new Date(a._updatedAt) - new Date(b._updatedAt));
+            return bikes.sort((a, b) => new Date(a._updatedAt || 0) - new Date(b._updatedAt || 0));
           case 'profit-high':
-            return bikes.sort((a, b) => (b.netProfit || 0) - (a.netProfit || 0));
+            return bikes.sort((a, b) => (parseFloat(b.netProfit) || 0) - (parseFloat(a.netProfit) ||0));
           case 'profit-low':
-            return bikes.sort((a, b) => (a.netProfit || 0) - (b.netProfit || 0));
+            return bikes.sort((a, b) => (parseFloat(a.netProfit) || 0) - (parseFloat(b.netProfit) || 0));
           case 'plate':
             return bikes.sort((a, b) => a.no.localeCompare(b.no));
           case 'owner':
@@ -3145,187 +2400,839 @@
         }
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Mobile context menu for long-press actions -->
-       */
-      showBikeContextMenu(bikeId, touch) {
-        // Implementation for context menu would go here
-        // For now, just toggle selection
-        this.toggleBikeSelection(bikeId);
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Undo stack management (max 10 actions) -->
-       */
-      addToUndoStack(action, data) {
-        this.undoStack.push({ action, data, timestamp: Date.now() });
-        if (this.undoStack.length > 10) {
-          this.undoStack.shift(); // Keep only last 10 actions
+      createBikeCardHTML(bike) {
+        const isSold = !!(bike.dateSelling && bike.dateSelling !== '');
+        const profit = parseFloat(bike.netProfit) || 0;
+        let profitClass = 'profit-value';
+        let profitDisplay = `${this.settings.currency} ${this.formatCurrency(profit)}`;
+        
+        if (!isSold) {
+          profitClass += ' unrealized';
+          profitDisplay = 'Unsold';
+        } else if (profit < 0) {
+          profitClass += ' loss';
+        } else if (profit === 0) {
+          profitClass = 'text-secondary';
         }
-        this.saveUndoStack();
+        
+        const isSelected = this.selectedBikes.has(bike._id.toString());
+        
+        return `
+          <div class="bike-card ${isSelected ? 'selected' : ''}" data-id="${bike._id}" role="listitem">
+            <div class="bike-checkbox" role="checkbox" aria-checked="${isSelected}">
+              <svg><use href="#icon-check"></use></svg>
+            </div>
+            <div class="bike-card-main">
+              <div class="bike-card-plate">${this.escapeHtml(bike.no)}</div>
+              <div class="bike-card-owner">${this.escapeHtml(bike.owner)}</div>
+            </div>
+            <div class="bike-card-profit">
+              <div class="${profitClass}">${profitDisplay}</div>
+            </div>
+          </div>
+        `;
       }
       
-      saveUndoStack() {
-        try {
-          localStorage.setItem(UNDO_KEY, JSON.stringify(this.undoStack));
-        } catch (e) {
-          console.error("Failed to save undo stack:", e);
+      toggleBikeSelection(id) {
+        const idStr = id.toString();
+        if (this.selectedBikes.has(idStr)) {
+          this.selectedBikes.delete(idStr);
+        } else {
+          this.selectedBikes.add(idStr);
+        }
+        
+        this.updateBulkActionBar();
+        this.renderBikeList();
+      }
+      
+      updateBulkActionBar() {
+        const bar = document.getElementById('bulk-action-bar');
+        const count = this.selectedBikes.size;
+        const countEl = document.getElementById('selected-count');
+        if (countEl) countEl.textContent = count;
+        
+        if (count > 0) {
+          bar.classList.add('active');
+        } else {
+          bar.classList.remove('active');
         }
       }
       
-      loadUndoStack() {
-        try {
-          const saved = localStorage.getItem(UNDO_KEY);
-          if (saved) {
-            this.undoStack = JSON.parse(saved);
+      clearSelection() {
+        this.selectedBikes.clear();
+        this.updateBulkActionBar();
+        this.renderBikeList();
+      }
+      
+      changePage(delta) {
+        const newPage = this.currentPage + delta;
+        if (newPage >= 1 && newPage <= this.totalPages) {
+          this.currentPage = newPage;
+          this.renderBikeList();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+
+      async renderStatsDashboard() {
+        let bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
+        
+        if (this.statsDateFilter.from || this.statsDateFilter.to) {
+          bikes = bikes.filter(b => {
+            if (!b.dateSelling) return false;
+            const saleDate = new Date(b.dateSelling);
+            if (this.statsDateFilter.from && saleDate < new Date(this.statsDateFilter.from)) return false;
+            if (this.statsDateFilter.to && saleDate > new Date(this.statsDateFilter.to)) return false;
+            return true;
+          });
+        }
+        
+        const soldBikes = bikes.filter(b => b.dateSelling && b.dateSelling !== '');
+        const unsoldBikes = bikes.filter(b => !b.dateSelling || b.dateSelling === '');
+        
+        const totalProfit = soldBikes.reduce((sum, b) => sum + parseFloat(b.netProfit || 0), 0);
+        const unsoldValue = unsoldBikes.reduce((sum, b) => sum + parseFloat(b.purchasePrice || 0) + parseFloat(b.repairCost || 0), 0);
+        
+        const statTotalProfit = document.getElementById('stat-total-profit');
+        const statUnsoldValue = document.getElementById('stat-unsold-value');
+        const statSoldCount = document.getElementById('stat-sold-count');
+        const statUnsoldCount = document.getElementById('stat-unsold-count');
+        
+        if (statTotalProfit) statTotalProfit.textContent = this.formatCurrency(totalProfit);
+        if (statUnsoldValue) statUnsoldValue.textContent = this.formatCurrency(unsoldValue);
+        if (statSoldCount) statSoldCount.textContent = soldBikes.length;
+        if (statUnsoldCount) statUnsoldCount.textContent = unsoldBikes.length;
+
+        const avgProfit = soldBikes.length > 0 ? totalProfit / soldBikes.length : 0;
+        
+        let insightText = `You have ${unsoldBikes.length} bikes in stock (total investment: ${this.settings.currency}${this.formatCurrency(unsoldValue)}).`;
+        if (soldBikes.length > 0) {
+          insightText += ` Your average profit per bike is ${this.settings.currency}${this.formatCurrency(avgProfit)}.`;
+          
+          if (avgProfit < 0) {
+            insightText += ` ⚠️ Review pricing strategy - average loss detected.`;
+          } else if (totalProfit > 100000) {
+            insightText += ` 🎉 Congratulations on crossing ₹1 lakh in profits!`;
           }
-        } catch (e) {
-          console.error("Failed to load undo stack:", e);
-          this.undoStack = [];
+        }
+        const insightEl = document.getElementById('auto-insight-text');
+        if (insightEl) insightEl.textContent = insightText;
+        
+        this.renderPerformanceMetrics(soldBikes);
+
+        if (this.currentView === 'view-stats') {
+          this.renderProfitTrendChart(soldBikes);
+          this.renderProfitPieChart(soldBikes);
+          this.renderTopBikesChart(soldBikes);
         }
       }
       
-      async performUndo() {
-        if (this.undoStack.length === 0) {
-          this.showToast("Nothing to undo", 'info');
+      renderPerformanceMetrics(soldBikes) {
+        const avgRoiEl = document.getElementById('stat-avg-roi');
+        const bestBikeEl = document.getElementById('stat-best-bike');
+        const worstBikeEl = document.getElementById('stat-worst-bike');
+        const avgDaysEl = document.getElementById('stat-avg-days');
+        
+        if (!avgRoiEl) return;
+        
+        if (soldBikes.length === 0) {
+          avgRoiEl.textContent = '0%';
+          bestBikeEl.textContent = '-';
+          worstBikeEl.textContent = '-';
+          avgDaysEl.textContent = '0';
           return;
         }
         
-        const lastAction = this.undoStack.pop();
-        this.saveUndoStack();
-        
-        if (lastAction.action === 'delete') {
-          await this.undoDelete(lastAction.data);
-        } else if (lastAction.action === 'update') {
-          await this.undoUpdate(lastAction.data);
-        }
-      }
-      
-      async undoDelete(bike) {
-        try {
-          await this.db.bikes.update(bike._id, {
-            _deleted: false,
-            _updatedAt: new Date().toISOString()
-          });
-          this.showToast("Deletion undone", 'success');
-          await this.renderAll();
-          this.triggerAutoSync();
-        } catch (error) {
-          console.error("Undo delete failed:", error);
-          this.showToast("Failed to undo deletion", 'error');
-        }
-      }
-      
-      async undoUpdate(oldBike) {
-        try {
-          await this.db.bikes.update(oldBike._id, {
-            ...oldBike,
-            _updatedAt: new Date().toISOString()
-          });
-          this.showToast("Update undone", 'success');
-          await this.renderAll();
-          this.triggerAutoSync();
-        } catch (error) {
-          console.error("Undo update failed:", error);
-          this.showToast("Failed to undo update", 'error');
-        }
-      }
-      
-      /**
-       * <!-- [v6.3 FEATURE] Show toast with undo action button -->
-       */
-      showToastWithUndo(message, undoCallback) {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = 'toast undo';
-        
-        toast.innerHTML = `
-          <span class="toast-message">${message}</span>
-          <button class="toast-action">Undo</button>
-          <span class="toast-close">×</span>
-        `;
-        
-        container.appendChild(toast);
-        
-        const timer = setTimeout(() => {
-          toast.remove();
-        }, 8000); // Longer timeout for undo toasts
-        
-        toast.querySelector('.toast-action').addEventListener('click', async () => {
-          clearTimeout(timer);
-          toast.remove();
-          await undoCallback();
+        let totalROI = 0;
+        soldBikes.forEach(b => {
+          const investment = parseFloat(b.purchasePrice || 0) + parseFloat(b.repairCost || 0);
+          if (investment > 0) {
+            const roi = (parseFloat(b.netProfit || 0) / investment) * 100;
+            totalROI += roi;
+          }
         });
+        const avgROI = totalROI / soldBikes.length;
+        avgRoiEl.textContent = avgROI.toFixed(1) + '%';
         
-        toast.querySelector('.toast-close').addEventListener('click', () => {
-          clearTimeout(timer);
-          toast.remove();
+        const sorted = [...soldBikes].sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0));
+        bestBikeEl.textContent = sorted[0]?.no || '-';
+        worstBikeEl.textContent = sorted[sorted.length - 1]?.no || '-';
+        
+        let totalDays = 0;
+        let validCount = 0;
+        soldBikes.forEach(b => {
+          if (b.datePurchase && b.dateSelling) {
+            const days = (new Date(b.dateSelling) - new Date(b.datePurchase)) / (1000 * 60 * 60 * 24);
+            if (days >= 0) {
+              totalDays += days;
+              validCount++;
+            }
+          }
         });
+        const avgDays = validCount > 0 ? Math.round(totalDays / validCount) : 0;
+        avgDaysEl.textContent = avgDays;
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Confetti animation for milestone celebrations -->
-       */
-      showConfetti() {
-        const canvas = document.getElementById('confetti-canvas');
+      applyStatsDateFilter() {
+        const dateFrom = document.getElementById('stats-date-from');
+        const dateTo = document.getElementById('stats-date-to');
+        
+        if (dateFrom && dateTo) {
+          this.statsDateFilter.from = dateFrom.value;
+          this.statsDateFilter.to = dateTo.value;
+          this.renderStatsDashboard();
+          this.showToast('Date filter applied', 'success');
+        }
+      }
+      
+      resetStatsDateFilter() {
+        this.statsDateFilter = { from: null, to: null };
+        const dateFrom = document.getElementById('stats-date-from');
+        const dateTo = document.getElementById('stats-date-to');
+        if (dateFrom) dateFrom.value = '';
+        if (dateTo) dateTo.value = '';
+        this.renderStatsDashboard();
+        this.showToast('Date filter reset', 'success');
+      }
+      
+      // --- 5. CHART.JS IMPLEMENTATION ---
+      
+      renderProfitTrendChart(soldBikes) {
+        const canvas = document.getElementById('chart-profit-trend');
+        if (!canvas) return;
+        
         const ctx = canvas.getContext('2d');
         
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        
-        const particles = [];
-        const particleCount = 150;
-        const colors = ['#00D0FF', '#6EE7B7', '#22c55e', '#f59e0b', '#ef4444'];
-        
-        for (let i = 0; i < particleCount; i++) {
-          particles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height - canvas.height,
-            r: Math.random() * 6 + 2,
-            d: Math.random() * particleCount,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            tilt: Math.random() * 10 - 10,
-            tiltAngleIncremental: Math.random() * 0.07 + 0.05,
-            tiltAngle: 0
-          });
+        if (this.charts.profitTrend) {
+          this.charts.profitTrend.destroy();
+          this.charts.profitTrend = null;
         }
         
-        let animationFrame;
-        const draw = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
-          particles.forEach((p, i) => {
-            ctx.beginPath();
-            ctx.lineWidth = p.r / 2;
-            ctx.strokeStyle = p.color;
-            ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
-            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4);
-            ctx.stroke();
-            
-            p.tiltAngle += p.tiltAngleIncremental;
-            p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
-            p.x += Math.sin(p.d);
-            p.tilt = Math.sin(p.tiltAngle - i / 3) * 15;
-            
-            if (p.y > canvas.height) {
-              particles.splice(i, 1);
+        const monthlyData = soldBikes.reduce((acc, bike) => {
+          if (!bike.dateSelling) return acc;
+          const month = bike.dateSelling.substring(0, 7);
+          acc[month] = (acc[month] || 0) + parseFloat(bike.netProfit || 0);
+          return acc;
+        }, {});
+        
+        const sortedMonths = Object.keys(monthlyData).sort();
+        const labels = sortedMonths.map(month => new Date(month + '-02'));
+        const data = sortedMonths.map(month => monthlyData[month]);
+        
+        const movingAvg = data.map((val, idx, arr) => {
+          if (idx < 2) return val;
+          return (arr[idx] + arr[idx - 1] + arr[idx - 2]) / 3;
+        });
+
+        const chartConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Monthly Profit',
+                data: data,
+                borderColor: 'rgba(0, 208, 255, 1)',
+                backgroundColor: 'rgba(0, 208, 255, 0.2)',
+                fill: true,
+                tension: 0.3,
+              },
+              {
+                label: '3-Month Moving Avg',
+                data: movingAvg,
+                borderColor: 'rgba(110, 231, 183, 1)',
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                tension: 0.3,
+                pointRadius: 0,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: { display: true },
+              tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+              x: {
+                type: 'time',
+                time: { unit: 'month' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              }
             }
-          });
-          
-          if (particles.length > 0) {
-            animationFrame = requestAnimationFrame(draw);
-          } else {
-            cancelAnimationFrame(animationFrame);
           }
         };
         
-        draw();
-        this.vibrate([50, 100, 50]);
+        this.charts.profitTrend = new Chart(ctx, chartConfig);
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Web Share API for mobile data sharing -->
-       */
+      renderProfitPieChart(soldBikes) {
+        const canvas = document.getElementById('chart-profit-pie');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.charts.profitPie) {
+          this.charts.profitPie.destroy();
+          this.charts.profitPie = null;
+        }
+        
+        const profitBins = {
+          'Loss (< 0)': 0,
+          'Break Even (0)': 0,
+          'Profit (0 - 1k)': 0,
+          'Profit (1k - 5k)': 0,
+          'Profit (5k+)': 0,
+        };
+        
+        soldBikes.forEach(b => {
+          const p = parseFloat(b.netProfit || 0);
+          if (p < 0) profitBins['Loss (< 0)']++;
+          else if (p === 0) profitBins['Break Even (0)']++;
+          else if (p <= 1000) profitBins['Profit (0 - 1k)']++;
+          else if (p <= 5000) profitBins['Profit (1k - 5k)']++;
+          else profitBins['Profit (5k+)']++;
+        });
+
+        const labels = Object.keys(profitBins);
+        const data = Object.values(profitBins);
+
+        const chartConfig = {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Profit Distribution',
+              data: data,
+              backgroundColor: [
+                'rgba(239, 68, 68, 0.7)',
+                'rgba(156, 163, 175, 0.7)',
+                'rgba(5, 150, 105, 0.7)',
+                'rgba(34, 197, 94, 0.7)',
+                'rgba(107, 231, 183, 0.7)',
+              ],
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: { position: 'top' }
+            }
+          }
+        };
+
+        this.charts.profitPie = new Chart(ctx, chartConfig);
+      }
+      
+      renderTopBikesChart(soldBikes) {
+        const canvas = document.getElementById('chart-top-bikes');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (this.charts.topBikes) {
+          this.charts.topBikes.destroy();
+          this.charts.topBikes = null;
+        }
+        
+        const topBikes = [...soldBikes]
+          .sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0))
+          .slice(0, 5);
+          
+        const labels = topBikes.map(b => b.no);
+        const data = topBikes.map(b => parseFloat(b.netProfit || 0));
+
+        const chartConfig = {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Net Profit',
+              data: data,
+              backgroundColor: 'rgba(107, 231, 183, 0.7)',
+              borderColor: 'rgba(107, 231, 183, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            indexAxis: 'y',
+            scales: {
+              x: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              },
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        };
+        
+        this.charts.topBikes = new Chart(ctx, chartConfig);
+      }
+
+      downloadChart(canvasId, filename) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${filename}-${new Date().toISOString().split('T')[0]}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          this.showToast('Chart downloaded', 'success');
+        });
+      }
+      
+      async exportChartData(chartType) {
+        const soldBikes = (await this.db.bikes.filter(b => !b._deleted && b.dateSelling).toArray());
+        
+        if (chartType === 'profit') {
+          const monthlyData = soldBikes.reduce((acc, bike) => {
+            if (!bike.dateSelling) return acc;
+            const month = bike.dateSelling.substring(0, 7);
+            acc[month] = (acc[month] || 0) + parseFloat(bike.netProfit || 0);
+            return acc;
+          }, {});
+          
+          const csvData = Object.keys(monthlyData).sort().map(month => ({
+            month,
+            profit: monthlyData[month]
+          }));
+          
+          const csv = this.jsonToCsv(csvData, true);
+          this.downloadFile(csv, `profit-trend-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+          this.showToast('Chart data exported', 'success');
+        }
+      }
+
+      // --- 6. CORE CRUD (BUY/SELL) OPERATIONS ---
+      
+      handleNewBike() {
+        this.openFormModal('buy');
+      }
+      
+      async handleEditBike(id) {
+        try {
+          const bike = await this.db.bikes.get(Number(id));
+          if (bike) {
+            const mode = (bike.dateSelling && bike.dateSelling !== '') ? 'view' : 'sell';
+            this.openFormModal(mode, bike);
+          }
+        } catch (error) {
+          console.error("Failed to get bike for editing:", error);
+          this.showToast("Could not load bike data.", 'error');
+        }
+      }
+      
+      async handleSaveBike() {
+        const form = document.getElementById('bike-form');
+        const id = document.getElementById('form-bike-id').value;
+        
+        const plate = document.getElementById('form-no').value.trim().toUpperCase();
+        const owner = document.getElementById('form-owner').value.trim();
+        
+        if (!plate || !owner) {
+          this.showToast("Bike Plate and Owner Name are required.", 'error');
+          return;
+        }
+        
+        const purchasePrice = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
+        const repairCost = parseFloat(document.getElementById('form-repairCost').value) || 0;
+        const sellingPrice = parseFloat(document.getElementById('form-sellingPrice').value) || 0;
+        const datePurchase = document.getElementById('form-datePurchase').value || '';
+        const dateSelling = document.getElementById('form-dateSelling').value || '';
+        
+        const bikeData = {
+          no: plate,
+          owner: owner,
+          purchasePrice: purchasePrice,
+          repairCost: repairCost,
+          sellingPrice: sellingPrice,
+          netProfit: sellingPrice - (purchasePrice + repairCost),
+          datePurchase: datePurchase,
+          dateSelling: dateSelling,
+          _updatedAt: new Date().toISOString(),
+          _deleted: false,
+        };
+        
+        try {
+          let oldBike = null;
+          if (id) {
+            oldBike = await this.db.bikes.get(Number(id));
+            await this.db.bikes.update(Number(id), {...oldBike, ...bikeData});
+            this.showToast("Bike updated successfully.", 'success');
+          } else {
+            await this.db.bikes.add(bikeData);
+            this.showToast("Bike added successfully.", 'success');
+            
+            if (dateSelling) {
+              this.showConfetti();
+            }
+          }
+          
+          this.addToUndoStack('update', oldBike || bikeData);
+          
+          this.vibrate(20);
+          this.closeFormModal();
+          await this.renderAll();
+          this.triggerAutoSync();
+          
+        } catch (error) {
+          console.error("Save bike failed:", error);
+          if (error.name === 'ConstraintError') {
+            this.showToast("A bike with this plate number already exists.", 'error');
+          } else {
+            this.showToast("Failed to save bike.", 'error');
+          }
+        }
+      }
+      
+      async handleDeleteBike() {
+        const id = document.getElementById('form-bike-id').value;
+        if (!id) return;
+        
+        if (confirm("Are you sure you want to delete this bike? You can undo this action.")) {
+          try {
+            const bike = await this.db.bikes.get(Number(id));
+            await this.db.bikes.update(Number(id), {
+              _deleted: true,
+              _updatedAt: new Date().toISOString()
+            });
+            
+            this.addToUndoStack('delete', bike);
+            
+            this.showToastWithUndo("Bike deleted.", () => this.undoDelete(bike));
+            this.vibrate(50);
+            this.closeFormModal();
+            await this.renderAll();
+            this.triggerAutoSync();
+          } catch (error) {
+            console.error("Delete failed:", error);
+            this.showToast("Failed to delete bike.", 'error');
+          }
+        }
+      }
+      
+      async handleDuplicateBike() {
+        const id = document.getElementById('form-bike-id').value;
+        if (!id) return;
+        
+        try {
+          const bike = await this.db.bikes.get(Number(id));
+          if (bike) {
+            this.closeFormModal();
+            
+            setTimeout(() => {
+              this.openFormModal('buy');
+              document.getElementById('form-owner').value = bike.owner;
+              document.getElementById('form-purchasePrice').value = bike.purchasePrice;
+              document.getElementById('form-repairCost').value = bike.repairCost;
+              document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
+              this.showToast("Fill in the new plate number", 'info');
+            }, 300);
+          }
+        } catch (error) {
+          console.error("Duplicate failed:", error);
+          this.showToast("Failed to duplicate bike.", 'error');
+        }
+      }
+      
+      async handleBulkMarkSold() {
+        if (this.selectedBikes.size === 0) return;
+        
+        const sellDate = prompt("Enter selling date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        if (!sellDate) return;
+        
+        const sellPriceStr = prompt("Enter selling price for all selected bikes:");
+        const sellPrice = parseFloat(sellPriceStr);
+        if (isNaN(sellPrice)) {
+          this.showToast("Invalid selling price", 'error');
+          return;
+        }
+        
+        try {
+          for (const idStr of this.selectedBikes) {
+            const bike = await this.db.bikes.get(Number(idStr));
+            if (bike && (!bike.dateSelling || bike.dateSelling === '')) {
+              await this.db.bikes.update(Number(idStr), {
+                dateSelling: sellDate,
+                sellingPrice: sellPrice,
+                netProfit: sellPrice - (parseFloat(bike.purchasePrice || 0) + parseFloat(bike.repairCost || 0)),
+                _updatedAt: new Date().toISOString()
+              });
+            }
+          }
+          
+          this.showToast(`${this.selectedBikes.size} bikes marked as sold`, 'success');
+          this.clearSelection();
+          await this.renderAll();
+          this.triggerAutoSync();
+        } catch (error) {
+          console.error("Bulk mark sold failed:", error);
+          this.showToast("Failed to mark bikes as sold", 'error');
+        }
+      }
+      
+      async handleBulkExport() {
+        if (this.selectedBikes.size === 0) return;
+        
+        const bikes = [];
+        for (const idStr of this.selectedBikes) {
+          const bike = await this.db.bikes.get(Number(idStr));
+          if (bike) {
+            const { _id, _deleted, ...rest } = bike;
+            bikes.push(rest);
+          }
+        }
+        
+        const csv = this.jsonToCsv(bikes, true);
+        const filename = `selected-bikes-${new Date().toISOString().split('T')[0]}.csv`;
+        this.downloadFile(csv, filename, 'text/csv');
+        this.showToast(`Exported ${bikes.length} bikes`, 'success');
+      }
+
+      // --- 7. FORM & MODAL UI (Buy/Sell/View Logic) ---
+      
+      openFormModal(mode = 'buy', bike = null) {
+        const title = document.getElementById('form-title');
+        const deleteBtn = document.getElementById('delete-bike-btn');
+        const duplicateBtn = document.getElementById('duplicate-bike-btn');
+        const saveBtn = document.getElementById('save-form-btn');
+        const saveBtnText = document.getElementById('save-form-btn-text');
+        const form = document.getElementById('bike-form');
+        const buySection = document.getElementById('form-section-buy');
+        const sellSection = document.getElementById('form-section-sell');
+        
+        form.reset();
+        
+        title.textContent = "Buy New Bike";
+        deleteBtn.classList.add('hidden');
+        if (duplicateBtn) duplicateBtn.classList.add('hidden');
+        saveBtn.classList.remove('hidden');
+        saveBtnText.textContent = "Save Purchase";
+        buySection.classList.remove('readonly-section');
+        sellSection.classList.add('hidden');
+        document.getElementById('form-datePurchase').value = new Date().toISOString().split('T')[0];
+        document.getElementById('form-bike-id').value = '';
+        
+        if (mode === 'sell' && bike) {
+          title.textContent = "Sell Bike";
+          deleteBtn.classList.remove('hidden');
+          if (duplicateBtn) duplicateBtn.classList.remove('hidden');
+          saveBtnText.textContent = "Save Sale";
+          
+          buySection.classList.add('readonly-section');
+          sellSection.classList.remove('hidden');
+          
+          this.fillForm(bike);
+          document.getElementById('form-dateSelling').value = new Date().toISOString().split('T')[0];
+        
+        } else if (mode === 'view' && bike) {
+          title.textContent = "View Sale";
+          deleteBtn.classList.remove('hidden');
+          if (duplicateBtn) duplicateBtn.classList.remove('hidden');
+          saveBtn.classList.add('hidden');
+          
+          buySection.classList.add('readonly-section');
+          sellSection.classList.remove('hidden');
+          sellSection.classList.add('readonly-section');
+          
+          this.fillForm(bike);
+        }
+        
+        this.dom.formModal.classList.add('active');
+        setTimeout(() => document.getElementById('form-no').focus(), 100);
+      }
+      
+      fillForm(bike) {
+        document.getElementById('form-bike-id').value = bike._id;
+        document.getElementById('form-no').value = bike.no;
+        document.getElementById('form-owner').value = bike.owner;
+        document.getElementById('form-datePurchase').value = bike.datePurchase || '';
+        document.getElementById('form-purchasePrice').value = bike.purchasePrice || '';
+        document.getElementById('form-repairCost').value = bike.repairCost || '';
+        document.getElementById('form-dateSelling').value = bike.dateSelling || '';
+        document.getElementById('form-sellingPrice').value = bike.sellingPrice || '';
+        this.calculateFormProfit();
+      }
+      
+      closeFormModal() {
+        this.dom.formModal.classList.remove('active');
+        document.getElementById('form-section-buy').classList.remove('readonly-section');
+        document.getElementById('form-section-sell').classList.remove('readonly-section');
+      }
+      
+      calculateFormProfit() {
+        const p = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
+        const r = parseFloat(document.getElementById('form-repairCost').value) || 0;
+        const s = parseFloat(document.getElementById('form-sellingPrice').value) || 0;
+        const profit = s - (p + r);
+        document.getElementById('form-netProfit').value = profit.toFixed(2);
+      }
+      
+      // --- 8. SETTINGS HANDLERS ---
+      
+      handleSaveSyncSettings() {
+        this.settings.gistId = document.getElementById('setting-gist-id').value.trim();
+        this.settings.gistFilename = document.getElementById('setting-gist-filename').value.trim() || 'bikes_inventory.csv';
+        this.settings.githubPat = document.getElementById('setting-github-pat').value.trim();
+        this.settings.lastSyncSha = null;
+        
+        sessionStorage.setItem(PAT_KEY, this.settings.githubPat);
+        this.saveSettings();
+        
+        this.showToast("Sync settings saved for this session.", 'success');
+      }
+      
+      handleSaveDisplaySettings() {
+        this.settings.businessName = document.getElementById('setting-business-name').value.trim();
+        this.settings.currency = document.getElementById('setting-currency').value.trim();
+        this.saveSettings();
+        this.showToast("Display settings saved.", 'success');
+        this.renderAll();
+      }
+      
+      async handleWipeData() {
+        if (confirm("WARNING: This will delete ALL local bike data. Are you sure?")) {
+          await this.db.bikes.clear();
+          this.showToast("All local data has been wiped.", 'success');
+          this.renderAll();
+        }
+      }
+      
+      // --- 9. IMPORT / EXPORT ---
+      
+      async exportData(format) {
+        const bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
+        if (bikes.length === 0) {
+          this.showToast("No data to export.", 'warning');
+          return;
+        }
+        
+        const exportBikes = bikes.map(b => {
+          const { _id, _deleted, ...rest } = b;
+          return rest;
+        });
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `bike_inventory_${timestamp}`;
+
+        if (format === 'json') {
+          this.downloadFile(JSON.stringify(exportBikes, null, 2), `${filename}.json`, 'application/json');
+          this.showToast("Exported as JSON", 'success');
+        } else if (format === 'csv') {
+          this.downloadFile(this.jsonToCsv(exportBikes, true), `${filename}.csv`, 'text/csv');
+          this.showToast("Exported as CSV", 'success');
+        } else if (format === 'xlsx') {
+          if (typeof XLSX !== 'undefined') {
+            const ws = XLSX.utils.json_to_sheet(exportBikes);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
+            XLSX.writeFile(wb, `${filename}.xlsx`);
+            this.showToast("Exported as XLSX", 'success');
+          } else {
+            this.showToast("XLSX library not loaded", 'error');
+          }
+        }
+      }
+      
+      downloadTemplate() {
+        const templateData = [{
+          no: 'GJ05AB1234',
+          owner: 'John Doe',
+          purchasePrice: 25000,
+          repairCost: 2000,
+          sellingPrice: 30000,
+          netProfit: 3000,
+          datePurchase: '2024-01-15',
+          dateSelling: '2024-02-20',
+          _updatedAt: new Date().toISOString(),
+          _deleted: false
+        }];
+        const csv = this.jsonToCsv(templateData, false);
+        this.downloadFile(csv, 'bike_template.csv', 'text/csv');
+        this.showToast("Template downloaded", 'success');
+      }
+      
+      handleImportFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (file.size > 5 * 1024 * 1024) {
+          this.showToast('File is too large (max 5MB).', 'error');
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const content = e.target.result;
+            let bikesToImport = [];
+            
+            if (file.name.endsWith('.json')) {
+              bikesToImport = JSON.parse(content);
+            } else if (file.name.endsWith('.csv')) {
+              bikesToImport = this.csvToJson(content);
+            } else {
+              this.showToast("Unsupported file type. Please use .csv or .json", 'error');
+              return;
+            }
+            
+            if (!Array.isArray(bikesToImport)) throw new Error("Invalid file format.");
+            
+            const now = new Date().toISOString();
+            const preparedBikes = bikesToImport.map(b => {
+              const purchasePrice = parseFloat(b.purchasePrice) || 0;
+              const repairCost = parseFloat(b.repairCost) || 0;
+              const sellingPrice = parseFloat(b.sellingPrice) || 0;
+              
+              return {
+                no: (b.no || '').trim().toUpperCase(),
+                owner: b.owner || '',
+                purchasePrice: purchasePrice,
+                repairCost: repairCost,
+                sellingPrice: sellingPrice,
+                netProfit: sellingPrice - (purchasePrice + repairCost),
+                datePurchase: b.datePurchase || '',
+                dateSelling: b.dateSelling || '',
+                _updatedAt: b._updatedAt || now,
+                _deleted: b._deleted === 'true' || b._deleted === true || false,
+              };
+            }).filter(b => b.no);
+            
+            if (confirm(`Found ${preparedBikes.length} records. This will ADD new records and UPDATE existing records based on bike plate. Continue?`)) {
+              await this.db.bikes.bulkPut(preparedBikes);
+              this.showToast(`Successfully imported/updated ${preparedBikes.length} records.`, 'success');
+              this.renderAll();
+              this.triggerAutoSync();
+            }
+            
+          } catch (error) {
+            console.error("Import failed:", error);
+            this.showToast("Import failed. Check file format.", 'error');
+          } finally {
+            event.target.value = '';
+          }
+        };
+        
+        reader.readAsText(file);
+      }
+
       async handleShareData() {
         if (!navigator.share) {
           this.showToast("Sharing not supported on this device", 'warning');
@@ -3357,12 +3264,13 @@
           }
         }
       }
+
+      // --- 10. GIST SYNC ---
       
-      // --- 10. GIST SYNC (v6.3 - ENHANCED) ---
+      syncNow() {
+        this.debouncedSyncNow();
+      }
       
-      /**
-       * <!-- [v6.3 BUGFIX] Added proper debouncing wrapper that doesn't lose 'this' context -->
-       */
       async syncNowInternal() {
         if (!this.isOnline) {
           this.showToast("Cannot sync. You are offline.", 'warning');
@@ -3386,7 +3294,6 @@
           if (remoteFile && remoteFile.content) {
             const remoteBikesRaw = this.csvToJson(remoteFile.content);
             
-            // <!-- [v6.3 BUGFIX] Parse all numeric fields properly -->
             remoteBikes = remoteBikesRaw.map(b => {
               const purchasePrice = parseFloat(b.purchasePrice) || 0;
               const repairCost = parseFloat(b.repairCost) || 0;
@@ -3411,7 +3318,6 @@
           this.setSyncStatus('syncing', 'Merging data...');
           const mergedBikesMap = new Map();
           
-          // <!-- [v6.3 FEATURE] Last-write-wins conflict resolution -->
           for (const bike of localBikes) { 
             mergedBikesMap.set(bike.no, bike); 
           }
@@ -3500,7 +3406,6 @@
           }
         };
         
-        // <!-- [v6.3 BUGFIX] Only include sha if we have one (avoids conflicts) -->
         if (sha) {
           body.sha = sha;
         }
@@ -3524,9 +3429,6 @@
         return result.history[0].version;
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] Trigger auto-sync with proper debouncing -->
-       */
       triggerAutoSync() {
         if (this.isOnline && this.settings.gistId && this.settings.githubPat) {
           console.log("Triggering auto-sync in background...");
@@ -3534,8 +3436,237 @@
         }
       }
       
-      // --- 11. UTILITY FUNCTIONS ---
+      // --- 11. UNDO FUNCTIONALITY ---
       
+      addToUndoStack(action, data) {
+        this.undoStack.push({ action, data, timestamp: Date.now() });
+        if (this.undoStack.length > 10) {
+          this.undoStack.shift();
+        }
+        this.saveUndoStack();
+      }
+      
+      saveUndoStack() {
+        try {
+          localStorage.setItem(UNDO_KEY, JSON.stringify(this.undoStack));
+        } catch (e) {
+          console.error("Failed to save undo stack:", e);
+        }
+      }
+      
+      loadUndoStack() {
+        try {
+          const saved = localStorage.getItem(UNDO_KEY);
+          if (saved) {
+            this.undoStack = JSON.parse(saved);
+          }
+        } catch (e) {
+          console.error("Failed to load undo stack:", e);
+          this.undoStack = [];
+        }
+      }
+      
+      async performUndo() {
+        if (this.undoStack.length === 0) {
+          this.showToast("Nothing to undo", 'info');
+          return;
+        }
+        
+        const lastAction = this.undoStack.pop();
+        this.saveUndoStack();
+        
+        if (lastAction.action === 'delete') {
+          await this.undoDelete(lastAction.data);
+        } else if (lastAction.action === 'update') {
+          await this.undoUpdate(lastAction.data);
+        }
+      }
+      
+      async undoDelete(bike) {
+        try {
+          await this.db.bikes.update(bike._id, {
+            _deleted: false,
+            _updatedAt: new Date().toISOString()
+          });
+          this.showToast("Deletion undone", 'success');
+          await this.renderAll();
+          this.triggerAutoSync();
+        } catch (error) {
+          console.error("Undo delete failed:", error);
+          this.showToast("Failed to undo deletion", 'error');
+        }
+      }
+      
+      async undoUpdate(oldBike) {
+        try {
+          await this.db.bikes.update(oldBike._id, {
+            ...oldBike,
+            _updatedAt: new Date().toISOString()
+          });
+          this.showToast("Update undone", 'success');
+          await this.renderAll();
+          this.triggerAutoSync();
+        } catch (error) {
+          console.error("Undo update failed:", error);
+          this.showToast("Failed to undo update", 'error');
+        }
+      }
+      
+      showToastWithUndo(message, undoCallback) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast undo';
+        
+        toast.innerHTML = `
+          <span class="toast-message">${message}</span>
+          <button class="toast-action">Undo</button>
+          <span class="toast-close">×</span>
+        `;
+        
+        container.appendChild(toast);
+        
+        const timer = setTimeout(() => {
+          toast.remove();
+        }, 8000);
+        
+        toast.querySelector('.toast-action').addEventListener('click', async () => {
+          clearTimeout(timer);
+          toast.remove();
+          await undoCallback();
+        });
+        
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+          clearTimeout(timer);
+          toast.remove();
+        });
+      }
+      
+      // --- 12. UI HELPERS ---
+      
+      navigateTo(viewId) {
+        this.currentView = viewId;
+        this.dom.views.forEach(v => v.classList.remove('active'));
+        const targetView = document.getElementById(viewId);
+        if (targetView) targetView.classList.add('active');
+        
+        this.dom.navButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.view === viewId);
+        });
+        
+        if (viewId === 'view-stats') {
+          this.renderStatsDashboard();
+        }
+      }
+      
+      setFilterStatus(status) {
+        this.currentFilters.status = status;
+        document.querySelectorAll('.filter-chips .chip').forEach(c => {
+          c.classList.toggle('active', c.dataset.filter === status);
+        });
+        this.currentPage = 1;
+        this.renderBikeList();
+      }
+      
+      setSyncStatus(status, text) {
+        this.dom.syncStatus.className = `sync-status ${status}`;
+        this.dom.syncStatusText.textContent = text;
+      }
+      
+      updateOnlineStatus() {
+        this.isOnline = navigator.onLine;
+        if (this.isOnline) {
+          this.setSyncStatus('success', 'Online');
+        } else {
+          this.setSyncStatus('offline', 'Offline');
+        }
+      }
+      
+      vibrate(duration) {
+        if ('vibrate' in navigator) {
+          navigator.vibrate(duration);
+        }
+      }
+      
+      showConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        const particleCount = 150;
+        const colors = ['#00D0FF', '#6EE7B7', '#22c55e', '#f59e0b', '#ef4444'];
+        
+        for (let i = 0; i < particleCount; i++) {
+          particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            r: Math.random() * 6 + 2,
+            d: Math.random() * particleCount,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            tilt: Math.random() * 10 - 10,
+            tiltAngleIncremental: Math.random() * 0.07 + 0.05,
+            tiltAngle: 0
+          });
+        }
+        
+        let animationFrame;
+        const draw = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          particles.forEach((p, i) => {
+            ctx.beginPath();
+            ctx.lineWidth = p.r / 2;
+            ctx.strokeStyle = p.color;
+            ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
+            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4);
+            ctx.stroke();
+            
+            p.tiltAngle += p.tiltAngleIncremental;
+            p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+            p.x += Math.sin(p.d);
+            p.tilt = Math.sin(p.tiltAngle - i / 3) * 15;
+            
+            if (p.y > canvas.height) {
+              particles.splice(i, 1);
+            }
+          });
+          
+          if (particles.length > 0) {
+            animationFrame = requestAnimationFrame(draw);
+          } else {
+            cancelAnimationFrame(animationFrame);
+          }
+        };
+        
+        draw();
+        this.vibrate([50, 100, 50]);
+      }
+      
+      showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        toast.innerHTML = `<span class="toast-message">${this.escapeHtml(message)}</span><span class="toast-close">×</span>`;
+        
+        container.appendChild(toast);
+        
+        const timer = setTimeout(() => {
+          toast.remove();
+        }, 5000);
+        
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+          clearTimeout(timer);
+          toast.remove();
+        });
+      }
+
+      // --- 13. UTILITY FUNCTIONS ---
+
       formatCurrency(value) {
         return (value || 0).toLocaleString(undefined, {
           minimumFractionDigits: 2,
@@ -3543,9 +3674,6 @@
         });
       }
       
-      /**
-       * <!-- [v6.3 BUGFIX] Fixed debounce to properly bind context -->
-       */
       debounce(func, delay, immediate = false) {
         let timeout;
         return function executedFunction(...args) {
@@ -3570,9 +3698,6 @@
         URL.revokeObjectURL(a.href);
       }
       
-      /**
-       * <!-- [v6.3 BUGFIX] Enhanced CSV parsing with better quote handling -->
-       */
       parseCsvLine(line) {
         const values = [];
         let inQuotes = false;
@@ -3599,9 +3724,6 @@
         return values.map(v => v.replace(/^"|"$/g, ''));
       }
       
-      /**
-       * <!-- [v6.3 BUGFIX] Renamed to match calls (was csvTojson, now csvToJson) -->
-       */
       csvToJson(text) {
         if (!text || typeof text !== 'string') {
           return [];
@@ -3621,9 +3743,6 @@
         });
       }
       
-      /**
-       * <!-- [v6.3 BUGFIX] Fixed line ending typo: was '\r\N', now '\r\n' -->
-       */
       jsonToCsv(items, skipDeleted = false) {
         const headers = ['no', 'owner', 'purchasePrice', 'repairCost', 'sellingPrice', 'netProfit', 'datePurchase', 'dateSelling', '_updatedAt', '_deleted'];
         const headerRow = headers.map(h => `"${h}"`).join(',');
@@ -3643,9 +3762,6 @@
         return [headerRow, ...rows].join('\r\n');
       }
       
-      /**
-       * <!-- [v6.3 FEATURE] HTML escaping for XSS protection -->
-       */
       escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
