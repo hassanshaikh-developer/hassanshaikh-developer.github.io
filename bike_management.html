@@ -3,1139 +3,1212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Resale Manager</title>
-    <!-- 1. Load Tailwind CSS -->
+    <title>Bike Resell Management</title>
+    
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 2. Phosphor Icons (for UI icons) -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- 3. Configure Tailwind & Set Font -->
+    
+    <!-- jsPDF and jsPDF-AutoTable for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.umd.min.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        /* Custom styles for a polished, mobile-first feel */
         body {
             font-family: 'Inter', sans-serif;
-            /* Safe-area insets for mobile (e.g., iPhone notch/home bar) */
-            padding-bottom: constant(safe-area-inset-bottom);
-            padding-bottom: env(safe-area-inset-bottom);
+            overscroll-behavior: none; /* Prevents pull-to-refresh */
         }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-track { background-color: #f1f5f9; }
-
-        /* Hide number input spinners */
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        /* Make scrollbars subtle */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
-        input[type=number] { -moz-appearance: textfield; }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Hide content sections by default */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Active nav button style */
+        .nav-button.active {
+            color: #2563eb; /* blue-600 */
+        }
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        /* Toast notification */
+        #toast-notification {
+            transition: opacity 0.3s, transform 0.3s;
+        }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 h-screen flex flex-col">
 
-    <!-- 
-      App Container 
-      This is the main "phone" wrapper. On desktop, it centers the app.
-      On mobile, it expands to fill the screen.
-    -->
-    <div class="max-w-lg mx-auto bg-white min-h-screen shadow-lg flex flex-col">
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto pb-20">
+        <!-- Bikes Tab -->
+        <div id="bikes-tab" class="tab-content active p-4 space-y-4">
+            <h1 class="text-2xl font-bold text-gray-800">Available Bikes</h1>
+            <!-- Search and Filter -->
+            <div class="flex gap-2">
+                <input id="search-bar" type="text" placeholder="Search by Plate, Model, Owner..." class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="status-filter" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="sold">Sold</option>
+                </select>
+            </div>
+            <!-- Bike List -->
+            <div id="bike-list" class="space-y-3">
+                <!-- Bike card template -->
+                <!-- 
+                <div class="bg-white p-4 rounded-lg shadow space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-semibold text-gray-900">MH12AB1234 - Hero Splendor+</span>
+                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Available</span>
+                    </div>
+                    <p class="text-sm text-gray-600">Owner: Rohit Mehta</p>
+                    <p class="text-sm text-gray-600">Purchased: 2025-11-04 for ₹50,000</p>
+                    <p class="text-sm text-gray-600">Total Cost: ₹52,000 (Repair: ₹2,000)</p>
+                    <button class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Sell Bike</button>
+                </div>
+                -->
+            </div>
+        </div>
 
-        <!-- Header -->
-        <header class="bg-white border-b border-gray-200 p-4 sticky top-0 z-20">
-            <div class="flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-800">Bike Resale</h1>
-                <!-- Sync Status Indicator -->
-                <div id="sync-status" class="flex items-center space-x-2 text-sm text-gray-500">
-                    <span id="sync-status-text">Not Configured</span>
-                    <i id="sync-status-icon" class="ph ph-warning-circle text-red-500"></i>
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content p-4 space-y-4">
+            <h1 class="text-2xl font-bold text-gray-800">Analytics</h1>
+            
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <p class="text-sm text-gray-500">Net Profit</p>
+                    <p id="analytics-profit" class="text-2xl font-bold text-green-600">₹0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <p class="text-sm text-gray-500">Average ROI</p>
+                    <p id="analytics-roi" class="text-2xl font-bold text-blue-600">0%</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <p class="text-sm text-gray-500">Current Capital</p>
+                    <p id="analytics-capital" class="text-2xl font-bold text-gray-800">₹0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center">
+                    <p class="text-sm text-gray-500">Total Repair Cost</p>
+                    <p id="analytics-repairs" class="text-2xl font-bold text-yellow-600">₹0</p>
                 </div>
             </div>
-        </header>
 
-        <!-- Main Content Area (Tabs will be rendered here) -->
-        <main id="app-content" class="flex-1 p-4 overflow-y-auto">
-            <!-- Content will be dynamically inserted by JavaScript -->
-        </main>
-
-        <!-- Bottom Navigation Bar -->
-        <nav class="bg-white border-t border-gray-200 p-2 sticky bottom-0 z-20 grid grid-cols-3 gap-2">
-            <button data-tab="dashboard" class="nav-tab-button p-2 rounded-lg flex flex-col items-center text-blue-600 bg-blue-50">
-                <i class="ph-fill ph-house text-2xl"></i>
-                <span class="text-xs font-medium">Dashboard</span>
-            </button>
-            <button data-tab="analytics" class="nav-tab-button p-2 rounded-lg flex flex-col items-center text-gray-500 hover:bg-gray-50">
-                <i class="ph ph-chart-bar text-2xl"></i>
-                <span class="text-xs font-medium">Analytics</span>
-            </button>
-            <button data-tab="settings" class="nav-tab-button p-2 rounded-lg flex flex-col items-center text-gray-500 hover:bg-gray-50">
-                <i class="ph ph-gear text-2xl"></i>
-                <span class="text-xs font-medium">Settings</span>
-            </button>
-        </nav>
-    </div>
-
-    <!-- 
-      Modal Container 
-      Used for all forms (Add Bike, Sell Bike, Adjust Capital)
-    -->
-    <div id="modal-container" class="hidden fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
-        <div id="modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center p-4 border-b border-gray-200">
-                <h3 id="modal-title" class="text-lg font-semibold">Modal Title</h3>
-                <button id="modal-close-btn" class="text-gray-400 hover:text-gray-600">
-                    <i class="ph ph-x text-2xl"></i>
-                </button>
+            <!-- Export Buttons -->
+            <div class="bg-white p-4 rounded-lg shadow space-y-3">
+                <h2 class="text-lg font-semibold">Reports & Exports</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button id="export-pdf-report" class="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z" clip-rule="evenodd" /><path d="M9 11a1 1 0 10-2 0v3a1 1 0 102 0v-3zM13 11a1 1 0 10-2 0v3a1 1 0 102 0v-3z" /></svg>
+                        Download Full PDF Report
+                    </button>
+                    <button id="export-all-csv" class="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm3 1a1 1 0 000 2h2a1 1 0 100-2H9zM8 6a1 1 0 011 1v4a1 1 0 11-2 0V7a1 1 0 011-1zm3 0a1 1 0 10-2 0v4a1 1 0 102 0V7z" clip-rule="evenodd" /></svg>
+                        Download All Data (CSV)
+                    </button>
+                </div>
             </div>
-            <!-- Modal Body (form content injected here) -->
-            <div id="modal-body" class="p-4 overflow-y-auto">
-                <!-- Dynamic form content goes here -->
+
+            <!-- Rankings -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h2 class="text-lg font-semibold mb-2">Rankings</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-medium text-gray-700">Top Models (by Profit)</h3>
+                        <div id="analytics-top-models" class="mt-1 text-sm text-gray-600">No data</div>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-gray-700">Top Owners (by Purchase Price)</h3>
+                        <div id="analytics-top-owners" class="mt-1 text-sm text-gray-600">No data</div>
+                    </div>
+                </div>
             </div>
+
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content p-4 space-y-4">
+            <h1 class="text-2xl font-bold text-gray-800">Settings</h1>
+
+            <!-- Gist Sync -->
+            <div class="bg-white p-4 rounded-lg shadow space-y-3">
+                <h2 class="text-lg font-semibold">GitHub Gist Sync</h2>
+                <p class="text-sm text-gray-600">Syncs your data to a private GitHub Gist for backup and multi-device use.</p>
+                <div class="space-y-2">
+                    <input id="gist-token" type="password" placeholder="GitHub Personal Access Token" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input id="gist-id" type="text" placeholder="Gist ID" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex gap-2">
+                    <button id="save-gist-settings" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Save</button>
+                    <button id="force-sync" class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">Sync Now</button>
+                </div>
+                <p class="text-xs text-gray-500">Last Sync: <span id="last-sync-time">Never</span></p>
+            </div>
+
+            <!-- Data Management -->
+            <div class="bg-white p-4 rounded-lg shadow space-y-3">
+                <h2 class="text-lg font-semibold">Data Management (Export & Backup)</h2>
+                <p class="text-sm text-gray-600">Download your local data. Exports will auto-sync with Gist if online.</p>
+                <div class="grid grid-cols-1 gap-3">
+                    <button id="export-bikes-csv" class="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Export Bikes CSV</button>
+                    <button id="export-transactions-csv" class="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Export Transactions CSV</button>
+                    <button id="export-capital-log-csv" class="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Export Capital Log CSV</button>
+                    <button id="clear-local-data" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Clear All Local Data</button>
+                </div>
+            </div>
+
+            <!-- Manual Capital Adjustment -->
+            <div class="bg-white p-4 rounded-lg shadow space-y-3">
+                <h2 class="text-lg font-semibold">Manual Capital Adjustment</h2>
+                <form id="capital-adjust-form" class="space-y-2">
+                    <input id="capital-amount" type="number" placeholder="Amount (e.g., 10000 or -500)" class="w-full px-4 py-2 border rounded-lg" required>
+                    <input id="capital-reason" type="text" placeholder="Reason (e.g., Initial Investment)" class="w-full px-4 py-2 border rounded-lg" required>
+                    <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Add Adjustment</button>
+                </form>
+                <h3 class="font-medium text-gray-700 pt-2">Adjustment Log</h3>
+                <div id="capital-log-display" class="max-h-40 overflow-y-auto text-sm text-gray-600 space-y-1">
+                    <!-- Log entries here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white shadow-inner border-t border-gray-200 flex justify-around">
+        <button data-tab="bikes-tab" class="nav-button active flex-1 flex flex-col items-center p-3 text-gray-600 hover:text-blue-500 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v11.494m-6.75-8.642l13.5 0M4.376 18.75l15.248 0M12 4.043l-8.25 4.87L12 13.785l8.25-4.872L12 4.043zM3.375 12.31l8.625 5.106 8.625-5.106-8.625-5.106L3.375 12.31z" /></svg>
+            <span class="text-xs font-medium">Bikes</span>
+        </button>
+        <button data-tab="analytics-tab" class="nav-button flex-1 flex flex-col items-center p-3 text-gray-600 hover:text-blue-500 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            <span class="text-xs font-medium">Analytics</span>
+        </button>
+        <button data-tab="settings-tab" class="nav-button flex-1 flex flex-col items-center p-3 text-gray-600 hover:text-blue-500 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.573-1.066z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <span class="text-xs font-medium">Settings</span>
+        </button>
+    </nav>
+
+    <!-- FAB (Floating Action Button) to Add Bike -->
+    <button id="add-bike-button" class="fixed bottom-20 right-5 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+    </button>
+
+    <!-- Modals -->
+
+    <!-- Add Bike Modal -->
+    <div id="add-bike-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="bg-white w-full max-w-md p-6 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Add New Bike</h2>
+                <button id="close-add-bike-modal" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <form id="add-bike-form" class="space-y-3">
+                <div>
+                    <label for="plateNo" class="block text-sm font-medium text-gray-700">Bike Number / Plate No.*</label>
+                    <input type="text" id="plateNo" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                    <p id="plateNo-error" class="text-red-500 text-xs mt-1 hidden">This field is required.</p>
+                </div>
+                <div>
+                    <label for="model" class="block text-sm font-medium text-gray-700">Model Name*</label>
+                    <input type="text" id="model" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                    <p id="model-error" class="text-red-500 text-xs mt-1 hidden">This field is required.</p>
+                </div>
+                <div>
+                    <label for="ownerName" class="block text-sm font-medium text-gray-700">Owner Name*</label>
+                    <input type="text" id="ownerName" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                    <p id="ownerName-error" class="text-red-500 text-xs mt-1 hidden">This field is required.</p>
+                </div>
+                <div>
+                    <label for="purchasePrice" class="block text-sm font-medium text-gray-700">Buying Price*</label>
+                    <input type="number" id="purchasePrice" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                    <p id="purchasePrice-error" class="text-red-500 text-xs mt-1 hidden">This field is required.</p>
+                </div>
+                <div>
+                    <label for="repairCost" class="block text-sm font-medium text-gray-700">Repair Cost (default 0)</label>
+                    <input type="number" id="repairCost" placeholder="0" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="purchaseDate" class="block text-sm font-medium text-gray-700">Date of Purchase*</label>
+                    <input type="date" id="purchaseDate" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                    <p id="purchaseDate-error" class="text-red-500 text-xs mt-1 hidden">This field is required.</p>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition">Save Bike</button>
+            </form>
         </div>
     </div>
 
-    <!-- 
-      Toast Notification
-      Used for success/error messages
-    -->
-    <div id="toast" class="hidden fixed top-5 right-5 z-50 max-w-xs w-full">
-        <div id="toast-content" class="rounded-lg shadow-lg p-3 flex items-center space-x-3">
-            <i id="toast-icon" class="ph ph-check-circle text-2xl"></i>
-            <span id="toast-message" class="text-sm font-medium"></span>
+    <!-- Sell Bike Modal -->
+    <div id="sell-bike-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="bg-white w-full max-w-md p-6 rounded-lg shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Sell Bike</h2>
+                <button id="close-sell-bike-modal" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <form id="sell-bike-form" class="space-y-3">
+                <input type="hidden" id="sell-bike-id">
+                <p>Selling: <span id="sell-bike-model" class="font-semibold"></span></p>
+                <p>Total Cost: <span id="sell-bike-total-cost" class="font-semibold"></span></p>
+                <div>
+                    <label for="sellPrice" class="block text-sm font-medium text-gray-700">Selling Price*</label>
+                    <input type="number" id="sellPrice" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+                </div>
+                <div>
+                    <label for="sellDate" class="block text-sm font-medium text-gray-700">Date of Sale*</label>
+                    <input type="date" id="sellDate" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition">Confirm Sale</button>
+            </form>
         </div>
     </div>
 
-    <!-- 
-      JavaScript Application Logic 
-    -->
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="flex flex-col items-center">
+            <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p id="loading-text" class="text-white text-lg mt-2">Syncing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white max-w-xs z-50 hidden opacity-0 translate-x-10">
+        <p id="toast-message"></p>
+    </div>
+
+
+    <!-- ============================================= -->
+    <!-- SCRIPT BLOCK -->
+    <!-- ============================================= -->
     <script type="module">
-        // === CONSTANTS ===
-        const GIST_API_URL = 'https://api.github.com/gists';
-        const DB_FILENAME = 'bike_resale_db.json';
-        const LOCAL_STORAGE_KEY = 'bikeResaleManager';
+        // Import PDF generation tools from CDN
+        const { jsPDF } = window.jspdf;
+        const autoTable = window.jspdf.autoTable;
 
-        // === DOM ELEMENTS ===
-        const appContent = document.getElementById('app-content');
-        const navButtons = document.querySelectorAll('.nav-tab-button');
-        const syncStatusText = document.getElementById('sync-status-text');
-        const syncStatusIcon = document.getElementById('sync-status-icon');
-        
-        // Modal Elements
-        const modalContainer = document.getElementById('modal-container');
-        const modalContent = document.getElementById('modal-content');
-        const modalTitle = document.getElementById('modal-title');
-        const modalBody = document.getElementById('modal-body');
-        const modalCloseBtn = document.getElementById('modal-close-btn');
-
-        // Toast Elements
-        const toast = document.getElementById('toast');
-        const toastContent = document.getElementById('toast-content');
-        const toastIcon = document.getElementById('toast-icon');
-        const toastMessage = document.getElementById('toast-message');
-
-        // === APPLICATION STATE ===
-        let state = {
-            settings: {
-                gistId: '',
-                pat: '', // Personal Access Token
-                currency: '₹',
-                initialCapital: 0,
-            },
-            data: {
-                bikes: [], // { id, model, pPrice, pDate, notes, status ('in-stock', 'sold'), sPrice, sDate, profit }
-                capitalLedger: [], // { id, ts, type ('initial', 'buy', 'sell', 'adjust'), amount, reason, bikeId }
-            },
-            ui: {
-                activeTab: 'dashboard',
-                syncStatus: 'idle', // 'idle', 'syncing', 'synced', 'error'
+        const app = {
+            state: {
+                bikes: [], // Array of bike objects
+                capitalLog: [], // Array of { id, date, type, amount, reason, bikeId }
+                currentCapital: 0,
+                gistId: null,
+                gistToken: null,
                 lastSync: null,
-                filter: {
+                isLoading: false,
+                filters: {
                     search: '',
-                    status: 'all', // 'all', 'in-stock', 'sold'
+                    status: 'all'
                 }
             },
-            gistFile: { // To store Gist file info for updates
-                etag: null,
-                fileContent: '', // Store raw content to check for changes
-            }
-        };
 
-        // === HELPER FUNCTIONS ===
-        const generateId = () => `id_${Math.random().toString(36).substr(2, 9)}`;
-        const getTodayDate = () => new Date().toISOString().split('T')[0];
-        
-        const formatCurrency = (amount) => {
-            const num = Number(amount);
-            const color = num > 0 ? 'text-green-600' : num < 0 ? 'text-red-600' : 'text-gray-700';
-            return `<span class="${color}">${state.settings.currency}${Math.abs(num).toLocaleString('en-IN')}</span>`;
-        };
-        
-        const formatProfit = (amount) => {
-            if (amount === null || amount === undefined) return `<span class="text-gray-500">-</span>`;
-            return formatCurrency(amount);
-        };
-        
-        const formatDate = (isoDate) => {
-            if (!isoDate) return '-';
-            return new Date(isoDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        };
-
-        // Debounce function to limit API calls
-        const debounce = (func, delay) => {
-            let timeout;
-            return (...args) => {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), delay);
-            };
-        };
-
-        // === LOCAL STORAGE ===
-        function saveStateToLocal() {
-            try {
-                const stateToSave = { ...state };
-                // Don't save PAT in local storage if user clears it
-                if (!state.settings.pat) {
-                    stateToSave.settings.pat = '';
+            // --- DATABASE (LocalStorage) ---
+            db: {
+                save() {
+                    try {
+                        const dataToSave = {
+                            bikes: app.state.bikes,
+                            capitalLog: app.state.capitalLog,
+                            gistId: app.state.gistId,
+                            gistToken: app.state.gistToken,
+                            lastSync: app.state.lastSync,
+                        };
+                        localStorage.setItem('bikeResellApp', JSON.stringify(dataToSave));
+                    } catch (e) {
+                        console.error("Error saving to localStorage", e);
+                        app.ui.showToast("Error saving data. Storage might be full.", "error");
+                    }
+                },
+                load() {
+                    try {
+                        const data = localStorage.getItem('bikeResellApp');
+                        if (data) {
+                            const parsedData = JSON.parse(data);
+                            app.state.bikes = parsedData.bikes || [];
+                            app.state.capitalLog = parsedData.capitalLog || [];
+                            app.state.gistId = parsedData.gistId || null;
+                            app.state.gistToken = parsedData.gistToken || null;
+                            app.state.lastSync = parsedData.lastSync ? new Date(parsedData.lastSync) : null;
+                        }
+                    } catch (e) {
+                        console.error("Error loading from localStorage", e);
+                        app.ui.showToast("Error loading local data. It might be corrupted.", "error");
+                    }
+                },
+                clear() {
+                    if (confirm("Are you sure you want to clear ALL local data? This cannot be undone.")) {
+                        localStorage.removeItem('bikeResellApp');
+                        app.state.bikes = [];
+                        app.state.capitalLog = [];
+                        app.state.currentCapital = 0;
+                        app.state.gistId = null;
+                        app.state.gistToken = null;
+                        app.state.lastSync = null;
+                        app.logic.recalculateCapital();
+                        app.ui.renderAll();
+                        app.ui.showToast("Local data cleared.", "success");
+                    }
                 }
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
-            } catch (e) {
-                console.error("Failed to save state to localStorage", e);
-                showToast("Error saving data locally.", 'error');
-            }
-        }
+            },
 
-        function loadStateFromLocal() {
-            try {
-                const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (savedState) {
-                    const parsedState = JSON.parse(savedState);
-                    // Merge saved state with default state to avoid missing keys on update
-                    state = {
-                        ...state,
-                        ...parsedState,
-                        settings: { ...state.settings, ...parsedState.settings },
-                        data: { ...state.data, ...parsedState.data },
-                        ui: { ...state.ui, ...parsedState.ui, syncStatus: 'idle' } // Always reset sync status
-                    };
-                }
-            } catch (e) {
-                console.error("Failed to load state from localStorage", e);
-                localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
-            }
-        }
+            // --- GITHUB GIST SYNC ---
+            github: {
+                // Generic fetch wrapper for Gist API
+                async fetchGist(url, options = {}) {
+                    if (!app.state.gistToken) {
+                        throw new Error("GitHub Token not set.");
+                    }
+                    
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: {
+                            ...options.headers,
+                            'Authorization': `token ${app.state.gistToken}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'X-GitHub-Api-Version': '2022-11-28'
+                        }
+                    });
 
-        // === TOAST & MODAL UI ===
-        function showToast(message, type = 'success', duration = 3000) {
-            toastMessage.textContent = message;
-            
-            // Clear old classes
-            toastContent.classList.remove('bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
-            toastIcon.classList.remove('ph-check-circle', 'ph-warning');
-
-            if (type === 'success') {
-                toastContent.classList.add('bg-green-100', 'text-green-700');
-                toastIcon.classList.add('ph-check-circle');
-            } else {
-                toastContent.classList.add('bg-red-100', 'text-red-700');
-                toastIcon.classList.add('ph-warning');
-            }
-
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, duration);
-        }
-
-        function openModal(title, content) {
-            modalTitle.textContent = title;
-            modalBody.innerHTML = content;
-            modalContainer.classList.remove('hidden');
-            // Attach form-specific listeners if any
-            attachFormListeners();
-        }
-
-        function closeModal() {
-            modalContainer.classList.add('hidden');
-            modalBody.innerHTML = ''; // Clear content
-        }
-
-        modalCloseBtn.addEventListener('click', closeModal);
-        modalContainer.addEventListener('click', (e) => {
-            // Close if clicking on the backdrop
-            if (e.target === modalContainer) {
-                closeModal();
-            }
-        });
-
-        // === GIST API SERVICE ===
-        const GistStore = {
-            async _request(endpoint = '', method = 'GET', body = null) {
-                const { gistId, pat } = state.settings;
-                if (!gistId || !pat) {
-                    return { success: false, error: 'Gist ID or PAT not set.' };
-                }
-
-                const url = `${GIST_API_URL}/${gistId}${endpoint}`;
-                const headers = {
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Authorization': `token ${pat}`,
-                };
-
-                const options = { method, headers };
-                if (body) {
-                    options.body = JSON.stringify(body);
-                }
-
-                try {
-                    const response = await fetch(url, options);
                     if (!response.ok) {
                         const errorData = await response.json();
-                        return { success: false, error: errorData.message || `HTTP Error: ${response.status}` };
+                        throw new Error(`GitHub API Error: ${errorData.message || response.statusText}`);
                     }
-                    // Handle 204 No Content for successful PATCH/DELETE
-                    if (response.status === 204) {
-                        return { success: true, data: null };
+                    return response.json();
+                },
+
+                // Pulls all data down from Gist, merges with local
+                async pullData() {
+                    if (!app.state.gistId) {
+                        return; // No Gist ID, skip pull
                     }
-                    const data = await response.json();
-                    return { success: true, data, headers: response.headers };
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            },
+                    app.ui.setLoading(true, "Pulling data from Gist...");
+                    try {
+                        const gist = await app.github.fetchGist(`https://api.github.com/gists/${app.state.gistId}`);
+                        
+                        let remoteBikes = [];
+                        let remoteCapitalLogs = [];
 
-            async fetchDb() {
-                updateSyncStatus('syncing', 'Syncing...');
-                const res = await this._request();
-
-                if (!res.success) {
-                    updateSyncStatus('error', 'Sync Failed');
-                    showToast(`Error fetching Gist: ${res.error}`, 'error');
-                    return false;
-                }
-
-                const gistData = res.data;
-                const dbFile = gistData.files[DB_FILENAME];
-
-                if (!dbFile) {
-                    // File doesn't exist, let's create it on the first save
-                    updateSyncStatus('synced', 'Ready (new Gist)');
-                    showToast('Gist is empty. Ready to save.', 'success');
-                    state.gistFile.etag = res.headers.get('etag');
-                    return true;
-                }
-
-                try {
-                    const dbContent = JSON.parse(dbFile.content);
-                    // Merge remote data into local state
-                    state.settings = { ...state.settings, ...dbContent.settings };
-                    state.data = { ...state.data, ...dbContent.data };
-                    state.gistFile.etag = res.headers.get('etag');
-                    state.gistFile.fileContent = dbFile.content; // Store raw content
-
-                    updateSyncStatus('synced', 'Synced');
-                    showToast('Data synced from Gist.', 'success');
-                    saveStateToLocal();
-                    return true;
-                } catch (e) {
-                    updateSyncStatus('error', 'Parse Error');
-                    showToast('Failed to parse data from Gist.', 'error');
-                    return false;
-                }
-            },
-
-            async saveDb() {
-                updateSyncStatus('syncing', 'Saving...');
-
-                const contentToSave = {
-                    settings: {
-                        initialCapital: state.settings.initialCapital,
-                        currency: state.settings.currency,
-                    },
-                    data: state.data,
-                    meta: {
-                        lastSync: new Date().toISOString()
-                    }
-                };
-
-                const stringContent = JSON.stringify(contentToSave, null, 2);
-
-                // Don't save if content hasn't changed
-                if (stringContent === state.gistFile.fileContent) {
-                    updateSyncStatus('synced', 'No Changes');
-                    return true;
-                }
-
-                const body = {
-                    description: 'Bike Resale Manager Database',
-                    files: {
-                        [DB_FILENAME]: {
-                            content: stringContent
+                        const dataFiles = Object.keys(gist.files).filter(name => name.startsWith('bike-data-'));
+                        
+                        for (const filename of dataFiles) {
+                            const file = gist.files[filename];
+                            if (file.truncated) {
+                                // Content is truncated, fetch raw_url
+                                const res = await fetch(file.raw_url);
+                                const content = await res.json();
+                                remoteBikes.push(...(content.bikes || []));
+                                remoteCapitalLogs.push(...(content.capitalLog || []));
+                            } else {
+                                const content = JSON.parse(file.content);
+                                remoteBikes.push(...(content.bikes || []));
+                                remoteCapitalLogs.push(...(content.capitalLog || []));
+                            }
                         }
+
+                        // Merge logic: Simple "local overrides remote" based on ID
+                        const localBikes = app.state.bikes;
+                        const localLogs = app.state.capitalLog;
+
+                        const mergedBikes = app.logic.mergeData(localBikes, remoteBikes, 'id');
+                        const mergedLogs = app.logic.mergeData(localLogs, remoteCapitalLogs, 'id');
+
+                        app.state.bikes = mergedBikes;
+                        app.state.capitalLog = mergedLogs;
+                        
+                        app.db.save();
+                        app.logic.recalculateCapital();
+                        app.ui.renderAll();
+                        app.ui.showToast("Data pulled from Gist.", "success");
+
+                    } catch (error) {
+                        console.error("Error pulling data:", error);
+                        app.ui.showToast(`Pull failed: ${error.message}`, "error");
+                    } finally {
+                        app.ui.setLoading(false);
                     }
-                };
+                },
 
-                const res = await this._request('', 'PATCH', body);
+                // Pushes local state up to Gist, split by month
+                async pushData(silent = false) {
+                    if (!app.state.gistId || !app.state.gistToken) {
+                        if (!silent) app.ui.showToast("Gist ID or Token not set.", "error");
+                        return;
+                    }
+                    
+                    if (!silent) app.ui.setLoading(true, "Pushing data to Gist...");
+                    
+                    try {
+                        // Group all data by month
+                        const monthlyData = {};
+                        
+                        [...app.state.bikes, ...app.state.capitalLog].forEach(item => {
+                            const date = new Date(item.purchaseDate || item.date);
+                            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                            if (!monthlyData[monthKey]) {
+                                monthlyData[monthKey] = { bikes: [], capitalLog: [] };
+                            }
+                        });
 
-                if (!res.success) {
-                    updateSyncStatus('error', 'Save Failed');
-                    showToast(`Error saving to Gist: ${res.error}`, 'error');
-                    return false;
+                        app.state.bikes.forEach(bike => {
+                            const date = new Date(bike.purchaseDate);
+                            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                            monthlyData[monthKey].bikes.push(bike);
+                        });
+                        
+                        app.state.capitalLog.forEach(log => {
+                            const date = new Date(log.date);
+                            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                            monthlyData[monthKey].capitalLog.push(log);
+                        });
+
+                        // Create file payload for Gist API
+                        const filesToUpdate = {};
+                        for (const monthKey in monthlyData) {
+                            const filename = `bike-data-${monthKey}.json`;
+                            filesToUpdate[filename] = {
+                                content: JSON.stringify(monthlyData[monthKey], null, 2)
+                            };
+                        }
+
+                        if (Object.keys(filesToUpdate).length === 0) {
+                            if (!silent) app.ui.showToast("No data to push.", "info");
+                            return;
+                        }
+
+                        // Send PATCH request to update Gist
+                        await app.github.fetchGist(`https://api.github.com/gists/${app.state.gistId}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({
+                                description: 'Bike Resell Data (Updated)',
+                                files: filesToUpdate
+                            })
+                        });
+
+                        app.state.lastSync = new Date();
+                        app.db.save();
+                        app.ui.renderSettings(); // Update last sync time
+                        if (!silent) app.ui.showToast("Sync to Gist successful!", "success");
+
+                    } catch (error) {
+                        console.error("Error pushing data:", error);
+                        if (!silent) app.ui.showToast(`Sync failed: ${error.message}`, "error");
+                        throw error; // Re-throw for export functions
+                    } finally {
+                        if (!silent) app.ui.setLoading(false);
+                    }
                 }
+            },
 
-                // Update ETag and local content cache
-                state.gistFile.etag = res.headers.get('etag');
-                state.gistFile.fileContent = stringContent;
+            // --- CORE APP LOGIC ---
+            logic: {
+                init() {
+                    app.db.load();
+                    app.logic.recalculateCapital();
+                    app.ui.init();
+                    app.ui.renderAll();
+                    
+                    if (!app.state.gistId || !app.state.gistToken) {
+                        app.ui.showToast("Please set Gist Token and ID in Settings.", "info");
+                        app.ui.navigateToTab('settings-tab');
+                    } else {
+                        // Auto-pull data on load
+                        app.github.pullData();
+                    }
+                },
+                
+                // Helper to merge arrays of objects, preferring items from arrA
+                mergeData(arrA, arrB, key) {
+                    const map = new Map();
+                    arrA.forEach(item => map.set(item[key], item));
+                    arrB.forEach(item => {
+                        if (!map.has(item[key])) {
+                            map.set(item[key], item);
+                        }
+                    });
+                    return Array.from(map.values());
+                },
 
-                updateSyncStatus('synced', 'Saved');
-                showToast('Data saved to Gist.', 'success');
-                saveStateToLocal(); // Save the new synced state
-                return true;
+                // Adds a new bike
+                addBike(formData) {
+                    // Validate
+                    let isValid = true;
+                    if (!formData.plateNo) {
+                        app.ui.showValidationError('plateNo', 'This field is required.');
+                        isValid = false;
+                    } else if (app.state.bikes.some(b => b.plateNo === formData.plateNo)) {
+                        app.ui.showValidationError('plateNo', 'This Plate No. already exists.');
+                        isValid = false;
+                    } else {
+                        app.ui.hideValidationError('plateNo');
+                    }
+
+                    // Add validation for other required fields...
+                    ['model', 'ownerName', 'purchasePrice', 'purchaseDate'].forEach(field => {
+                        if (!formData[field]) {
+                            app.ui.showValidationError(field, 'This field is required.');
+                            isValid = false;
+                        } else {
+                            app.ui.hideValidationError(field);
+                        }
+                    });
+
+                    if (!isValid) return;
+
+                    const purchasePrice = parseFloat(formData.purchasePrice);
+                    const repairCost = parseFloat(formData.repairCost || 0);
+                    const totalCost = purchasePrice + repairCost;
+                    const purchaseDate = new Date(formData.purchaseDate).toISOString();
+                    
+                    const newBike = {
+                        id: `bike_${new Date().getTime()}`,
+                        plateNo: formData.plateNo,
+                        model: formData.model,
+                        ownerName: formData.ownerName,
+                        purchasePrice: purchasePrice,
+                        repairCost: repairCost,
+                        totalCost: totalCost,
+                        purchaseDate: purchaseDate,
+                        sellPrice: null,
+                        sellDate: null,
+                        profit: null,
+                        status: 'available'
+                    };
+
+                    // Add capital log entry for the purchase
+                    app.logic.addCapitalEntry(-totalCost, `Purchase: ${newBike.model} (${newBike.plateNo})`, 'buy', purchaseDate, newBike.id);
+
+                    app.state.bikes.push(newBike);
+                    app.db.save();
+                    app.logic.recalculateCapital();
+                    app.ui.renderAll();
+                    app.ui.hideModal('add-bike-modal');
+                    app.ui.showToast('Bike added successfully!', 'success');
+                    app.github.pushData(true); // Auto-push in background
+                },
+                
+                // Sells an existing bike
+                sellBike(bikeId, sellPrice, sellDate) {
+                    const bikeIndex = app.state.bikes.findIndex(b => b.id === bikeId);
+                    if (bikeIndex === -1) {
+                        app.ui.showToast('Error: Bike not found.', 'error');
+                        return;
+                    }
+                    
+                    const bike = app.state.bikes[bikeIndex];
+                    const sellDateISO = new Date(sellDate).toISOString();
+                    const profit = parseFloat(sellPrice) - bike.totalCost;
+
+                    bike.sellPrice = parseFloat(sellPrice);
+                    bike.sellDate = sellDateISO;
+                    bike.profit = profit;
+                    bike.status = 'sold';
+
+                    // Add capital log entry for the sale
+                    app.logic.addCapitalEntry(bike.sellPrice, `Sale: ${bike.model} (${bike.plateNo})`, 'sell', sellDateISO, bike.id);
+
+                    app.db.save();
+                    app.logic.recalculateCapital();
+                    app.ui.renderAll();
+                    app.ui.hideModal('sell-bike-modal');
+                    app.ui.showToast('Bike sold!', 'success');
+                    app.github.pushData(true); // Auto-push in background
+                },
+
+                // Adds a manual capital adjustment
+                addCapitalEntry(amount, reason, type = 'adjust', date = null, bikeId = null) {
+                    const entry = {
+                        id: `cap_${new Date().getTime()}`,
+                        date: date || new Date().toISOString(),
+                        type: type, // 'buy', 'sell', 'adjust'
+                        amount: parseFloat(amount),
+                        reason: reason,
+                        bikeId: bikeId
+                    };
+                    app.state.capitalLog.push(entry);
+                },
+
+                // Recalculates total capital from the log
+                recalculateCapital() {
+                    app.state.currentCapital = app.state.capitalLog.reduce((sum, entry) => sum + entry.amount, 0);
+                },
+                
+                // --- Analytics Helpers ---
+                getAnalyticsData() {
+                    const soldBikes = app.state.bikes.filter(b => b.status === 'sold');
+                    const netProfit = soldBikes.reduce((sum, b) => sum + b.profit, 0);
+                    const totalRepairCost = app.state.bikes.reduce((sum, b) => sum + b.repairCost, 0);
+                    const totalInvestment = app.state.bikes.reduce((sum, b) => sum + b.totalCost, 0);
+                    const averageROI = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0;
+
+                    return {
+                        netProfit,
+                        totalRepairCost,
+                        totalInvestment,
+                        averageROI,
+                        currentCapital: app.state.currentCapital
+                    };
+                },
+                
+                getRankingData(key, valueKey, aggregator = 'sum') {
+                    const map = new Map();
+                    app.state.bikes.forEach(bike => {
+                        const groupKey = bike[key];
+                        const value = bike[valueKey] || 0;
+                        if (!map.has(groupKey)) {
+                            map.set(groupKey, { total: 0, count: 0 });
+                        }
+                        const entry = map.get(groupKey);
+                        entry.total += value;
+                        entry.count += 1;
+                    });
+
+                    let data = Array.from(map.entries()).map(([name, { total, count }]) => ({
+                        name,
+                        value: aggregator === 'sum' ? total : total / count
+                    }));
+
+                    return data.sort((a, b) => b.value - a.value).slice(0, 5); // Top 5
+                },
+                
+                getMonthlyStats() {
+                    const monthly = {};
+                    app.state.bikes.forEach(bike => {
+                        const pMonth = new Date(bike.purchaseDate).toISOString().slice(0, 7);
+                        monthly[pMonth] = monthly[pMonth] || { buys: 0, sells: 0, repairs: 0, profit: 0 };
+                        monthly[pMonth].buys += bike.totalCost;
+                        monthly[pMonth].repairs += bike.repairCost;
+                        
+                        if (bike.status === 'sold') {
+                            const sMonth = new Date(bike.sellDate).toISOString().slice(0, 7);
+                            monthly[sMonth] = monthly[sMonth] || { buys: 0, sells: 0, repairs: 0, profit: 0 };
+                            monthly[sMonth].sells += bike.sellPrice;
+                            monthly[sMonth].profit += bike.profit;
+                        }
+                    });
+                    
+                    return Object.entries(monthly)
+                        .map(([month, data]) => ({ month, ...data }))
+                        .sort((a, b) => a.month.localeCompare(b.month));
+                },
+
+                // --- Export Helpers ---
+                // Triggers sync, then runs the export function
+                async exportWrapper(exportFn, loadingText = 'Preparing export...') {
+                    app.ui.setLoading(true, loadingText);
+                    try {
+                        await app.github.pushData(true); // Silent push (auto-backup)
+                    } catch (e) {
+                        app.ui.showToast("Gist sync failed, exporting local data only.", "warning");
+                        // Don't block export if sync fails, just warn
+                    }
+                    
+                    try {
+                        await exportFn();
+                    } catch (e) {
+                        console.error("Export failed:", e);
+                        app.ui.showToast(`Export failed: ${e.message}`, "error");
+                    } finally {
+                        app.ui.setLoading(false);
+                    }
+                },
+                
+                // Helper to create and download a CSV
+                downloadCSV(data, headers, filename) {
+                    const sanitize = (val) => {
+                        if (val === null || val === undefined) return '';
+                        let str = String(val);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            str = `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                    };
+
+                    const headerKeys = Object.keys(headers);
+                    const csvRows = [headerKeys.map(k => headers[k]).join(',')]; // Header row
+
+                    for (const row of data) {
+                        const values = headerKeys.map(key => sanitize(row[key]));
+                        csvRows.push(values.join(','));
+                    }
+                    
+                    const csvContent = csvRows.join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    app.logic.downloadBlob(blob, filename);
+                },
+                
+                // Helper to trigger blob download
+                downloadBlob(blob, filename) {
+                    const link = document.createElement('a');
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', filename);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
+                }
+            },
+
+            // --- UI/VIEW LAYER ---
+            ui: {
+                init() {
+                    // Tab Navigation
+                    document.querySelector('nav').addEventListener('click', (e) => {
+                        const navButton = e.target.closest('.nav-button');
+                        if (navButton) {
+                            app.ui.navigateToTab(navButton.dataset.tab);
+                        }
+                    });
+
+                    // Modals
+                    document.getElementById('add-bike-button').addEventListener('click', () => {
+                        document.getElementById('add-bike-form').reset();
+                        app.ui.hideAllErrors();
+                        // Set default purchase date to today
+                        document.getElementById('purchaseDate').valueAsDate = new Date();
+                        app.ui.showModal('add-bike-modal');
+                    });
+                    document.getElementById('close-add-bike-modal').addEventListener('click', () => app.ui.hideModal('add-bike-modal'));
+                    document.getElementById('close-sell-bike-modal').addEventListener('click', () => app.ui.hideModal('sell-bike-modal'));
+
+                    // Forms
+                    document.getElementById('add-bike-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.target);
+                        const data = Object.fromEntries(formData.entries());
+                        app.logic.addBike(data);
+                    });
+                    
+                    document.getElementById('sell-bike-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const bikeId = document.getElementById('sell-bike-id').value;
+                        const sellPrice = document.getElementById('sellPrice').value;
+                        const sellDate = document.getElementById('sellDate').value;
+                        if (bikeId && sellPrice && sellDate) {
+                            app.logic.sellBike(bikeId, sellPrice, sellDate);
+                        }
+                    });
+                    
+                    document.getElementById('capital-adjust-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const amount = parseFloat(document.getElementById('capital-amount').value);
+                        const reason = document.getElementById('capital-reason').value;
+                        if (amount && reason) {
+                            app.logic.addCapitalEntry(amount, reason, 'adjust');
+                            app.db.save();
+                            app.logic.recalculateCapital();
+                            app.ui.renderCapitalLog();
+                            app.ui.renderAnalytics();
+                            document.getElementById('capital-adjust-form').reset();
+                            app.github.pushData(true); // Auto-push
+                        }
+                    });
+
+                    // Settings
+                    document.getElementById('save-gist-settings').addEventListener('click', () => {
+                        app.state.gistToken = document.getElementById('gist-token').value;
+                        app.state.gistId = document.getElementById('gist-id').value;
+                        app.db.save();
+                        app.ui.showToast('Gist settings saved!', 'success');
+                    });
+                    document.getElementById('force-sync').addEventListener('click', () => app.github.pushData());
+                    document.getElementById('clear-local-data').addEventListener('click', () => app.db.clear());
+                    
+                    // Filters
+                    document.getElementById('search-bar').addEventListener('input', (e) => {
+                        app.state.filters.search = e.target.value.toLowerCase();
+                        app.ui.renderBikeList();
+                    });
+                    document.getElementById('status-filter').addEventListener('change', (e) => {
+                        app.state.filters.status = e.target.value;
+                        app.ui.renderBikeList();
+                    });
+                    
+                    // --- Export Button Listeners ---
+                    document.getElementById('export-pdf-report').addEventListener('click', () => {
+                        app.logic.exportWrapper(app.export.fullPDFReport, 'Generating PDF Report...');
+                    });
+                    document.getElementById('export-all-csv').addEventListener('click', () => {
+                        app.logic.exportWrapper(app.export.allDataCSV, 'Generating Master CSV...');
+                    });
+                    document.getElementById('export-bikes-csv').addEventListener('click', () => {
+                        app.logic.exportWrapper(app.export.bikesCSV, 'Exporting Bikes CSV...');
+                    });
+                    // Note: Transactions CSV and Capital Log CSV are the same data.
+                    document.getElementById('export-transactions-csv').addEventListener('click', () => {
+                        app.logic.exportWrapper(app.export.capitalLogCSV, 'Exporting Transactions CSV...');
+                    });
+                    document.getElementById('export-capital-log-csv').addEventListener('click', () => {
+                        app.logic.exportWrapper(app.export.capitalLogCSV, 'Exporting Capital Log CSV...');
+                    });
+                },
+
+                renderAll() {
+                    app.ui.renderBikeList();
+                    app.ui.renderAnalytics();
+                    app.ui.renderSettings();
+                    app.ui.renderCapitalLog();
+                },
+
+                navigateToTab(tabId) {
+                    // Hide all content
+                    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                    // Deactivate all nav buttons
+                    document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+                    
+                    // Show target content
+                    document.getElementById(tabId).classList.add('active');
+                    // Activate target nav button
+                    document.querySelector(`.nav-button[data-tab="${tabId}"]`).classList.add('active');
+                    
+                    // Show/Hide FAB
+                    document.getElementById('add-bike-button').classList.toggle('hidden', tabId !== 'bikes-tab');
+                },
+
+                renderBikeList() {
+                    const listEl = document.getElementById('bike-list');
+                    const { search, status } = app.state.filters;
+                    
+                    const filteredBikes = app.state.bikes
+                        .filter(bike => {
+                            const matchesStatus = (status === 'all') || (bike.status === status);
+                            const matchesSearch = !search ||
+                                bike.plateNo.toLowerCase().includes(search) ||
+                                bike.model.toLowerCase().includes(search) ||
+                                bike.ownerName.toLowerCase().includes(search);
+                            return matchesStatus && matchesSearch;
+                        })
+                        .sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate)); // Newest first
+
+                    if (filteredBikes.length === 0) {
+                        listEl.innerHTML = `<p class="text-gray-500 text-center mt-4">No bikes found.</p>`;
+                        return;
+                    }
+
+                    listEl.innerHTML = filteredBikes.map(bike => {
+                        const isAvailable = bike.status === 'available';
+                        const statusClass = isAvailable ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+                        
+                        return `
+                        <div class="bg-white p-4 rounded-lg shadow space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-semibold text-gray-900">${bike.plateNo} - ${bike.model}</span>
+                                <span class="px-3 py-1 text-xs font-medium rounded-full ${statusClass}">${bike.status}</span>
+                            </div>
+                            <p class="text-sm text-gray-600">Owner: ${bike.ownerName}</p>
+                            <p class="text-sm text-gray-600">Purchased: ${new Date(bike.purchaseDate).toLocaleDateString()} for ${app.ui.formatCurrency(bike.purchasePrice)}</p>
+                            <p class="text-sm text-gray-600">Total Cost: ${app.ui.formatCurrency(bike.totalCost)} (Repair: ${app.ui.formatCurrency(bike.repairCost)})</p>
+                            ${isAvailable ? 
+                                `<button data-id="${bike.id}" class="sell-button w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Sell Bike</button>` :
+                                `<div class="text-sm text-gray-600">
+                                    <p>Sold: ${new Date(bike.sellDate).toLocaleDateString()} for ${app.ui.formatCurrency(bike.sellPrice)}</p>
+                                    <p class="font-medium ${bike.profit >= 0 ? 'text-green-600' : 'text-red-600'}">Profit: ${app.ui.formatCurrency(bike.profit)}</p>
+                                </div>`
+                            }
+                        </div>
+                        `;
+                    }).join('');
+                    
+                    // Add event listeners for sell buttons
+                    listEl.querySelectorAll('.sell-button').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const bikeId = e.target.dataset.id;
+                            const bike = app.state.bikes.find(b => b.id === bikeId);
+                            if (bike) {
+                                document.getElementById('sell-bike-id').value = bike.id;
+                                document.getElementById('sell-bike-model').textContent = `${bike.plateNo} - ${bike.model}`;
+                                document.getElementById('sell-bike-total-cost').textContent = app.ui.formatCurrency(bike.totalCost);
+                                document.getElementById('sell-bike-form').reset();
+                                document.getElementById('sellDate').valueAsDate = new Date();
+                                app.ui.showModal('sell-bike-modal');
+                            }
+                        });
+                    });
+                },
+                
+                renderAnalytics() {
+                    const stats = app.logic.getAnalyticsData();
+                    document.getElementById('analytics-profit').textContent = app.ui.formatCurrency(stats.netProfit);
+                    document.getElementById('analytics-roi').textContent = `${stats.averageROI.toFixed(1)}%`;
+                    document.getElementById('analytics-capital').textContent = app.ui.formatCurrency(stats.currentCapital);
+                    document.getElementById('analytics-repairs').textContent = app.ui.formatCurrency(stats.totalRepairCost);
+                    
+                    // Rankings
+                    const topModels = app.logic.getRankingData('model', 'profit');
+                    const topOwners = app.logic.getRankingData('ownerName', 'purchasePrice');
+                    
+                    document.getElementById('analytics-top-models').innerHTML = topModels.length ? 
+                        topModels.map(m => `<div>${m.name}: <span class="font-medium ${m.value >= 0 ? 'text-green-700' : 'text-red-700'}">${app.ui.formatCurrency(m.value)}</span></div>`).join('') :
+                        'No data';
+                        
+                    document.getElementById('analytics-top-owners').innerHTML = topOwners.length ? 
+                        topOwners.map(o => `<div>${o.name}: <span class="font-medium">${app.ui.formatCurrency(o.value)}</span></div>`).join('') :
+                        'No data';
+                },
+
+                renderSettings() {
+                    document.getElementById('gist-token').value = app.state.gistToken || '';
+                    document.getElementById('gist-id').value = app.state.gistId || '';
+                    document.getElementById('last-sync-time').textContent = app.state.lastSync ? app.state.lastSync.toLocaleString() : 'Never';
+                },
+                
+                renderCapitalLog() {
+                    const logEl = document.getElementById('capital-log-display');
+                    const sortedLog = [...app.state.capitalLog].sort((a, b) => new Date(b.date) - new Date(a.date));
+                    
+                    logEl.innerHTML = sortedLog.map(entry => {
+                        const color = entry.amount > 0 ? 'text-green-600' : 'text-red-600';
+                        return `
+                        <div class="flex justify-between items-center">
+                            <span>${new Date(entry.date).toLocaleDateString()}: ${entry.reason}</span>
+                            <span class="${color} font-medium">${app.ui.formatCurrency(entry.amount)}</span>
+                        </div>
+                        `;
+                    }).join('');
+                },
+                
+                // --- UI Helpers ---
+                formatCurrency(amount) {
+                    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+                },
+                
+                showModal(id) { document.getElementById(id).classList.remove('hidden'); },
+                hideModal(id) { document.getElementById(id).classList.add('hidden'); },
+                
+                setLoading(isLoading, text = 'Loading...') {
+                    app.state.isLoading = isLoading;
+                    const overlay = document.getElementById('loading-overlay');
+                    document.getElementById('loading-text').textContent = text;
+                    overlay.classList.toggle('hidden', !isLoading);
+                },
+                
+                showToast(message, type = 'info') {
+                    const toast = document.getElementById('toast-notification');
+                    const msgEl = document.getElementById('toast-message');
+                    
+                    msgEl.textContent = message;
+                    
+                    toast.classList.remove('bg-blue-500', 'bg-green-500', 'bg-red-500', 'bg-yellow-500', 'hidden', 'opacity-0', 'translate-x-10');
+                    
+                    let bgColor = 'bg-blue-500';
+                    if (type === 'success') bgColor = 'bg-green-500';
+                    if (type === 'error') bgColor = 'bg-red-500';
+                    if (type === 'warning') bgColor = 'bg-yellow-500';
+                    
+                    toast.classList.add(bgColor, 'opacity-100');
+                    
+                    setTimeout(() => {
+                        toast.classList.remove('opacity-100');
+                        toast.classList.add('opacity-0', 'translate-x-10');
+                        setTimeout(() => toast.classList.add('hidden'), 300);
+                    }, 3000);
+                },
+                
+                showValidationError(field, message) {
+                    const errorEl = document.getElementById(`${field}-error`);
+                    if (errorEl) {
+                        errorEl.textContent = message;
+                        errorEl.classList.remove('hidden');
+                    }
+                    document.getElementById(field).classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                },
+                
+                hideValidationError(field) {
+                    const errorEl = document.getElementById(`${field}-error`);
+                    if (errorEl) {
+                        errorEl.classList.add('hidden');
+                    }
+                    document.getElementById(field).classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                },
+                
+                hideAllErrors() {
+                    document.querySelectorAll('.text-red-500.text-xs').forEach(el => el.classList.add('hidden'));
+                    document.querySelectorAll('#add-bike-form input').forEach(el => {
+                        el.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                    });
+                }
+            },
+            
+            // --- EXPORT FUNCTIONS ---
+            export: {
+                // Analytics Tab -> Download Full PDF Report
+                async fullPDFReport() {
+                    const doc = new jsPDF();
+                    const stats = app.logic.getAnalyticsData();
+                    const monthlyStats = app.logic.getMonthlyStats();
+                    const topModels = app.logic.getRankingData('model', 'profit');
+                    const topOwners = app.logic.getRankingData('ownerName', 'purchasePrice');
+                    
+                    doc.setFontSize(18);
+                    doc.text("Bike Resell - Full Report", 14, 22);
+                    doc.setFontSize(11);
+                    doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, 28);
+                    
+                    // Summary Table
+                    autoTable(doc, {
+                        startY: 35,
+                        head: [['Metric', 'Value']],
+                        body: [
+                            ['Net Profit', app.ui.formatCurrency(stats.netProfit)],
+                            ['Current Capital', app.ui.formatCurrency(stats.currentCapital)],
+                            ['Total Repair Cost', app.ui.formatCurrency(stats.totalRepairCost)],
+                            ['Total Investment', app.ui.formatCurrency(stats.totalInvestment)],
+                            ['Average ROI', `${stats.averageROI.toFixed(1)}%`],
+                        ]
+                    });
+                    
+                    let lastY = doc.lastAutoTable.finalY + 10;
+                    
+                    // Per-Month Summary
+                    autoTable(doc, {
+                        startY: lastY,
+                        head: [['Month', 'Buys', 'Repairs', 'Sells', 'Profit']],
+                        body: monthlyStats.map(m => [
+                            m.month,
+                            app.ui.formatCurrency(m.buys),
+                            app.ui.formatCurrency(m.repairs),
+                            app.ui.formatCurrency(m.sells),
+                            app.ui.formatCurrency(m.profit)
+                        ]),
+                        didDrawPage: (data) => lastY = data.cursor.y + 10
+                    });
+                    
+                    // Rankings
+                    autoTable(doc, {
+                        startY: lastY,
+                        head: [['Top Model', 'Profit']],
+                        body: topModels.map(m => [m.name, app.ui.formatCurrency(m.value)]),
+                        didDrawPage: (data) => lastY = data.cursor.y + 10
+                    });
+                    
+                    autoTable(doc, {
+                        startY: lastY,
+                        head: [['Top Owner', 'Purchase Value']],
+                        body: topOwners.map(o => [o.name, app.ui.formatCurrency(o.value)]),
+                        didDrawPage: (data) => lastY = data.cursor.y + 10
+                    });
+
+                    // All Bikes List
+                    doc.addPage();
+                    doc.text("All Bikes", 14, 22);
+                    autoTable(doc, {
+                        startY: 30,
+                        head: [['Plate No', 'Model', 'Owner', 'Total Cost', 'Sell Price', 'Profit', 'Status']],
+                        body: app.state.bikes.map(b => [
+                            b.plateNo,
+                            b.model,
+                            b.ownerName,
+                            app.ui.formatCurrency(b.totalCost),
+                            app.ui.formatCurrency(b.sellPrice),
+                            app.ui.formatCurrency(b.profit),
+                            b.status
+                        ])
+                    });
+                    
+                    // Capital Log
+                    doc.addPage();
+                    doc.text("Capital Ledger", 14, 22);
+                    autoTable(doc, {
+                        startY: 30,
+                        head: [['Date', 'Type', 'Reason', 'Amount']],
+                        body: app.state.capitalLog.map(l => [
+                            new Date(l.date).toLocaleString(),
+                            l.type,
+                            l.reason,
+                            app.ui.formatCurrency(l.amount)
+                        ])
+                    });
+                    
+                    doc.save(`Bike-Report-${new Date().toISOString().slice(0, 10)}.pdf`);
+                },
+                
+                // Analytics Tab -> Download All Data (CSV)
+                // This combines bikes and capital log into one "master ledger"
+                async allDataCSV() {
+                    const masterLedger = [];
+                    app.state.capitalLog.forEach(log => {
+                        masterLedger.push({
+                            date: log.date,
+                            type: log.type,
+                            description: log.reason,
+                            amount: log.amount,
+                            profit: log.type === 'sell' ? app.state.bikes.find(b => b.id === log.bikeId)?.profit || 0 : '',
+                            bike_plate: log.bikeId ? app.state.bikes.find(b => b.id === log.bikeId)?.plateNo || '' : '',
+                            model: log.bikeId ? app.state.bikes.find(b => b.id === log.bikeId)?.model || '' : '',
+                        });
+                    });
+                    
+                    masterLedger.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    
+                    const headers = {
+                        date: 'Date',
+                        type: 'Type',
+                        description: 'Description',
+                        amount: 'Amount',
+                        profit: 'Profit',
+                        bike_plate: 'Plate No',
+                        model: 'Model'
+                    };
+                    
+                    app.logic.downloadCSV(masterLedger, headers, 'All-Data-Ledger.csv');
+                },
+                
+                // Settings Tab -> Export Bikes CSV
+                async bikesCSV() {
+                    const headers = {
+                        id: 'ID',
+                        plateNo: 'Plate No',
+                        model: 'Model',
+                        ownerName: 'Owner Name',
+                        purchaseDate: 'Purchase Date',
+                        purchasePrice: 'Purchase Price',
+                        repairCost: 'Repair Cost',
+                        totalCost: 'Total Cost',
+                        status: 'Status',
+                        sellDate: 'Sell Date',
+                        sellPrice: 'Sell Price',
+                        profit: 'Profit'
+                    };
+                    app.logic.downloadCSV(app.state.bikes, headers, 'Bikes-Export.csv');
+                },
+                
+                // Settings Tab -> Export Capital Log CSV (also used for Transactions)
+                async capitalLogCSV() {
+                    const headers = {
+                        id: 'ID',
+                        date: 'Date',
+                        type: 'Type',
+                        amount: 'Amount',
+                        reason: 'Reason',
+                        bikeId: 'Bike ID'
+                    };
+                    app.logic.downloadCSV(app.state.capitalLog, headers, 'Capital-Log-Export.csv');
+                }
             }
         };
 
-        // Debounced version of saveDb
-        const debouncedSaveDb = debounce(GistStore.saveDb, 2000);
-
-        // === BUSINESS LOGIC / STATE MUTATIONS ===
-        
-        function addBike(bikeData) {
-            const purchasePrice = parseFloat(bikeData.pPrice);
-            
-            // 1. Create Bike Record
-            const newBike = {
-                id: generateId(),
-                model: bikeData.model,
-                pPrice: purchasePrice,
-                pDate: bikeData.pDate,
-                notes: bikeData.notes,
-                status: 'in-stock',
-                sPrice: null,
-                sDate: null,
-                profit: null
-            };
-            state.data.bikes.push(newBike);
-
-            // 2. Create Capital Ledger Entry
-            const ledgerEntry = {
-                id: generateId(),
-                ts: new Date().toISOString(),
-                type: 'buy',
-                amount: -purchasePrice, // Negative amount
-                reason: `Buy: ${bikeData.model}`,
-                bikeId: newBike.id
-            };
-            state.data.capitalLedger.push(ledgerEntry);
-            
-            closeModal();
-            showToast('Bike added successfully!', 'success');
-            triggerSave();
-        }
-
-        function sellBike(bikeId, sellPrice, sellDate) {
-            const bike = state.data.bikes.find(b => b.id === bikeId);
-            if (!bike) {
-                showToast('Error: Bike not found.', 'error');
-                return;
-            }
-
-            const salePrice = parseFloat(sellPrice);
-            const profit = salePrice - bike.pPrice;
-
-            // 1. Update Bike Record
-            bike.status = 'sold';
-            bike.sPrice = salePrice;
-            bike.sDate = sellDate;
-            bike.profit = profit;
-
-            // 2. Create Capital Ledger Entry
-            const ledgerEntry = {
-                id: generateId(),
-                ts: new Date().toISOString(),
-                type: 'sell',
-                amount: salePrice, // Positive amount
-                reason: `Sell: ${bike.model}`,
-                bikeId: bike.id
-            };
-            state.data.capitalLedger.push(ledgerEntry);
-
-            closeModal();
-            showToast('Bike sold!', 'success');
-            triggerSave();
-        }
-        
-        function addCapitalAdjustment(amount, reason) {
-            const adjAmount = parseFloat(amount);
-            if (isNaN(adjAmount) || adjAmount === 0) {
-                showToast('Invalid amount.', 'error');
-                return;
-            }
-            
-            const ledgerEntry = {
-                id: generateId(),
-                ts: new Date().toISOString(),
-                type: 'adjust',
-                amount: adjAmount,
-                reason: reason || (adjAmount > 0 ? 'Manual Deposit' : 'Manual Withdrawal'),
-                bikeId: null
-            };
-            state.data.capitalLedger.push(ledgerEntry);
-            
-            closeModal();
-            showToast('Capital adjusted.', 'success');
-            triggerSave();
-        }
-
-        function deleteBike(bikeId) {
-            if (!confirm('Are you sure you want to delete this bike?\nThis will also remove its capital transactions and cannot be undone.')) {
-                return;
-            }
-
-            // 1. Remove bike
-            state.data.bikes = state.data.bikes.filter(b => b.id !== bikeId);
-            // 2. Remove related capital ledger entries
-            state.data.capitalLedger = state.data.capitalLedger.filter(l => l.bikeId !== bikeId);
-            
-            showToast('Bike record deleted.', 'success');
-            triggerSave();
-        }
-
-        // === COMPUTED STATE / GETTERS ===
-        
-        function calculateCurrentCapital() {
-            return state.settings.initialCapital + state.data.capitalLedger.reduce((sum, entry) => sum + entry.amount, 0);
-        }
-        
-        function getTotalStockValue() {
-            return state.data.bikes
-                .filter(b => b.status === 'in-stock')
-                .reduce((sum, bike) => sum + bike.pPrice, 0);
-        }
-
-        function getTotalProfit() {
-            return state.data.bikes
-                .filter(b => b.status === 'sold' && b.profit !== null)
-                .reduce((sum, bike) => sum + bike.profit, 0);
-        }
-
-        function getFilteredBikes() {
-            const { search, status } = state.ui.filter;
-            const searchTerm = search.toLowerCase();
-
-            return state.data.bikes.filter(bike => {
-                const matchesStatus = (status === 'all') || (bike.status === status);
-                const matchesSearch = !searchTerm || bike.model.toLowerCase().includes(searchTerm) || (bike.notes && bike.notes.toLowerCase().includes(searchTerm));
-                return matchesStatus && matchesSearch;
-            }).sort((a, b) => new Date(b.pDate) - new Date(a.pDate)); // Sort by purchase date descending
-        }
-
-        // === RENDER FUNCTIONS ===
-
-        /**
-         * Main render function, delegates to tab-specific renderers
-         */
-        function render() {
-            // Update active nav button
-            navButtons.forEach(btn => {
-                const tab = btn.dataset.tab;
-                if (tab === state.ui.activeTab) {
-                    btn.classList.add('text-blue-600', 'bg-blue-50');
-                    btn.classList.remove('text-gray-500', 'hover:bg-gray-50');
-                    btn.querySelector('i').classList.add('ph-fill');
-                } else {
-                    btn.classList.remove('text-blue-600', 'bg-blue-50');
-                    btn.classList.add('text-gray-500', 'hover:bg-gray-50');
-                    btn.querySelector('i').classList.remove('ph-fill');
-                }
-            });
-
-            // Render active tab content
-            switch (state.ui.activeTab) {
-                case 'dashboard':
-                    renderDashboard();
-                    break;
-                case 'analytics':
-                    renderAnalytics();
-                    break;
-                case 'settings':
-                    renderSettings();
-                    break;
-                default:
-                    appContent.innerHTML = `<p>Unknown tab: ${state.ui.activeTab}</p>`;
-            }
-            
-            // Re-attach global listeners for dynamic content
-            attachGlobalListeners();
-        }
-
-        /**
-         * Renders the Dashboard tab
-         */
-        function renderDashboard() {
-            const capital = calculateCurrentCapital();
-            const stockValue = getTotalStockValue();
-            const inStockCount = state.data.bikes.filter(b => b.status === 'in-stock').length;
-            const totalProfit = getTotalProfit();
-            
-            const filteredBikes = getFilteredBikes();
-
-            appContent.innerHTML = `
-                <!-- Quick Stats Grid -->
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-blue-50 p-4 rounded-lg">
-                        <label class="text-sm font-medium text-blue-700 block">Current Capital</label>
-                        <div class="text-2xl font-bold text-blue-900">${formatCurrency(capital)}</div>
-                    </div>
-                    <div class="bg-green-50 p-4 rounded-lg">
-                        <label class="text-sm font-medium text-green-700 block">Total Profit</label>
-                        <div class="text-2xl font-bold text-green-900">${formatProfit(totalProfit)}</div>
-                    </div>
-                    <div class="bg-indigo-50 p-4 rounded-lg">
-                        <label class="text-sm font-medium text-indigo-700 block">Stock Value</label>
-                        <div class="text-2xl font-bold text-indigo-900">${formatCurrency(stockValue)}</div>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <label class="text-sm font-medium text-gray-700 block">Bikes in Stock</label>
-                        <div class="text-2xl font-bold text-gray-900">${inStockCount}</div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <button id="show-add-bike-modal" class="bg-blue-600 text-white font-medium py-3 rounded-lg shadow flex items-center justify-center space-x-2 hover:bg-blue-700">
-                        <i class="ph-fill ph-motorcycle text-xl"></i>
-                        <span>Add Bike</span>
-                    </button>
-                    <button id="show-adjust-capital-modal" class="bg-gray-700 text-white font-medium py-3 rounded-lg shadow flex items-center justify-center space-x-2 hover:bg-gray-800">
-                        <i class="ph-fill ph-arrows-counter-clockwise text-xl"></i>
-                        <span>Adjust Capital</span>
-                    </button>
-                </div>
-                
-                <!-- Bike Inventory Section -->
-                <h2 class="text-lg font-semibold text-gray-800 mb-3">Bike Inventory</h2>
-                
-                <!-- Filters -->
-                <div class="flex space-x-2 mb-4">
-                    <div class="flex-1 relative">
-                        <input type="text" id="filter-search" value="${state.ui.filter.search}" placeholder="Search models..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    </div>
-                    <select id="filter-status" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="all" ${state.ui.filter.status === 'all' ? 'selected' : ''}>All</option>
-                        <option value="in-stock" ${state.ui.filter.status === 'in-stock' ? 'selected' : ''}>In Stock</option>
-                        <option value="sold" ${state.ui.filter.status === 'sold' ? 'selected' : ''}>Sold</option>
-                    </select>
-                </div>
-
-                <!-- Bike List -->
-                <div id="bike-list" class="space-y-3">
-                    ${filteredBikes.length === 0 
-                        ? `<div class="text-center text-gray-500 p-6 bg-gray-50 rounded-lg">
-                                <i class="ph ph-bicycle text-4xl mb-2"></i>
-                                <p>No bikes found. ${state.ui.filter.search || state.ui.filter.status !== 'all' ? 'Try adjusting your filters.' : 'Add your first bike!'}</p>
-                           </div>`
-                        : filteredBikes.map(renderBikeCard).join('')
-                    }
-                </div>
-            `;
-        }
-        
-        function renderBikeCard(bike) {
-            const isSold = bike.status === 'sold';
-            return `
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    <div class="p-4">
-                        <div class="flex justify-between items-start">
-                            <h3 class="text-lg font-semibold text-gray-900">${bike.model}</h3>
-                            <span class="px-2 py-0.5 rounded-full text-xs font-medium ${isSold ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">
-                                ${isSold ? 'Sold' : 'In Stock'}
-                            </span>
-                        </div>
-                        <p class="text-sm text-gray-500 mb-3">${bike.notes || 'No notes'}</p>
-                        
-                        <div class="grid grid-cols-2 gap-2 text-sm mb-4">
-                            <div>
-                                <label class="text-xs text-gray-500 block">Buy Price</label>
-                                <span class="font-medium">${formatCurrency(-bike.pPrice)}</span>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500 block">Buy Date</label>
-                                <span class="font-medium">${formatDate(bike.pDate)}</span>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500 block">Sell Price</label>
-                                <span class="font-medium">${isSold ? formatCurrency(bike.sPrice) : '-'}</span>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500 block">Profit</label>
-                                <span class="font-medium">${formatProfit(bike.profit)}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex space-x-2">
-                            ${!isSold ? `
-                                <button data-action="show-sell-modal" data-id="${bike.id}" class="flex-1 bg-green-500 text-white text-sm font-medium py-2 px-3 rounded-lg hover:bg-green-600">Sell</button>
-                            ` : ''}
-                            <button data-action="delete-bike" data-id="${bike.id}" class="flex-1 bg-red-100 text-red-700 text-sm font-medium py-2 px-3 rounded-lg hover:bg-red-200">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        /**
-         * Renders the Analytics tab
-         */
-        function renderAnalytics() {
-            const totalInvestment = state.data.capitalLedger
-                .filter(l => l.type === 'buy')
-                .reduce((sum, l) => sum + l.amount, 0); // Is negative
-            
-            const totalReturns = state.data.capitalLedger
-                .filter(l => l.type === 'sell')
-                .reduce((sum, l) => sum + l.amount, 0);
-
-            const totalProfit = getTotalProfit();
-            const capital = calculateCurrentCapital();
-            const stockValue = getTotalStockValue();
-            
-            // Capital Ledger (reversed)
-            const ledgerHtml = state.data.capitalLedger
-                .slice() // Create copy
-                .reverse() // Show newest first
-                .map(l => `
-                    <tr class="border-b">
-                        <td class="py-2 pr-2">
-                            <span class="block text-sm text-gray-900">${l.reason}</span>
-                            <span class="block text-xs text-gray-500">${new Date(l.ts).toLocaleString('en-GB')}</span>
-                        </td>
-                        <td class="py-2 pl-2 text-right">${formatCurrency(l.amount)}</td>
-                    </tr>
-                `).join('');
-
-            appContent.innerHTML = `
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Business Analytics</h2>
-                
-                <div class="space-y-3 mb-6">
-                    <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="font-medium text-gray-700">Current Capital</span>
-                        <span class="font-bold">${formatCurrency(capital)}</span>
-                    </div>
-                    <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="font-medium text-gray-700">Total Profit (Realized)</span>
-                        <span class="font-bold">${formatProfit(totalProfit)}</span>
-                    </div>
-                    <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="font-medium text-gray-700">Current Stock Value</span>
-                        <span class="font-medium">${formatCurrency(stockValue)}</span>
-                    </div>
-                    <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="font-medium text-gray-700">Total Investment (Cost)</span>
-                        <span class="font-medium">${formatCurrency(totalInvestment)}</span>
-                    </div>
-                    <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="font-medium text-gray-700">Total Returns (Sales)</span>
-                        <span class="font-medium">${formatCurrency(totalReturns)}</span>
-                    </div>
-                </div>
-
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Capital Ledger</h2>
-                <div class="bg-white border rounded-lg p-3 max-h-96 overflow-y-auto">
-                    ${ledgerHtml.length === 0
-                        ? `<p class="text-gray-500 text-center py-4">No capital movements. Set your initial capital in Settings.</p>`
-                        : `<table class="w-full"><tbody>${ledgerHtml}</tbody></table>`
-                    }
-                </div>
-                
-                <h2 class="text-lg font-semibold text-gray-800 mt-6 mb-4">Data Export</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <button id="export-bikes-csv" class="bg-green-600 text-white font-medium py-3 rounded-lg shadow hover:bg-green-700">Export Bikes (CSV)</button>
-                    <button id="export-ledger-csv" class="bg-green-600 text-white font-medium py-3 rounded-lg shadow hover:bg-green-700">Export Ledger (CSV)</button>
-                </div>
-            `;
-        }
-
-        /**
-         * Renders the Settings tab
-         */
-        function renderSettings() {
-            appContent.innerHTML = `
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Settings</h2>
-                
-                <div class="space-y-4">
-                    <!-- Gist Settings -->
-                    <div>
-                        <label for="gistId" class="block text-sm font-medium text-gray-700 mb-1">Gist ID</label>
-                        <input type="text" id="gistId" value="${state.settings.gistId || ''}" placeholder="e.g., a1b2c3d4e5f6..." class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label for="pat" class="block text-sm font-medium text-gray-700 mb-1">Personal Access Token</label>
-                        <input type="password" id="pat" value="${state.settings.pat || ''}" placeholder="ghp_..." class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <p class="text-xs text-gray-500 mt-1">Requires 'gist' scope. Token is saved locally.</p>
-                    </div>
-
-                    <!-- App Settings -->
-                    <div>
-                        <label for="initialCapital" class="block text-sm font-medium text-gray-700 mb-1">Initial Capital</label>
-                        <input type="number" id="initialCapital" value="${state.settings.initialCapital || 0}" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <p class="text-xs text-gray-500 mt-1">Set this once. ${state.settings.currency}</p>
-                    </div>
-                     <div>
-                        <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
-                        <input type="text" id="currency" value="${state.settings.currency || '₹'}" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    
-                    <button id="save-settings" class="w-full bg-blue-600 text-white font-medium py-3 rounded-lg shadow hover:bg-blue-700">Save Settings</label>
-                    
-                    <hr class="my-4">
-                    
-                    <!-- Sync Actions -->
-                    <h3 class="text-md font-semibold text-gray-700">Sync Actions</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button id="force-sync-download" class="w-full bg-green-600 text-white font-medium py-3 rounded-lg shadow hover:bg-green-700">Download from Gist</button>
-                        <button id="force-sync-upload" class="w-full bg-blue-600 text-white font-medium py-3 rounded-lg shadow hover:bg-blue-700">Upload to Gist</button>
-                    </div>
-
-                    <!-- Danger Zone -->
-                    <h3 class="text-md font-semibold text-red-700 mt-6">Danger Zone</h3>
-                    <button id="clear-local-data" class="w-full bg-red-100 text-red-700 font-medium py-3 rounded-lg hover:bg-red-200">Clear All Local Data</button>
-                </div>
-            `;
-        }
-        
-        // === FORM RENDERERS ===
-        
-        function renderAddBikeForm() {
-            const content = `
-                <form id="add-bike-form" class="space-y-4">
-                    <div>
-                        <label for="bikeModel" class="block text-sm font-medium text-gray-700 mb-1">Bike Model</label>
-                        <input type="text" id="bikeModel" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Hero Splendor 2021">
-                    </div>
-                    <div>
-                        <label for="purchasePrice" class="block text-sm font-medium text-gray-700 mb-1">Purchase Price (${state.settings.currency})</label>
-                        <input type="number" id="purchasePrice" required min="0" step="100" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="30000">
-                    </div>
-                    <div>
-                        <label for="purchaseDate" class="block text-sm font-medium text-gray-700 mb-1">Purchase Date</label>
-                        <input type="date" id="purchaseDate" required value="${getTodayDate()}" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label for="bikeNotes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                        <textarea id="bikeNotes" rows="3" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., New tires, single owner"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-medium py-3 rounded-lg shadow hover:bg-blue-700">Add Bike</button>
-                </form>
-            `;
-            openModal('Add New Bike', content);
-        }
-        
-        function renderSellBikeForm(bike) {
-            const content = `
-                <form id="sell-bike-form" class="space-y-4" data-id="${bike.id}">
-                    <div class="p-3 bg-gray-50 rounded-lg">
-                        <p class="font-medium text-gray-800">${bike.model}</p>
-                        <p class="text-sm text-gray-600">Buy Price: ${formatCurrency(-bike.pPrice)} on ${formatDate(bike.pDate)}</p>
-                    </div>
-                    <div>
-                        <label for="sellPrice" class="block text-sm font-medium text-gray-700 mb-1">Sell Price (${state.settings.currency})</label>
-                        <input type="number" id="sellPrice" required min="0" step="100" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="35000">
-                    </div>
-                    <div>
-                        <label for="sellDate" class="block text-sm font-medium text-gray-700 mb-1">Sell Date</label>
-                        <input type="date" id="sellDate" required value="${getTodayDate()}" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <button type="submit" class="w-full bg-green-600 text-white font-medium py-3 rounded-lg shadow hover:bg-green-700">Confirm Sale</button>
-                </form>
-            `;
-            openModal('Sell Bike', content);
-        }
-        
-        function renderAdjustCapitalForm() {
-             const content = `
-                <form id="adjust-capital-form" class="space-y-4">
-                    <div>
-                        <label for="adjAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount (${state.settings.currency})</label>
-                        <input type="number" id="adjAmount" required step="100" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="5000 (or -1000 to withdraw)">
-                    </div>
-                    <div>
-                        <label for="adjReason" class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                        <input type="text" id="adjReason" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Added personal cash">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-medium py-3 rounded-lg shadow hover:bg-blue-700">Adjust Capital</button>
-                </form>
-            `;
-            openModal('Adjust Capital', content);
-        }
-        
-        // === CSV EXPORT ===
-        
-        function exportToCsv(filename, rows) {
-            if (rows.length === 0) {
-                showToast('No data to export.', 'error');
-                return;
-            }
-            
-            const header = Object.keys(rows[0]).join(',');
-            const csv = [
-                header,
-                ...rows.map(row => 
-                    Object.values(row).map(value => {
-                        const str = String(value);
-                        // Escape quotes and wrap in quotes if it contains comma or newline
-                        if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-                            return `"${str.replace(/"/g, '""')}"`;
-                        }
-                        return str;
-                    }).join(',')
-                )
-            ].join('\n');
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-IS-8859-1;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
-
-        // === EVENT HANDLERS ===
-        
-        function handleNavClick(e) {
-            const button = e.target.closest('.nav-tab-button');
-            if (button) {
-                state.ui.activeTab = button.dataset.tab;
-                render();
-            }
-        }
-
-        function handleSaveSettings() {
-            const gistId = document.getElementById('gistId').value.trim();
-            const pat = document.getElementById('pat').value.trim();
-            const initialCapital = parseFloat(document.getElementById('initialCapital').value) || 0;
-            const currency = document.getElementById('currency').value.trim() || '₹';
-
-            state.settings.gistId = gistId;
-            state.settings.pat = pat;
-            state.settings.currency = currency;
-
-            // Only update initial capital if it hasn't been set before, or if it's being changed
-            if (state.settings.initialCapital !== initialCapital) {
-                const oldInitial = state.settings.initialCapital;
-                // Find and remove old initial capital entry if exists
-                state.data.capitalLedger = state.data.capitalLedger.filter(l => l.type !== 'initial');
-                
-                // Add new initial capital entry
-                if (initialCapital > 0) {
-                     state.data.capitalLedger.unshift({
-                        id: generateId(),
-                        ts: new Date('2000-01-01').toISOString(), // Always first
-                        type: 'initial',
-                        amount: initialCapital,
-                        reason: 'Initial Capital',
-                        bikeId: null
-                    });
-                }
-                state.settings.initialCapital = initialCapital;
-            }
-
-            saveStateToLocal();
-            showToast('Settings saved!', 'success');
-            
-            // Trigger a sync if credentials changed
-            if (gistId && pat) {
-                GistStore.fetchDb().then(render);
-            } else {
-                render();
-            }
-        }
-        
-        function handleFilterChange() {
-            state.ui.filter.search = document.getElementById('filter-search').value;
-            state.ui.filter.status = document.getElementById('filter-status').value;
-            renderDashboard(); // Re-render dashboard to show filtered list
-        }
-
-        function handleDashboardClick(e) {
-            const target = e.target.closest('button');
-            if (!target) return;
-
-            const action = target.dataset.action;
-            const id = target.dataset.id;
-            
-            if (target.id === 'show-add-bike-modal') {
-                renderAddBikeForm();
-            } else if (target.id === 'show-adjust-capital-modal') {
-                renderAdjustCapitalForm();
-            } else if (action === 'show-sell-modal') {
-                const bike = state.data.bikes.find(b => b.id === id);
-                if (bike) renderSellBikeForm(bike);
-            } else if (action === 'delete-bike') {
-                deleteBike(id);
-            }
-        }
-        
-        function handleAnalyticsClick(e) {
-            const target = e.target;
-            if (target.id === 'export-bikes-csv') {
-                exportToCsv('bikes_export.csv', state.data.bikes);
-            } else if (target.id === 'export-ledger-csv') {
-                exportToCsv('capital_ledger_export.csv', state.data.capitalLedger);
-            }
-        }
-        
-        function handleSettingsClick(e) {
-            const target = e.target;
-            if (target.id === 'save-settings') {
-                handleSaveSettings();
-            } else if (target.id === 'force-sync-download') {
-                GistStore.fetchDb().then(render);
-            } else if (target.id === 'force-sync-upload') {
-                GistStore.saveDb().then(render);
-            } else if (target.id === 'clear-local-data') {
-                if (confirm('Are you sure? This will delete all data from this device. It will NOT delete data from Gist.')) {
-                    localStorage.removeItem(LOCAL_STORAGE_KEY);
-                    location.reload();
-                }
-            }
-        }
-        
-        /**
-         * Attach listeners to dynamic modal forms
-         */
-        function attachFormListeners() {
-            const addBikeForm = document.getElementById('add-bike-form');
-            if (addBikeForm) {
-                addBikeForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const bikeData = {
-                        model: e.target.elements.bikeModel.value,
-                        pPrice: e.target.elements.purchasePrice.value,
-                        pDate: e.target.elements.purchaseDate.value,
-                        notes: e.target.elements.bikeNotes.value,
-                    };
-                    addBike(bikeData);
-                });
-            }
-            
-            const sellBikeForm = document.getElementById('sell-bike-form');
-            if (sellBikeForm) {
-                sellBikeForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const bikeId = e.target.dataset.id;
-                    const sellPrice = e.target.elements.sellPrice.value;
-                    const sellDate = e.target.elements.sellDate.value;
-                    sellBike(bikeId, sellPrice, sellDate);
-                });
-            }
-            
-            const adjustCapitalForm = document.getElementById('adjust-capital-form');
-            if (adjustCapitalForm) {
-                adjustCapitalForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const amount = e.target.elements.adjAmount.value;
-                    const reason = e.target.elements.adjReason.value;
-                    addCapitalAdjustment(amount, reason);
-                });
-            }
-        }
-        
-        /**
-         * Attach listeners to dynamic tab content
-         */
-        function attachGlobalListeners() {
-            // Dashboard listeners
-            if (state.ui.activeTab === 'dashboard') {
-                appContent.removeEventListener('click', handleDashboardClick); // Avoid duplicates
-                appContent.addEventListener('click', handleDashboardClick);
-                
-                const search = document.getElementById('filter-search');
-                const status = document.getElementById('filter-status');
-                if (search) search.addEventListener('input', debounce(handleFilterChange, 300));
-                if (status) status.addEventListener('change', handleFilterChange);
-            }
-            
-            // Analytics listeners
-            if (state.ui.activeTab === 'analytics') {
-                appContent.removeEventListener('click', handleAnalyticsClick);
-                appContent.addEventListener('click', handleAnalyticsClick);
-            }
-            
-            // Settings listeners
-            if (state.ui.activeTab === 'settings') {
-                appContent.removeEventListener('click', handleSettingsClick);
-                appContent.addEventListener('click', handleSettingsClick);
-            }
-        }
-
-        // === APP INITIALIZATION ===
-        
-        /**
-         * Update the sync status UI
-         */
-        function updateSyncStatus(status, text) {
-            state.ui.syncStatus = status;
-            syncStatusText.textContent = text;
-            
-            // Clear old classes
-            syncStatusIcon.classList.remove('ph-warning-circle', 'text-red-500', 'ph-clock', 'text-gray-500', 'animate-spin', 'ph-check-circle', 'text-green-500');
-
-            switch (status) {
-                case 'idle':
-                    syncStatusIcon.classList.add('ph-clock', 'text-gray-500');
-                    break;
-                case 'syncing':
-                    syncStatusIcon.classList.add('ph-arrows-clockwise', 'text-blue-500', 'animate-spin');
-                    break;
-                case 'synced':
-                    syncStatusIcon.classList.add('ph-check-circle', 'text-green-500');
-                    state.ui.lastSync = new Date();
-                    syncStatusText.textContent = `Synced ${state.ui.lastSync.toLocaleTimeString()}`;
-                    break;
-                case 'error':
-                    syncStatusIcon.classList.add('ph-warning-circle', 'text-red-500');
-                    break;
-            }
-        }
-        
-        /**
-         * Trigger a save to local and a debounced save to Gist
-         */
-        function triggerSave() {
-            saveStateToLocal();
-            // Re-render to reflect new data
-            render();
-            
-            // If Gist is configured, trigger debounced save
-            if (state.settings.gistId && state.settings.pat) {
-                updateSyncStatus('syncing', 'Saving...');
-                debouncedSaveDb();
-            }
-        }
-
-        /**
-         * App Init Function
-         */
-        function init() {
-            // 1. Load state from localStorage
-            loadStateFromLocal();
-
-            // 2. Set up navigation
-            document.querySelector('nav').addEventListener('click', handleNavClick);
-
-            // 3. Initial Render
-            render();
-
-            // 4. Auto-sync on load if configured
-            if (state.settings.gistId && state.settings.pat) {
-                GistStore.fetchDb().then(render); // Fetch, then re-render with new data
-            } else {
-                updateSyncStatus('error', 'Not Configured');
-            }
-        }
-
-        // Start the app!
-        document.addEventListener('DOMContentLoaded', init);
+        // Start the application
+        app.logic.init();
 
     </script>
 </body>
