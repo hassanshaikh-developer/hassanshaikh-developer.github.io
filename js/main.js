@@ -217,9 +217,20 @@ class BikeManagerApp {
    */
   async initDatabase() {
     this.db = new Dexie('BikeManagerDB');
+    
+    // Version 1: Original schema with 'no' as indexed (implicitly unique)
     this.db.version(1).stores({
       bikes: '_id, no, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
     });
+    
+    // Version 2: Remove 'no' from direct index to allow duplicates, keep only compound index
+    this.db.version(2).stores({
+      bikes: '_id, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
+    }).upgrade(async tx => {
+      // Migration: no action needed, just schema change
+      console.log('Upgraded to schema v2: removed unique constraint on plate number');
+    });
+    
     await this.db.open();
     console.log('Database initialized');
   }
@@ -341,8 +352,31 @@ class BikeManagerApp {
         _deleted: false,
       }));
 
-      await this.db.bikes.bulkPut(bikes);
-      console.log(`Migrated ${bikes.length} bikes from localStorage`);
+      // Use individual adds to handle duplicates gracefully
+      let successCount = 0;
+      let errorCount = 0;
+      for (const bike of bikes) {
+        try {
+          await this.db.bikes.add(bike);
+          successCount++;
+        } catch (error) {
+          // If duplicate _id, try update instead
+          if (error.name === 'ConstraintError') {
+            try {
+              await this.db.bikes.put(bike);
+              successCount++;
+            } catch (updateError) {
+              console.warn('Failed to add/update bike:', bike.no, updateError);
+              errorCount++;
+            }
+          } else {
+            console.warn('Failed to add bike:', bike.no, error);
+            errorCount++;
+          }
+        }
+      }
+      
+      console.log(`Migrated ${successCount} bikes from localStorage${errorCount > 0 ? ` (${errorCount} errors)` : ''}`);
     } catch (error) {
       console.error('Migration failed:', error);
     }

@@ -219,6 +219,7 @@
         }
         
         let count = 0;
+        let errorCount = 0;
         for (const bikeData of bikes) {
           const bike = {
             _id: `bike_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -234,11 +235,29 @@
             _deleted: false
           };
           
-          await this.db.bikes.add(bike);
-          count++;
+          try {
+            await this.db.bikes.add(bike);
+            count++;
+          } catch (error) {
+            // Handle duplicate _id by generating a new one
+            if (error.name === 'ConstraintError') {
+              try {
+                bike._id = `bike_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                await this.db.bikes.add(bike);
+                count++;
+              } catch (retryError) {
+                console.warn('Failed to import bike:', bike.no, retryError);
+                errorCount++;
+              }
+            } else {
+              console.warn('Failed to import bike:', bike.no, error);
+              errorCount++;
+            }
+          }
         }
         
-        this.showToast(`Imported ${count} bikes`, 'success');
+        const message = `Imported ${count} bikes${errorCount > 0 ? ` (${errorCount} failed)` : ''}`;
+        this.showToast(message, errorCount > 0 ? 'warning' : 'success');
         await this.renderAll();
       } catch (error) {
         console.error('Import failed:', error);
