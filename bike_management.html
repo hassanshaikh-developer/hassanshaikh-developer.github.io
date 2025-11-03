@@ -353,6 +353,71 @@
       background: #fee2e2;
       color: #dc2626;
     }
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+      border-color: var(--success);
+    }
+    .btn-success:hover {
+      background: #15803d;
+      border-color: #15803d;
+    }
+    
+    /* Cash Log Entry */
+    .cash-entry {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .cash-entry:last-child {
+      border-bottom: none;
+    }
+    .cash-entry-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: bold;
+    }
+    .cash-entry-icon.increase {
+      background: var(--success);
+    }
+    .cash-entry-icon.decrease {
+      background: var(--error);
+    }
+    .cash-entry-icon.set {
+      background: var(--accent-1);
+    }
+    .cash-entry-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cash-entry-title {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .cash-entry-meta {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .cash-entry-amount {
+      font-weight: 600;
+      font-size: 1.1rem;
+      white-space: nowrap;
+    }
+    .cash-entry-amount.increase {
+      color: var(--success);
+    }
+    .cash-entry-amount.decrease {
+      color: var(--error);
+    }
 
     .btn-icon {
       padding: 10px;
@@ -1232,7 +1297,16 @@
           <!-- Quick Stats -->
           <div class="stats-grid mb-2">
             <div class="stat-card">
-              <div class="stat-card-title">Cash in Hand</div>
+              <div class="stat-card-title">
+                Cash in Hand
+                <div style="float: right;">
+                  <button class="btn btn-secondary btn-sm" id="cash-set" title="Set Cash" style="padding: 4px 8px;">
+                    <svg width="16" height="16"><use href="#icon-save"></use></svg>
+                  </button>
+                  <button class="btn btn-success btn-sm" id="cash-increase" title="Add Cash" style="padding: 4px 8px;">+</button>
+                  <button class="btn btn-danger btn-sm" id="cash-decrease" title="Remove Cash" style="padding: 4px 8px;">−</button>
+                </div>
+              </div>
               <div class="stat-card-value"><span class="currency" id="currency-symbol-0">₹</span> <span id="stat-cash-in-hand">0</span></div>
             </div>
             <div class="stat-card">
@@ -1370,6 +1444,45 @@
             <canvas id="chart-top-bikes" role="img" aria-label="Top 5 profitable bikes bar chart"></canvas>
           </div>
 
+          <!-- Cash Flow Panel -->
+          <div class="card">
+            <h3>Cash Flow Summary</h3>
+            <div class="stats-grid mb-2">
+              <div class="stat-card">
+                <div class="stat-card-title">Total Cash Inflow</div>
+                <div class="stat-card-value text-success" id="stat-cash-inflow">₹ 0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Total Cash Outflow</div>
+                <div class="stat-card-value text-error" id="stat-cash-outflow">₹ 0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Net Cash Flow</div>
+                <div class="stat-card-value" id="stat-net-cash">₹ 0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Current Cash</div>
+                <div class="stat-card-value" id="stat-cash-current">₹ 0.00</div>
+              </div>
+            </div>
+            <canvas id="chart-cash-flow" role="img" aria-label="Cash flow trend chart" style="width: 100%; height: 200px;"></canvas>
+          </div>
+
+          <!-- Cash Log -->
+          <div class="card">
+            <h3>
+              <span>Cash Transaction Log</span>
+              <div class="chart-controls">
+                <button class="btn-icon btn-ghost" id="export-cash-log" title="Export Log" aria-label="Export cash log as CSV">
+                  <svg width="20" height="20"><use href="#icon-save"></use></svg>
+                </button>
+              </div>
+            </h3>
+            <div class="bike-list" id="cash-log" style="max-height: 300px; overflow-y: auto;">
+              <!-- Cash log entries will be inserted here -->
+            </div>
+          </div>
+          
           <div class="card">
             <h3>Performance Metrics</h3>
             <div class="stats-grid">
@@ -1646,6 +1759,48 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="pat-skip">Skip</button>
         <button class="btn btn-primary" id="pat-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash in Hand Modal -->
+  <div class="modal-overlay" id="cash-modal" role="dialog" aria-labelledby="cash-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="cash-title">Manage Cash</h2>
+        <button class="btn-icon btn-ghost" id="close-cash-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="cash-operation">Operation Type</label>
+          <select class="form-select" id="cash-operation" required>
+            <option value="set">Set Cash Balance</option>
+            <option value="increase">Increase Cash</option>
+            <option value="decrease">Decrease Cash</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cash-amount">Amount</label>
+          <input type="number" class="form-input" id="cash-amount" placeholder="0.00" required step="0.01" />
+        </div>
+        <div class="form-group" id="cash-reason-group" style="display: none;">
+          <label for="cash-reason">Reason for Decrease <span class="text-error">*</span></label>
+          <input type="text" class="form-input" id="cash-reason" placeholder="Required for cash decrease" />
+        </div>
+        <div class="form-group">
+          <label>Current Balance</label>
+          <input type="text" class="form-input" id="cash-current" readonly value="₹ 0.00" />
+        </div>
+        <div class="form-group">
+          <label>New Balance</label>
+          <input type="text" class="form-input" id="cash-new" readonly value="₹ 0.00" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-cash-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-cash-btn">Save Changes</button>
       </div>
     </div>
   </div>
@@ -1948,10 +2103,11 @@
         try {
           console.log('Initializing Dexie database...');
           // Using v1 from original, as schema hasn't changed
-          this.db = new Dexie('BikeDB_v6'); 
+          this.db = new Dexie('BikeDB_v7'); // Incrementing version for new schema
           
           this.db.version(1).stores({
             bikes: '++_id, &no, owner, _updatedAt, dateSelling, _deleted, [dateSelling+_deleted]',
+            cashLog: '++_id, timestamp, type, amount, reason, balance, transactionId'
           });
           
           await this.db.open();
@@ -2104,6 +2260,25 @@
         if ('share' in navigator) {
           const shareBtn = document.getElementById('share-data');
           if (shareBtn) shareBtn.classList.remove('hidden');
+        }
+        
+        // Initialize cash buttons
+        document.getElementById('cash-set').addEventListener('click', () => this.openCashModal('set'));
+        document.getElementById('cash-increase').addEventListener('click', () => this.openCashModal('increase'));
+        document.getElementById('cash-decrease').addEventListener('click', () => this.openCashModal('decrease'));
+        
+        // Cash modal controls
+        document.getElementById('close-cash-modal').addEventListener('click', () => this.closeCashModal());
+        document.getElementById('cancel-cash-btn').addEventListener('click', () => this.closeCashModal());
+        document.getElementById('save-cash-btn').addEventListener('click', () => this.handleSaveCash());
+        document.getElementById('cash-modal').addEventListener('click', (e) => {
+          if (e.target === document.getElementById('cash-modal')) this.closeCashModal();
+        });
+        
+        // Export cash log button
+        const exportCashBtn = document.getElementById('export-cash-log');
+        if (exportCashBtn) {
+          exportCashBtn.addEventListener('click', () => this.exportCashLog());
         }
         
         document.getElementById('filter-all').classList.add('active');
@@ -2506,6 +2681,10 @@
       }
 
       async renderStatsDashboard() {
+        // Render cash flow first since it's most important
+        await this.renderCashLog();
+        await this.renderCashFlowChart();
+        
         // This is the source for main page stats too
         let bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
         
@@ -2866,12 +3045,322 @@
 
       // --- 6. CORE CRUD & CASH IN HAND ---
       
-      updateCashInHand(amount, save = true) {
-        this.settings.cashInHand = (this.settings.cashInHand || 0) + amount;
-        if (save) {
-          this.saveSettings();
+      async updateCashInHand(amount, type = 'system', reason = '', transactionId = null, save = true) {
+        const oldBalance = this.settings.cashInHand || 0;
+        const newBalance = type === 'set' ? amount : oldBalance + amount;
+        
+        // Record the change
+        const logEntry = {
+          timestamp: new Date().toISOString(),
+          type: type, // 'set', 'increase', 'decrease', 'buy', 'sell', 'system'
+          amount: amount,
+          reason: reason,
+          balance: newBalance,
+          transactionId: transactionId
+        };
+        
+        try {
+          await this.db.cashLog.add(logEntry);
+          
+          this.settings.cashInHand = newBalance;
+          if (save) {
+            this.saveSettings();
+          }
+          this.renderCashInHand();
+          this.renderCashLog(); // Update the log view if visible
+          this.renderCashFlowChart(); // Update the cash flow chart
+          
+          // Don't trigger sync for every minor change
+          if (['set', 'increase', 'decrease'].includes(type)) {
+            this.triggerAutoSync();
+          }
+        } catch (error) {
+          console.error('Failed to record cash change:', error);
+          this.showToast('Failed to update cash balance', 'error');
+          throw error; // Re-throw to handle in caller
         }
-        this.renderCashInHand();
+      }
+      
+      async getCashLog(limit = 100) {
+        return await this.db.cashLog
+          .orderBy('timestamp')
+          .reverse()
+          .limit(limit)
+          .toArray();
+      }
+      
+      async exportCashLog() {
+        const entries = await this.getCashLog(1000); // Get last 1000 entries
+        const csv = this.jsonToCsv(entries.map(entry => ({
+          date: new Date(entry.timestamp).toLocaleString(),
+          type: entry.type,
+          amount: entry.amount,
+          reason: entry.reason,
+          balance: entry.balance,
+          transactionId: entry.transactionId || ''
+        })), true);
+        
+        this.downloadFile(csv, `cash-log-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
+        this.showToast('Cash log exported', 'success');
+      }
+      
+      async renderCashLog() {
+        const logContainer = document.getElementById('cash-log');
+        if (!logContainer) return; // Not on stats page
+        
+        const entries = await this.getCashLog(50); // Show last 50 entries
+        
+        requestAnimationFrame(() => {
+          logContainer.innerHTML = entries.map(entry => {
+            let icon = '⚡';
+            let iconClass = entry.type;
+            let title = '';
+            
+            switch(entry.type) {
+              case 'increase':
+                icon = '+';
+                title = 'Cash Added';
+                break;
+              case 'decrease':
+                icon = '−';
+                title = 'Cash Removed';
+                break;
+              case 'set':
+                icon = '⚡';
+                title = 'Balance Set';
+                break;
+              case 'buy':
+                icon = '↓';
+                title = 'Purchase';
+                break;
+              case 'sell':
+                icon = '↑';
+                title = 'Sale';
+                break;
+              default:
+                icon = '•';
+                iconClass = 'system';
+                title = 'System Update';
+            }
+            
+            const date = new Date(entry.timestamp).toLocaleString();
+            const amount = entry.type === 'set' ? 
+              `= ${this.settings.currency} ${this.formatCurrency(entry.amount)}` :
+              `${entry.amount >= 0 ? '+' : ''}${this.settings.currency} ${this.formatCurrency(entry.amount)}`;
+            
+            return `
+              <div class="cash-entry">
+                <div class="cash-entry-icon ${iconClass}">${icon}</div>
+                <div class="cash-entry-details">
+                  <div class="cash-entry-title">${title}</div>
+                  <div class="cash-entry-meta">
+                    ${this.escapeHtml(entry.reason || '')}
+                    <br/>
+                    <small>${date}</small>
+                  </div>
+                </div>
+                <div class="cash-entry-amount ${entry.amount >= 0 ? 'increase' : 'decrease'}">${amount}</div>
+              </div>
+            `;
+          }).join('') || '<p class="text-secondary text-center p-4">No cash transactions recorded yet.</p>';
+        });
+      }
+      
+      async renderCashFlowChart() {
+        const canvas = document.getElementById('chart-cash-flow');
+        if (!canvas) return; // Not on stats page
+        
+        const ctx = canvas.getContext('2d');
+        const colors = this.getChartColors();
+        
+        if (this.charts.cashFlow) {
+          this.charts.cashFlow.destroy();
+          this.charts.cashFlow = null;
+        }
+        
+        const entries = await this.getCashLog(1000);
+        const dailyData = {};
+        let totalIn = 0;
+        let totalOut = 0;
+        
+        entries.forEach(entry => {
+          const day = entry.timestamp.substring(0, 10);
+          if (!dailyData[day]) {
+            dailyData[day] = { in: 0, out: 0 };
+          }
+          if (entry.type !== 'set') { // Exclude "set" operations from flow calculation
+            if (entry.amount > 0) {
+              dailyData[day].in += entry.amount;
+              totalIn += entry.amount;
+            } else {
+              dailyData[day].out += Math.abs(entry.amount);
+              totalOut += Math.abs(entry.amount);
+            }
+          }
+        });
+        
+        // Update summary stats
+        document.getElementById('stat-cash-inflow').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(totalIn)}`;
+        document.getElementById('stat-cash-outflow').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(totalOut)}`;
+        document.getElementById('stat-net-cash').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(totalIn - totalOut)}`;
+        document.getElementById('stat-cash-current').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(this.settings.cashInHand)}`;
+        
+        const sortedDays = Object.keys(dailyData).sort();
+        const labels = sortedDays.map(day => new Date(day));
+        
+        this.charts.cashFlow = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Cash In',
+                data: sortedDays.map(day => dailyData[day].in),
+                backgroundColor: colors.success + 'B3',
+                stack: 'stack0',
+              },
+              {
+                label: 'Cash Out',
+                data: sortedDays.map(day => -dailyData[day].out),
+                backgroundColor: colors.error + 'B3',
+                stack: 'stack0',
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            },
+            scales: {
+              x: {
+                type: 'time',
+                time: { unit: 'day' },
+                grid: { display: false },
+                ticks: { color: colors.text }
+              },
+              y: {
+                grid: { color: colors.grid },
+                ticks: { color: colors.text }
+              }
+            },
+            plugins: {
+              legend: { position: 'top', labels: { color: colors.text } },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = Math.abs(context.raw);
+                    return `${context.dataset.label}: ${this.settings.currency} ${this.formatCurrency(value)}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      async openCashModal(mode = 'set') {
+        const modal = document.getElementById('cash-modal');
+        const operation = document.getElementById('cash-operation');
+        const amount = document.getElementById('cash-amount');
+        const reason = document.getElementById('cash-reason');
+        const reasonGroup = document.getElementById('cash-reason-group');
+        const current = document.getElementById('cash-current');
+        const newBalance = document.getElementById('cash-new');
+        
+        operation.value = mode;
+        amount.value = '';
+        reason.value = '';
+        current.value = `${this.settings.currency} ${this.formatCurrency(this.settings.cashInHand)}`;
+        newBalance.value = current.value;
+        
+        reasonGroup.style.display = mode === 'decrease' ? 'block' : 'none';
+        
+        const updateNewBalance = () => {
+          const value = parseFloat(amount.value) || 0;
+          const currentCash = this.settings.cashInHand || 0;
+          let newValue;
+          
+          switch(operation.value) {
+            case 'set':
+              newValue = value;
+              break;
+            case 'increase':
+              newValue = currentCash + value;
+              break;
+            case 'decrease':
+              newValue = currentCash - value;
+              break;
+          }
+          
+          newBalance.value = `${this.settings.currency} ${this.formatCurrency(newValue)}`;
+          
+          // Show warning if balance would go negative
+          if (newValue < 0) {
+            newBalance.style.color = 'var(--error)';
+          } else {
+            newBalance.style.color = '';
+          }
+        };
+        
+        operation.onchange = () => {
+          reasonGroup.style.display = operation.value === 'decrease' ? 'block' : 'none';
+          updateNewBalance();
+        };
+        
+        amount.oninput = updateNewBalance;
+        
+        modal.classList.add('active');
+      }
+      
+      async closeCashModal() {
+        document.getElementById('cash-modal').classList.remove('active');
+      }
+      
+      async handleSaveCash() {
+        const operation = document.getElementById('cash-operation').value;
+        const amountStr = document.getElementById('cash-amount').value;
+        const reason = document.getElementById('cash-reason').value;
+        
+        const amount = parseFloat(amountStr);
+        if (isNaN(amount) || amount < 0) {
+          this.showToast('Please enter a valid amount', 'error');
+          return;
+        }
+        
+        if (operation === 'decrease' && !reason.trim()) {
+          this.showToast('Please provide a reason for decreasing cash', 'error');
+          return;
+        }
+        
+        try {
+          let finalAmount;
+          switch(operation) {
+            case 'set':
+              await this.updateCashInHand(amount, 'set', reason || 'Manual balance set');
+              break;
+            case 'increase':
+              await this.updateCashInHand(amount, 'increase', reason || 'Manual cash increase');
+              break;
+            case 'decrease':
+              await this.updateCashInHand(-amount, 'decrease', reason);
+              break;
+          }
+          
+          this.showToast('Cash updated successfully', 'success');
+          this.closeCashModal();
+          this.renderAll(); // Update all views
+          
+        } catch (error) {
+          console.error('Cash operation failed:', error);
+          this.showToast('Failed to update cash', 'error');
+        }
       }
       
       handleNewBike() {
@@ -2925,6 +3414,7 @@
         try {
           let oldBike = null;
           let cashChange = 0;
+          let transactionId = null;
 
           if (id) {
             // --- UPDATE ---
@@ -2937,6 +3427,9 @@
             
             // Cash change = (change in revenue) - (change in cost)
             cashChange = (newRevenue - oldRevenue) - (newCost - oldCost);
+            
+            // Record transaction ID for cash log
+            transactionId = `bike_${id}_update`;
             
             await this.db.bikes.update(Number(id), {...bikeData});
             this.showToast("Bike updated successfully.", 'success');
@@ -2955,10 +3448,17 @@
             this.addToUndoStack('create', bikeData);
           }
           
-          // Update cash balance
-          this.updateCashInHand(cashChange); // This also saves
-          
-          this.vibrate(20);
+            // Update cash balance with transaction log
+            const reason = id ? 
+              `Updated bike ${bikeData.no} (${bikeData.owner})` :
+              `New bike purchase: ${bikeData.no} (${bikeData.owner})`;
+            
+            await this.updateCashInHand(
+              cashChange,
+              cashChange >= 0 ? 'sell' : 'buy',
+              reason,
+              transactionId
+            );          this.vibrate(20);
           this.closeFormModal();
           await this.renderAll();
           this.triggerAutoSync(); // Auto-sync on save
