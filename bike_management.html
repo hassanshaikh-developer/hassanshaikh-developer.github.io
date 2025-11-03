@@ -1,5 +1,11 @@
 <!doctype html>
 <html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bike Manager</title>
+  <style>
+    .app-header {
       position: sticky;
       top: 0;
       z-index: 100;
@@ -865,6 +871,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
+      margin-bottom: 24px;
     }
     @media (min-width: 1024px) {
       .stats-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
@@ -892,6 +899,31 @@
       font-weight: 500;
       color: var(--text-secondary);
     }
+    .stat-card-trend {
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+
+    /* Analytics Sections */
+    .analytics-summary {
+      padding: 16px 0;
+      border-top: 1px solid var(--border-color);
+      margin-top: 16px;
+    }
+    .analytics-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+    .analytics-label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .analytics-value {
+      font-weight: 500;
+    }
     
     .card h3 {
       font-size: 1.1rem;
@@ -902,10 +934,13 @@
       flex-wrap: wrap;
       gap: 8px;
     }
+    /* Analytics controls */
     .control-actions {
       display: flex;
       gap: 8px;
+      align-items: center;
     }
+    
     .date-filter {
       display: flex;
       gap: 8px;
