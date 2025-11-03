@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Bike Manager - Resale Analytics</title>
+  <meta name="description" content="Mobile-first bike resale management with financial analytics and GitHub Gist sync." />
+  
+  <!-- CSP: Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://cdn.jsdelivr.net;
+    style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://api.github.com;
+    img-src 'self' data: blob:;
+    object-src 'none';
+    frame-ancestors 'none';
+  ">
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bike Manager" />
+  <meta name="theme-color" content="#071b2b" />
+  
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header" role="banner">
+    <div class="header-content">
+      <h1 class="header-title">Bike Manager</h1>
+      <nav class="header-nav" role="navigation" aria-label="Main navigation">
+        <button class="nav-btn" data-view="dashboard" aria-label="Dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-btn" data-view="bikes" aria-label="Bikes">
+          <span class="nav-icon">🏍️</span>
+          <span class="nav-label">Bikes</span>
+        </button>
+        <button class="nav-btn" data-view="analytics" aria-label="Analytics">
+          <span class="nav-icon">📈</span>
+          <span class="nav-label">Analytics</span>
+        </button>
+        <button class="nav-btn" data-view="settings" aria-label="Settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content" role="main">
+    <!-- Dashboard View -->
+    <section id="view-dashboard" class="view active" role="tabpanel" aria-labelledby="dashboard-tab">
+      <div class="view-header">
+        <h2>Dashboard</h2>
+      </div>
+      <div id="dashboard-container" class="dashboard-grid"></div>
+    </section>
+
+    <!-- Bikes View -->
+    <section id="view-bikes" class="view" role="tabpanel" aria-labelledby="bikes-tab">
+      <div class="view-header">
+        <h2>Bikes</h2>
+        <div class="view-actions">
+          <button id="btn-add-bike" class="btn btn-primary" aria-label="Add new bike">
+            ➕ Add Bike
+          </button>
+        </div>
+      </div>
+      <div id="filters-container" class="filters-section"></div>
+      <div id="bikes-container" class="bikes-grid"></div>
+    </section>
+
+    <!-- Analytics View -->
+    <section id="view-analytics" class="view" role="tabpanel" aria-labelledby="analytics-tab">
+      <div class="view-header">
+        <h2>Analytics</h2>
+      </div>
+      <div id="key-insights-panel" class="key-insights"></div>
+      <div class="analytics-tabs">
+        <button class="analytics-tab active" data-tab="financial">Financial Analytics</button>
+        <button class="analytics-tab" data-tab="inventory">Inventory Intelligence</button>
+        <button class="analytics-tab" data-tab="performance">Performance Insights</button>
+      </div>
+      <div id="analytics-container" class="analytics-content"></div>
+    </section>
+
+    <!-- Settings View -->
+    <section id="view-settings" class="view" role="tabpanel" aria-labelledby="settings-tab">
+      <div class="view-header">
+        <h2>Settings</h2>
+      </div>
+      <div id="settings-container" class="settings-content"></div>
+    </section>
+  </main>
+
+  <!-- Bike Form Modal -->
+  <div id="bike-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Add Bike</h3>
+        <button class="modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div id="bike-form-container" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
+
+  <!-- Scripts (ES6 Modules) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
+
