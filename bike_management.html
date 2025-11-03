@@ -7,12 +7,15 @@
   <meta name="description" content="Offline-first bike inventory manager with GitHub sync and analytics." />
   
   <!-- 
-    This is the redesigned application.
-    - UI: Modern Material 2D flat design.
-    - Colors: Light, clean theme with a teal/blue accent.
-    - Code: All CSS is in this <style> block, and all JS is in the <script> block.
-    - Features: All v6.3 features are maintained (database, sync, stats, etc.).
-    - Removed: Confetti animation (as requested).
+    Bike Manager v2 (Refactored)
+    - UI: Simplified, flat, light-theme-only, mobile-first design.
+    - Code: All CSS and JS are self-contained.
+    - Removed: Dark mode, theme toggle, shadows, ripple effects, and all non-essential UI.
+    - Added: "Cash in Hand" feature (tracks balance across transactions).
+    - Added: Bulk Delete.
+    - Added: PDF Export (using jsPDF).
+    - Added: Auto-sync after major CUD operations and before export.
+    - Updated: Bulk Sell now uses a modal instead of prompts.
   -->
   
   <!-- PWA & Mobile Meta Tags -->
@@ -22,7 +25,7 @@
   
   <!-- 
     CSP: Content Security Policy. 
-    Kept from the original file to maintain security and allow library/API access.
+    Allows required CDNs for libraries (Dexie, Chart.js, jsPDF) and Gist sync.
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
@@ -35,54 +38,48 @@
     frame-ancestors 'none';
   ">
   
-  <!-- Inline Web App Manifest (from original) -->
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIiLA0KICAic2hvcnRfbmFtZSI6ICJCaWtlTWdyIiwNCiAgImRlc2NyaXB0aW9uIjogIk9mZmxpbmUtZmlyc3QgYmlrZSBpbnZlbnRvcnkgbWFuYWdlci4iLA0KICAic3RhcnRfdXJsIjogIi4vIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmNGY1ZjciLA0KICAidGhlbWVfY29sb3IiOiAiIzMzNDFlMiIsDQogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdC1wcmltYXJ5IiwNCiAgImljb25zIjogWw0KICAgIHsNCiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyBmaWxsPSclMjMwMEIwQzknJTNFJTNDcmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5Micgcng9JzMyJyBmaWxsPSclMjNmZmYnLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGEnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSclMjMwYzQ3NWInIGZvbnQtd2VpZ3Q9J2JvbGQnJTNFQk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsDQogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiDQogICAgfSwNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1VnL3N2Zyt4bWwsJTNMY3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDUxMiA1MTInIGZpbGw9JyUyMzAwQjBDOSclM0UlM0NyZWN0IHdpZHRoPSc1MTInIGhlaWdodD0nNTEyJyByeD0nNjQnIGZpbGw9JyUyM2ZmZicvPiUzQ3RleHQgeD0nNTAlMjUnIHk9JzUwJTI1JyBkb21pbmFudC1iYXNlbGluZT0nY2VudHJhbCcgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zaXplPScyNTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSclMjMwYzQ3NWInIGZvbnQtd2VpZ2h0PSdib2xkJyUzRUJNJTNGL3RleHQlM0UlM0Mvc3ZnJTNFIiwNCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLA0KICAgICAgInNpemVzIjogIjUxMng1MTIiDQogICAgfQ0KICBdDQp9DQo=" />
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http-www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%2300B0C9'%3E%3Crect width='192' height='192' rx='32' fill='%23fff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='96' font-family='sans-serif' fill='%230c475b' font-weight='bold'%3EBM%3C/text%3E%3C/svg%3E" />
+  <!-- Inline Web App Manifest -->
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIiLA0KICAic2hvcnRfbmFtZSI6ICJCaWtlTWdyIiwNCiAgImRlc2NyaXB0aW9uIjogIk9mZmxpbmUtZmlyc3QgYmlrZSBpbnZlbnRvcnkgbWFuYWdlci4iLA0KICAic3RhcnRfdXJsIjogIi4vIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmNGY1ZjciLA0KICAidGhlbWVfY29sb3IiOiAiIzMzNDFlMiIsDQogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdC1wcmltYXJ5IiwNCiAgImljb25zIjogWw0KICAgIHsNCiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyBmaWxsPSclMjMwMEIwQzknJTNFJTNDcmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5Micgcng9JzMyJyBmaWxsPSclMjNmZmYnLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGEnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSclMjMwYzQ3NWInIGZvbnQtd2VpZ3Q9J2JvbGQnJTNFQk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsDQogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiDQogICAgfSwNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdWcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgNTEyIDUxMicgZmlsbD0nJTIzMDBCMEM5JTNFJTNDcmVjdCB3aWR0aD0nNTEyJyBoZWlnaHQ9JzUxMicgcng9JzY0JyBmaWxsPSclMjNmZmYnLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGEnIGZvbnQtc2l6ZT0nMjU2JyBmb250LWZhbWlseT0nc2Fucy1zZXJpZicgZmlsbD0nJTIzMGM0NzViJyBmb250LXdlaWdodD0nYm9sZCclM0VCTSVDMyVBRi90ZXh0JTNFJTNDL3N2ZyUzRSIsDQogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwNCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIg0KICAgIH0NCiAgXQ0KfQ0K" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%2300B0C9'%3E%3Crect width='192' height='192' rx='32' fill='%23fff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='96' font-family='sans-serif' fill='%230c475b' font-weight='bold'%3EBM%3C/text%3E%3C/svg%3E" />
 
   <!-- 
-    New Material 2D Flat Styles
-    All CSS is now self-contained here, implementing the requested redesign.
+    Simplified Flat Styles
+    All CSS is self-contained here. Removed shadows, dark mode, and complex effects.
   -->
   <style>
-    /* --- 1. Fonts & Root Variables (Redesigned) --- */
+    /* --- 1. Fonts & Root Variables (Simplified Light Theme) --- */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
     :root {
-      /* Base Light Theme (Default) */
+      /* Base Light Theme */
       --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --bg-page: #f4f7fa; /* Was #071026 */
-      --bg-card: #ffffff; /* Was #071b2b */
+      --bg-page: #f4f7fa;
+      --bg-card: #ffffff;
       --bg-header: rgba(255, 255, 255, 0.85);
       --bg-modal: rgba(244, 247, 250, 0.9);
-      --bg-input: #f4f7fa; /* Was rgba(0, 0, 0, 0.2) */
+      --bg-input: #f4f7fa;
       --bg-input-focus: #ffffff;
-      --bg-hover: #f0f4f8; /* Was rgba(255, 255, 255, 0.05) */
-      --bg-active: #e9eef3; /* Was rgba(255, 255, 255, 0.08) */
+      --bg-hover: #f0f4f8;
+      --bg-active: #e9eef3;
       --bg-nav: var(--bg-header);
 
       --accent-1: #0e7490; /* Teal/Blue accent */
       --accent-1-hover: #155e75;
       --accent-text: #ffffff;
 
-      --text-primary: #111827; /* Was #e6f6ff */
-      --text-secondary: #6b7280; /* Was #9fb0c2 */
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
       --text-disabled: #9ca3af;
       --text-placeholder: #9ca3af;
 
-      --border-color: #e5e7eb; /* Was rgba(255, 255, 255, 0.1) */
+      --border-color: #e5e7eb;
       --border-color-subtle: #f3f4f6;
       --border-focus: var(--accent-1);
       
-      --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-      --shadow-nav: 0 -4px 12px rgba(0, 0, 0, 0.03);
-      --shadow-fab: 0 6px 16px rgba(14, 116, 144, 0.3);
-      --shadow-btn: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow-btn-hover: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-
       --success: #16a34a;
       --warning: #f59e0b;
       --error: #ef4444;
-
+      
       --radius-sm: 4px;
       --radius-md: 8px;
       --radius-lg: 12px;
@@ -93,53 +90,6 @@
       --header-height: 60px;
       --tap-target: 44px;
       --transition-speed: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* Manual dark theme override */
-    .theme-dark {
-      --bg-page: #111827;
-      --bg-card: #1f2937;
-      --bg-header: rgba(31, 41, 55, 0.85);
-      --bg-modal: rgba(17, 24, 39, 0.9);
-      --bg-input: #374151;
-      --bg-input-focus: #4b5563;
-      --bg-hover: #374151;
-      --bg-active: #4b5563;
-      --bg-nav: var(--bg-header);
-      
-      --text-primary: #f3f4f6;
-      --text-secondary: #9ca3af;
-      --text-disabled: #6b7280;
-      --text-placeholder: #6b7280;
-
-      --border-color: #374151;
-      --border-color-subtle: #2d3748;
-      
-      --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      --shadow-nav: 0 -4px 12px rgba(0, 0, 0, 0.15);
-    }
-    
-    /* This respects the user's OS preference */
-    @media (prefers-color-scheme: dark) {
-      :root:not(.theme-light) {
-        --bg-page: #111827;
-        --bg-card: #1f2937;
-        --bg-header: rgba(31, 41, 55, 0.85);
-        --bg-modal: rgba(17, 24, 39, 0.9);
-        --bg-input: #374151;
-        --bg-input-focus: #4b5563;
-        --bg-hover: #374151;
-        --bg-active: #4b5563;
-        --bg-nav: var(--bg-header);
-        --text-primary: #f3f4f6;
-        --text-secondary: #9ca3af;
-        --text-disabled: #6b7280;
-        --text-placeholder: #6b7280;
-        --border-color: #374151;
-        --border-color-subtle: #2d3748;
-        --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        --shadow-nav: 0 -4px 12px rgba(0, 0, 0, 0.15);
-      }
     }
 
     /* --- 3. Base & Reset --- */
@@ -159,7 +109,6 @@
       flex-direction: column;
       font-size: 16px;
       line-height: 1.5;
-      transition: background 0.3s ease, color 0.3s ease;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
@@ -234,7 +183,6 @@
       background: var(--bg-nav);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      box-shadow: var(--shadow-nav);
       z-index: 100;
       border-top: 1px solid var(--border-color);
     }
@@ -284,7 +232,6 @@
         height: 100vh;
         border-top: none;
         border-right: 1px solid var(--border-color);
-        box-shadow: none;
         justify-content: flex-start;
         padding-top: var(--header-height);
       }
@@ -346,30 +293,14 @@
       text-align: center;
       min-height: var(--tap-target);
       transition: var(--transition-speed);
-      box-shadow: var(--shadow-btn);
       border: 1px solid transparent;
       position: relative;
       overflow: hidden;
       -webkit-user-select: none;
       user-select: none;
     }
-    /* Ripple effect (kept from original) */
-    .btn::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-      transform: scale(0);
-      transition: transform 0.5s ease;
-      opacity: 0;
-    }
-    .theme-dark .btn::after {
-      background: radial-gradient(circle, rgba(0,0,0,0.1) 0%, transparent 70%);
-    }
-    .btn:active::after {
-      transform: scale(2);
-      opacity: 1;
-      transition-duration: 0.1s;
+    .btn:active {
+      transform: scale(0.98);
     }
     
     .btn-primary {
@@ -380,7 +311,6 @@
     .btn-primary:hover {
       background: var(--accent-1-hover);
       border-color: var(--accent-1-hover);
-      box-shadow: var(--shadow-btn-hover);
     }
     .btn-secondary {
       background: var(--bg-card);
@@ -389,7 +319,6 @@
     }
     .btn-secondary:hover { 
       background: var(--bg-hover);
-      box-shadow: var(--shadow-btn-hover);
     }
     .btn-sm {
       padding: 6px 12px;
@@ -400,7 +329,6 @@
     .btn-ghost {
       background: transparent;
       color: var(--text-secondary);
-      box-shadow: none;
       border-color: transparent;
     }
     .btn-ghost:hover {
@@ -416,12 +344,21 @@
       background: #dc2626;
       border-color: #dc2626;
     }
+    .btn-danger-ghost {
+      background: transparent;
+      color: var(--error);
+      border-color: transparent;
+    }
+    .btn-danger-ghost:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
     .btn-icon {
       padding: 10px;
       min-height: var(--tap-target);
       min-width: var(--tap-target);
       border-radius: var(--radius-full);
-      box-shadow: none;
     }
     .btn-icon svg { width: 24px; height: 24px; }
     
@@ -437,9 +374,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow-fab);
       z-index: 200;
       transition: transform 0.3s ease;
+      border: 1px solid rgba(0,0,0,0.05);
     }
     .fab:hover {
       background: var(--accent-1-hover);
@@ -458,7 +395,6 @@
       border-radius: var(--radius-lg);
       padding: 16px;
       margin-bottom: 16px;
-      box-shadow: var(--shadow-card);
       border: 1px solid var(--border-color);
       transition: var(--transition-speed);
     }
@@ -540,7 +476,7 @@
       padding: 24px;
       width: 100%;
       max-width: 500px;
-      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-color);
       transform: scale(0.95);
       transition: transform 0.3s;
       max-height: 90vh;
@@ -717,7 +653,6 @@
     .bike-card:hover {
       background: var(--bg-hover);
       border-color: var(--border-focus);
-      transform: translateY(-1px);
     }
     .bike-card.selected {
       background: var(--bg-active);
@@ -815,11 +750,10 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
-      padding: 12px 20px;
+      padding: 12px;
       display: flex;
-      gap: 12px;
+      gap: 8px;
       align-items: center;
-      box-shadow: var(--shadow-card);
       z-index: 150;
       transition: transform 0.3s ease;
     }
@@ -831,6 +765,7 @@
       color: var(--accent-1);
       font-size: 0.9rem;
       white-space: nowrap;
+      padding: 0 8px;
     }
     @media (min-width: 768px) {
       .bulk-action-bar {
@@ -907,7 +842,6 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      box-shadow: var(--shadow-card);
       min-width: 200px;
       display: none;
       z-index: 200;
@@ -1077,9 +1011,8 @@
       background: var(--bg-card);
       color: var(--text-primary);
       font-size: 0.85rem;
+      color-scheme: light;
     }
-    .theme-light .date-filter input[type="date"] { color-scheme: light; }
-    .theme-dark .date-filter input[type="date"] { color-scheme: dark; }
 
     /* Settings Page */
     .settings-section {
@@ -1105,49 +1038,6 @@
       margin-top: -12px;
       margin-bottom: 16px;
       line-height: 1.6;
-    }
-    
-    /* Theme toggle switch */
-    .theme-toggle {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: var(--bg-input);
-      border-radius: var(--radius-md);
-      margin-bottom: 16px;
-    }
-    .theme-toggle label {
-      flex-grow: 1;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      background: var(--border-color);
-      border-radius: var(--radius-full);
-      cursor: pointer;
-      transition: var(--transition-speed);
-      flex-shrink: 0;
-    }
-    .switch::before {
-      content: '';
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      background: white;
-      border-radius: 50%;
-      top: 3px;
-      left: 3px;
-      transition: var(--transition-speed);
-    }
-    .switch.active {
-      background: var(--accent-1);
-    }
-    .switch.active::before {
-      left: 23px;
     }
     
     /* Undo toast */
@@ -1269,7 +1159,7 @@
 
   <!-- 
     SVG Icon Definitions (Symbols).
-    Copied from the original file. No changes needed.
+    Kept from the original file. No changes needed.
   -->
   <svg width="0" height="0" style="position:absolute; overflow:hidden;">
     <symbol id="icon-list" viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
@@ -1288,8 +1178,7 @@
     <symbol id="icon-duplicate" viewBox="0 0 24 24"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></symbol>
     <symbol id="icon-share" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></symbol>
     <symbol id="icon-undo" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></symbol>
-    <symbol id="icon-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
-    <symbol id="icon-sun" viewBox="0 0 24 24"><path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></symbol>
+    <symbol id="icon-pdf" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1.0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1.0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 13c-1.66.0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm-6-2.5c0-.83.67-1.5 1.5-1.5h.5v-1h-1c-.83.0-1.5.67-1.5 1.5v3c0 .83.67 1.5 1.5 1.5h1v-1h-.5c-.83.0-1.5-.67-1.5-1.5v-1zM18 15h-1v1.5h-.5v-1h-.5v-1.5h.5v-.5h.5v.5h1v1.5zm-5.5-2v-1h-1v3h.5c.83.0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5h-.5z"/></symbol>
   </svg>
 
   <!-- App Loader -->
@@ -1343,6 +1232,10 @@
           <!-- Quick Stats -->
           <div class="stats-grid mb-2">
             <div class="stat-card">
+              <div class="stat-card-title">Cash in Hand</div>
+              <div class="stat-card-value"><span class="currency" id="currency-symbol-0">₹</span> <span id="stat-cash-in-hand">0</span></div>
+            </div>
+            <div class="stat-card">
               <div class="stat-card-title">Total Profit (Sold)</div>
               <div class="stat-card-value"><span class="currency" id="currency-symbol-1">₹</span> <span id="stat-total-profit">0</span></div>
             </div>
@@ -1351,12 +1244,8 @@
               <div class="stat-card-value"><span class="currency" id="currency-symbol-2">₹</span> <span id="stat-unsold-value">0</span></div>
             </div>
             <div class="stat-card">
-              <div class="stat-card-title">Sold</div>
-              <div class="stat-card-value" id="stat-sold-count">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-card-title">Unsold</div>
-              <div class="stat-card-value" id="stat-unsold-count">0</div>
+              <div class="stat-card-title">Inventory (S/U)</div>
+              <div class="stat-card-value"><span id="stat-sold-count">0</span> / <span id="stat-unsold-count">0</span></div>
             </div>
           </div>
           
@@ -1512,11 +1401,7 @@
           <h2>Settings</h2>
           
           <div class="settings-section">
-            <h3>Appearance</h3>
-            <div class="theme-toggle">
-              <label for="theme-switch-label">Dark Mode</label>
-              <div class="switch" id="theme-switch" role="switch" aria-checked="true" tabindex="0" aria-labelledby="theme-switch-label"></div>
-            </div>
+            <h3>Appearance & Finance</h3>
             <div class="form-group">
               <label for="list-density">List Density</label>
               <select class="form-select" id="list-density">
@@ -1524,11 +1409,26 @@
                 <option value="compact">Compact</option>
               </select>
             </div>
+            <div class="form-group">
+              <label for="setting-business-name">Business Name</label>
+              <input type="text" class="form-input" id="setting-business-name" placeholder="My Bike Shop" />
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="setting-currency">Currency Symbol</label>
+                <input type="text" class="form-input" id="setting-currency" placeholder="₹" style="width: 100px;" />
+              </div>
+              <div class="form-group">
+                <label for="setting-cash-in-hand">Initial/Current Cash in Hand</label>
+                <input type="number" class="form-input" id="setting-cash-in-hand" placeholder="0" />
+              </div>
+            </div>
+            <button class="btn btn-secondary" id="save-display-settings">Save Display Settings</button>
           </div>
           
           <div class="settings-section">
             <h3>GitHub Gist Sync</h3>
-            <p>Syncs your data to a private GitHub Gist as a CSV backup. This is a manual sync, not real-time. Press "Sync Now" in the header to move data between devices.</p>
+            <p>Syncs your data to a private GitHub Gist as a CSV backup. Sync is now automatic after most actions.</p>
             
             <div class="form-group">
               <label for="setting-gist-id">Gist ID</label>
@@ -1552,33 +1452,23 @@
           </div>
           
           <div class="settings-section">
-            <h3>Personalization</h3>
-            <div class="form-group">
-              <label for="setting-business-name">Business Name</label>
-              <input type="text" class="form-input" id="setting-business-name" placeholder="My Bike Shop" />
-            </div>
-            <div class="form-group">
-              <label for="setting-currency">Currency Symbol</label>
-              <input type="text" class="form-input" id="setting-currency" placeholder="₹" style="width: 100px;" />
-            </div>
-            <button class="btn btn-secondary" id="save-display-settings">Save Display Settings</button>
-          </div>
-          
-          <div class="settings-section">
             <h3>Data Management</h3>
-            <p>Manage your local and remote data.</p>
-            <div class="form-grid" style="gap: 12px; grid-template-columns: 1fr 1fr;">
-              <button class="btn btn-secondary" id="export-csv">Export as CSV</button>
-              <button class="btn btn-secondary" id="export-json">Export as JSON</button>
-              <button class="btn btn-secondary" id="export-xlsx">Export as XLSX</button>
+            <p>Export all local data or import from a file. Exports will be synced first.</p>
+            <div class="form-grid" style="gap: 12px; grid-template-columns: 1fr 1fr 1fr;">
+              <button class="btn btn-secondary" id="export-csv">Export CSV</button>
+              <button class="btn btn-secondary" id="export-json">Export JSON</button>
+              <button class="btn btn-secondary" id="export-pdf">
+                 <svg width="18" height="18"><use href="#icon-pdf"></use></svg>
+                <span>Export PDF</span>
+              </button>
               <button class="btn btn-secondary" id="import-csv">Import CSV/JSON</button>
               <button class="btn btn-secondary" id="download-template">
                 <svg width="18" height="18"><use href="#icon-download"></use></svg>
-                <span>Download Template</span>
+                <span>Template</span>
               </button>
               <button class="btn btn-secondary hidden" id="share-data">
                 <svg width="18" height="18"><use href="#icon-share"></use></svg>
-                <span>Share Data</span>
+                <span>Share</span>
               </button>
             </div>
             <input type="file" id="import-file-input" class="hidden" accept=".csv,.json,text/csv,application/json" />
@@ -1614,7 +1504,12 @@
     <span class="count"><span id="selected-count">0</span> selected</span>
     <button class="btn btn-secondary btn-sm" id="bulk-mark-sold">Mark Sold</button>
     <button class="btn btn-secondary btn-sm" id="bulk-export">Export</button>
-    <button class="btn btn-ghost btn-sm" id="bulk-deselect">Clear</button>
+    <button class="btn btn-danger-ghost btn-sm" id="bulk-delete">
+      <svg width="16" height="16"><use href="#icon-delete"></use></svg>
+    </button>
+    <button class="btn btn-ghost btn-sm" id="bulk-deselect" aria-label="Clear selection" title="Clear selection">
+      <svg width="16" height="16"><use href="#icon-close"></use></svg>
+    </button>
   </div>
   
   <!-- Form Modal (Buy/Sell/Edit) -->
@@ -1694,6 +1589,37 @@
       </div>
     </div>
   </div>
+
+  <!-- Bulk Sell Modal -->
+  <div class="modal-overlay" id="bulk-sell-modal" role="dialog" aria-labelledby="bulk-sell-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="bulk-sell-title">Bulk Mark as Sold</h2>
+        <button class="btn-icon btn-ghost" id="close-bulk-sell-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-secondary mb-2">Apply the same selling date and price to all <strong id="bulk-sell-count">0</strong> selected unsold bikes.</p>
+        <form id="bulk-sell-form" onsubmit="return false;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="bulk-sell-date">Selling Date *</label>
+              <input type="date" class="form-input" id="bulk-sell-date" required />
+            </div>
+            <div class="form-group">
+              <label for="bulk-sell-price">Selling Price (each) *</label>
+              <input type="number" class="form-input" id="bulk-sell-price" placeholder="0" step="0.01" inputmode="decimal" required />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-bulk-sell-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-bulk-sell-btn">Apply to All</button>
+      </div>
+    </div>
+  </div>
   
   <!-- Update Modal -->
   <div class="modal-overlay" id="update-modal" role="dialog" aria-labelledby="update-title" aria-modal="true">
@@ -1727,11 +1653,6 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
   
-  <!-- 
-    NOTE: Confetti Canvas was here. 
-    It has been removed as requested ("no confetti").
-  -->
-
   <!-- Hidden form for browser password manager integration -->
   <form id="pat-save-form" class="hidden" autocomplete="on">
     <input type="text" name="username" autocomplete="username" value="github-gist-sync" />
@@ -1746,28 +1667,28 @@
   <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <!-- Added for PDF Export -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  
   
   <!-- 
     =================================
-    Application JavaScript
+    Application JavaScript (Refactored)
     =================================
-    This is the complete, unmodified application logic from v6.3,
-    with the *only* change being the removal of the confetti animation.
-    All features (database, sync, etc.) are preserved.
   -->
   <script>
     // --- APP CONSTANTS ---
-    const OLD_STORAGE_KEY = 'bikes_db_v2';
-    const SETTINGS_KEY = 'bike_manager_settings_v6';
+    const OLD_STORAGE_KEY = 'bikes_db_v2'; // Kept for migration
+    const SETTINGS_KEY = 'bike_manager_settings_v7'; // Incremented version for new settings
     const PAT_KEY = 'bike_manager_pat_v6';
-    const THEME_KEY = 'bike_manager_theme';
-    const UNDO_KEY = 'bike_manager_undo_v6_3';
+    const UNDO_KEY = 'bike_manager_undo_v7';
     const ITEMS_PER_PAGE = 50; // For pagination
 
     /**
      * @class BikeManagerApp
      * Main application class managing all components, views, database, and sync logic.
-     * This follows the architecture from the bike_manager.html reference.
+     * Refactored for simplicity, new features (Cash in Hand, PDF, Bulk Delete), and auto-sync.
      */
     class BikeManagerApp {
       
@@ -1782,6 +1703,7 @@
         this.settings = {
           businessName: 'Bike Manager',
           currency: '₹',
+          cashInHand: 0, // NEW: Cash in Hand
           gistId: '',
           gistFilename: 'bikes_inventory.csv',
           githubPat: '', // Only stored in sessionStorage
@@ -1797,10 +1719,12 @@
         this.currentPage = 1;
         this.totalPages = 1;
         this.statsDateFilter = { from: null, to: null };
+        this.isSyncing = false;
 
         // Debounced functions to prevent spamming
         this.debouncedRenderList = this.debounce(() => this.renderBikeList(), 250);
-        this.debouncedSyncNow = this.debounce(() => this.syncNowInternal(), 5000, true);
+        // Auto-sync is debounced to catch rapid changes (e.g., bulk ops) as one event
+        this.debouncedSyncNow = this.debounce(() => this.syncNowInternal(false), 5000, true);
         
         // Cache DOM elements for performance
         this.dom = {
@@ -1815,6 +1739,7 @@
           searchClear: document.getElementById('search-clear'),
           searchInput: document.getElementById('search-input'),
           formModal: document.getElementById('form-modal'),
+          bulkSellModal: document.getElementById('bulk-sell-modal'),
           bikeList: document.getElementById('bike-list'),
           bikeListSkeleton: document.getElementById('bike-list-skeleton'),
           bikeListEmpty: document.getElementById('bike-list-empty'),
@@ -1846,7 +1771,7 @@
           this.updateLoaderStatus('Loading settings...');
           await this.loadSettings();
 
-          // 4. [v6.3 BUGFIX] Clean up any corrupted numeric data from old versions
+          // 4. Clean up any corrupted numeric data from old versions
           this.updateLoaderStatus('Cleaning data (if any)...');
           await this.cleanCorruptedData();
           
@@ -1863,7 +1788,7 @@
           this.updateLoaderStatus('Rendering data...');
           await this.renderAll();
           
-          // 8. [v6.3 FEATURE] Check if PAT needs re-entry
+          // 8. Check if PAT needs re-entry
           this.checkPATStatus();
           
           console.log('Initialization complete!');
@@ -1889,17 +1814,19 @@
           // This keeps the app in a single file.
           const swCode = `
             /*
-             * Service Worker for Bike Manager v6.3
+             * Service Worker for Bike Manager v7 (Refactored)
              * Caches app shell and CDNs for offline use.
              */
-            const CACHE_NAME = 'bike-manager-v63-cache';
+            const CACHE_NAME = 'bike-manager-v7-cache';
             const URLS_TO_CACHE = [
               './', // Cache the main HTML file itself
               'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-              'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', // Cache common font file
+              'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2',
               'https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js',
               'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
-              'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js'
+              'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js',
+              'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+              'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'
             ];
             
             self.addEventListener('install', (event) => {
@@ -1918,12 +1845,8 @@
                 caches.keys().then((cacheNames) => {
                   return Promise.all(
                     // Clean up old caches
-                    cacheNames.map((cacheName) => {
-                      if (cacheName !== CACHE_NAME) {
-                        console.log('SW: Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                      }
-                    })
+                    cacheNames.filter(cacheName => cacheName.startsWith('bike-manager-') && cacheName !== CACHE_NAME)
+                    .map(cacheName => caches.delete(cacheName))
                   );
                 }).then(() => self.clients.claim()) // Take control of open pages
               );
@@ -1940,6 +1863,7 @@
                   caches.match(event.request)
                     .then((response) => {
                       if (response) return response;
+                      // Fallback to network and cache
                       return fetch(event.request).then(fetchResponse => {
                         return caches.open(CACHE_NAME).then(cache => {
                           cache.put(event.request, fetchResponse.clone());
@@ -1951,11 +1875,13 @@
               } 
               else if (event.request.url.endsWith(self.location.pathname) || event.request.url.endsWith('/')) {
                  event.respondWith(
+                    // Network first for HTML to get updates
                     fetch(event.request)
                       .catch(() => caches.match(event.request))
                  );
               }
               else if (url.hostname === 'api.github.com') {
+                // Network only for API calls
                 event.respondWith(
                   fetch(event.request)
                     .catch(() => new Response(JSON.stringify({error: 'Offline'}), {
@@ -2021,14 +1947,15 @@
       async initDatabase() {
         try {
           console.log('Initializing Dexie database...');
-          this.db = new Dexie('BikeDB_v6');
+          // Using v1 from original, as schema hasn't changed
+          this.db = new Dexie('BikeDB_v6'); 
           
           this.db.version(1).stores({
             bikes: '++_id, &no, owner, _updatedAt, dateSelling, _deleted, [dateSelling+_deleted]',
           });
           
           await this.db.open();
-          console.log("Database v6.3 initialized successfully");
+          console.log("Database initialized successfully");
         } catch (error) {
           console.error("Database initialization failed:", error);
           throw new Error("Failed to initialize database: " + error.message);
@@ -2126,20 +2053,15 @@
           this.settings.githubPat = savedPat;
         }
         
-        const savedTheme = localStorage.getItem(THEME_KEY);
-        if (savedTheme === 'light') {
-          document.body.classList.add('theme-light');
-          document.body.classList.remove('theme-dark');
-        } else if (savedTheme === 'dark') {
-          document.body.classList.add('theme-dark');
-          document.body.classList.remove('theme-light');
-        }
+        // Ensure cash in hand is a number
+        this.settings.cashInHand = parseFloat(this.settings.cashInHand) || 0;
         
         this.loadUndoStack();
         this.applySettings();
       }
       
       async saveSettings() {
+        // Don't save PAT to localStorage
         const { githubPat, ...settingsToSave } = this.settings;
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settingsToSave));
         
@@ -2158,10 +2080,12 @@
           document.getElementById('setting-github-pat').value = this.settings.githubPat || '';
           document.getElementById('setting-business-name').value = this.settings.businessName || '';
           document.getElementById('setting-currency').value = this.settings.currency || '';
+          document.getElementById('setting-cash-in-hand').value = this.settings.cashInHand;
           document.getElementById('list-density').value = this.settings.listDensity || 'comfortable';
         }
         
         this.dom.bikeList.classList.toggle('compact', this.settings.listDensity === 'compact');
+        this.renderCashInHand();
       }
       
       checkPATStatus() {
@@ -2184,23 +2108,16 @@
         
         document.getElementById('filter-all').classList.add('active');
         this.updateOnlineStatus();
-        
-        const themeSwitch = document.getElementById('theme-switch');
-        if (themeSwitch) {
-          const isDark = document.body.classList.contains('theme-dark') || 
-                        (!document.body.classList.contains('theme-light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          themeSwitch.classList.toggle('active', isDark);
-          themeSwitch.setAttribute('aria-checked', isDark);
-        }
       }
       
       initEventListeners() {
+        // Navigation
         this.dom.navButtons.forEach(btn => btn.addEventListener('click', () => this.navigateTo(btn.dataset.view)));
-        this.dom.syncNowBtn.addEventListener('click', () => this.syncNow());
+        this.dom.syncNowBtn.addEventListener('click', () => this.syncNowInternal(true)); // Manual sync
         
+        // List Search & Filter
         this.dom.searchInput.addEventListener('input', (e) => {
-          const value = e.target.value;
-          this.currentFilters.search = value.toLowerCase();
+          this.currentFilters.search = e.target.value.toLowerCase();
           this.currentPage = 1;
           this.debouncedRenderList();
         });
@@ -2253,6 +2170,7 @@
         document.getElementById('filter-sold').addEventListener('click', () => this.setFilterStatus('sold'));
         document.getElementById('filter-unsold').addEventListener('click', () => this.setFilterStatus('unsold'));
         
+        // List Item Actions
         this.dom.bikeList.addEventListener('click', (e) => {
           const card = e.target.closest('.bike-card');
           if (card) {
@@ -2264,112 +2182,79 @@
           }
         });
         
+        // FAB & Desktop Add
         const addBtns = [document.getElementById('fab-buy'), document.getElementById('buy-bike-desktop')];
         addBtns.forEach(btn => {
           if (btn) btn.addEventListener('click', () => this.handleNewBike());
         });
         
-        const bulkMarkSold = document.getElementById('bulk-mark-sold');
-        const bulkExport = document.getElementById('bulk-export');
-        const bulkDeselect = document.getElementById('bulk-deselect');
+        // Bulk Actions
+        document.getElementById('bulk-mark-sold').addEventListener('click', () => this.handleBulkMarkSold());
+        document.getElementById('bulk-export').addEventListener('click', () => this.handleBulkExport());
+        document.getElementById('bulk-delete').addEventListener('click', () => this.handleBulkDelete());
+        document.getElementById('bulk-deselect').addEventListener('click', () => this.clearSelection());
         
-        if (bulkMarkSold) bulkMarkSold.addEventListener('click', () => this.handleBulkMarkSold());
-        if (bulkExport) bulkExport.addEventListener('click', () => this.handleBulkExport());
-        if (bulkDeselect) bulkDeselect.addEventListener('click', () => this.clearSelection());
+        // Pagination
+        document.getElementById('prev-page').addEventListener('click', () => this.changePage(-1));
+        document.getElementById('next-page').addEventListener('click', () => this.changePage(1));
         
-        const prevPage = document.getElementById('prev-page');
-        const nextPage = document.getElementById('next-page');
-        if (prevPage) prevPage.addEventListener('click', () => this.changePage(-1));
-        if (nextPage) nextPage.addEventListener('click', () => this.changePage(1));
-        
+        // Main Form Modal
         document.getElementById('close-form-modal').addEventListener('click', () => this.closeFormModal());
         document.getElementById('cancel-form-btn').addEventListener('click', () => this.closeFormModal());
         document.getElementById('save-form-btn').addEventListener('click', () => this.handleSaveBike());
         document.getElementById('delete-bike-btn').addEventListener('click', () => this.handleDeleteBike());
-        
-        const duplicateBtn = document.getElementById('duplicate-bike-btn');
-        if (duplicateBtn) duplicateBtn.addEventListener('click', () => this.handleDuplicateBike());
+        document.getElementById('duplicate-bike-btn').addEventListener('click', () => this.handleDuplicateBike());
         
         this.dom.formModal.addEventListener('click', (e) => {
-          if (e.target === this.dom.formModal) {
-            this.closeFormModal();
-          }
+          if (e.target === this.dom.formModal) this.closeFormModal();
         });
         
         const profitInputs = ['form-purchasePrice', 'form-repairCost', 'form-sellingPrice'];
         profitInputs.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.addEventListener('input', () => this.calculateFormProfit());
+          document.getElementById(id).addEventListener('input', () => this.calculateFormProfit());
         });
         
-        const saveSyncBtn = document.getElementById('save-sync-settings');
-        const saveDisplayBtn = document.getElementById('save-display-settings');
-        if (saveSyncBtn) saveSyncBtn.addEventListener('click', () => this.handleSaveSyncSettings());
-        if (saveDisplayBtn) saveDisplayBtn.addEventListener('click', () => this.handleSaveDisplaySettings());
+        // Bulk Sell Modal
+        document.getElementById('close-bulk-sell-modal').addEventListener('click', () => this.closeBulkSellModal());
+        document.getElementById('cancel-bulk-sell-btn').addEventListener('click', () => this.closeBulkSellModal());
+        document.getElementById('save-bulk-sell-btn').addEventListener('click', () => this.handleBulkSellModalSubmit());
+        this.dom.bulkSellModal.addEventListener('click', (e) => {
+          if (e.target === this.dom.bulkSellModal) this.closeBulkSellModal();
+        });
+
+        // Settings Page
+        document.getElementById('save-sync-settings').addEventListener('click', () => this.handleSaveSyncSettings());
+        document.getElementById('save-display-settings').addEventListener('click', () => this.handleSaveDisplaySettings());
+        document.getElementById('list-density').addEventListener('change', (e) => {
+          this.settings.listDensity = e.target.value;
+          this.saveSettings();
+          this.renderBikeList(); // No full re-render needed
+        });
         
-        const themeSwitch = document.getElementById('theme-switch');
-        if (themeSwitch) {
-          themeSwitch.addEventListener('click', () => this.toggleTheme());
-          themeSwitch.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              this.toggleTheme();
-            }
-          });
-        }
+        // Data Management
+        document.getElementById('export-csv').addEventListener('click', () => this.exportData('csv'));
+        document.getElementById('export-json').addEventListener('click', () => this.exportData('json'));
+        document.getElementById('export-pdf').addEventListener('click', () => this.exportData('pdf'));
+        document.getElementById('import-csv').addEventListener('click', () => document.getElementById('import-file-input').click());
+        document.getElementById('download-template').addEventListener('click', () => this.downloadTemplate());
+        document.getElementById('share-data').addEventListener('click', () => this.handleShareData());
+        document.getElementById('import-file-input').addEventListener('change', (e) => this.handleImportFile(e));
+        document.getElementById('wipe-data-btn').addEventListener('click', () => this.handleWipeData());
         
-        const listDensity = document.getElementById('list-density');
-        if (listDensity) {
-          listDensity.addEventListener('change', (e) => {
-            this.settings.listDensity = e.target.value;
-            this.saveSettings();
-            this.renderBikeList();
-          });
-        }
+        // Stats Page
+        document.getElementById('apply-date-filter').addEventListener('click', () => this.applyStatsDateFilter());
+        document.getElementById('reset-date-filter').addEventListener('click', () => this.resetStatsDateFilter());
+        document.getElementById('download-profit-chart').addEventListener('click', () => this.downloadChart('chart-profit-trend', 'profit-trend'));
+        document.getElementById('export-profit-csv').addEventListener('click', () => this.exportChartData('profit'));
+        document.getElementById('download-pie-chart').addEventListener('click', () => this.downloadChart('chart-profit-pie', 'profit-distribution'));
+        document.getElementById('download-top-chart').addEventListener('click', () => this.downloadChart('chart-top-bikes', 'top-bikes'));
         
-        const exportCsv = document.getElementById('export-csv');
-        const exportJson = document.getElementById('export-json');
-        const exportXlsx = document.getElementById('export-xlsx');
-        const importCsv = document.getElementById('import-csv');
-        const downloadTemplate = document.getElementById('download-template');
-        const shareData = document.getElementById('share-data');
-        const importFileInput = document.getElementById('import-file-input');
-        const wipeDataBtn = document.getElementById('wipe-data-btn');
-        
-        if (exportCsv) exportCsv.addEventListener('click', () => this.exportData('csv'));
-        if (exportJson) exportJson.addEventListener('click', () => this.exportData('json'));
-        if (exportXlsx) exportXlsx.addEventListener('click', () => this.exportData('xlsx'));
-        if (importCsv) importCsv.addEventListener('click', () => document.getElementById('import-file-input').click());
-        if (downloadTemplate) downloadTemplate.addEventListener('click', () => this.downloadTemplate());
-        if (shareData) shareData.addEventListener('click', () => this.handleShareData());
-        if (importFileInput) importFileInput.addEventListener('change', (e) => this.handleImportFile(e));
-        if (wipeDataBtn) wipeDataBtn.addEventListener('click', () => this.handleWipeData());
-        
-        const applyDateFilter = document.getElementById('apply-date-filter');
-        const resetDateFilter = document.getElementById('reset-date-filter');
-        if (applyDateFilter) applyDateFilter.addEventListener('click', () => this.applyStatsDateFilter());
-        if (resetDateFilter) resetDateFilter.addEventListener('click', () => this.resetStatsDateFilter());
-        
-        const downloadProfitChart = document.getElementById('download-profit-chart');
-        const exportProfitCsv = document.getElementById('export-profit-csv');
-        const downloadPieChart = document.getElementById('download-pie-chart');
-        const downloadTopChart = document.getElementById('download-top-chart');
-        
-        if (downloadProfitChart) downloadProfitChart.addEventListener('click', () => this.downloadChart('chart-profit-trend', 'profit-trend'));
-        if (exportProfitCsv) exportProfitCsv.addEventListener('click', () => this.exportChartData('profit'));
-        if (downloadPieChart) downloadPieChart.addEventListener('click', () => this.downloadChart('chart-profit-pie', 'profit-distribution'));
-        if (downloadTopChart) downloadTopChart.addEventListener('click', () => this.downloadChart('chart-top-bikes', 'top-bikes'));
-        
-        const patSkip = document.getElementById('pat-skip');
-        const patSubmit = document.getElementById('pat-submit');
-        if (patSkip) {
-          patSkip.addEventListener('click', () => {
+        // PAT Modal
+        document.getElementById('pat-skip').addEventListener('click', () => {
             document.getElementById('pat-modal').classList.remove('active');
             localStorage.removeItem('pat_needs_reentry');
-          });
-        }
-        if (patSubmit) {
-          patSubmit.addEventListener('click', () => {
+        });
+        document.getElementById('pat-submit').addEventListener('click', () => {
             const pat = document.getElementById('pat-reenter').value.trim();
             if (pat) {
               this.settings.githubPat = pat;
@@ -2377,13 +2262,13 @@
               document.getElementById('pat-modal').classList.remove('active');
               localStorage.removeItem('pat_needs_reentry');
               this.showToast('PAT restored for this session.', 'success');
-              this.syncNow();
+              this.syncNowInternal(true); // Manual sync on submit
             } else {
               this.showToast('Please enter a valid PAT.', 'error');
             }
-          });
-        }
+        });
         
+        // Global Listeners
         document.addEventListener('keydown', (e) => {
           const modalActive = document.querySelector('.modal-overlay.active');
           const inputFocused = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA';
@@ -2394,15 +2279,20 @@
           }
           
           if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            if (modalActive) {
+            if (this.dom.formModal.classList.contains('active')) {
               e.preventDefault();
               this.handleSaveBike();
+            }
+            if (this.dom.bulkSellModal.classList.contains('active')) {
+              e.preventDefault();
+              this.handleBulkSellModalSubmit();
             }
           }
           
           if (e.key === 'Escape') {
             if (modalActive) {
               this.closeFormModal();
+              this.closeBulkSellModal();
             }
             const sortMenu = document.getElementById('sort-menu');
             if (sortMenu && sortMenu.classList.contains('active')) {
@@ -2437,50 +2327,31 @@
         });
       }
       
-      toggleTheme() {
-        const themeSwitch = document.getElementById('theme-switch');
-        const isDark = document.body.classList.contains('theme-dark') || 
-                      (!document.body.classList.contains('theme-light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        
-        if (isDark) {
-          // Switch to Light
-          document.body.classList.remove('theme-dark');
-          document.body.classList.add('theme-light');
-          localStorage.setItem(THEME_KEY, 'light');
-          themeSwitch.classList.remove('active');
-          themeSwitch.setAttribute('aria-checked', 'false');
-        } else {
-          // Switch to Dark
-          document.body.classList.remove('theme-light');
-          document.body.classList.add('theme-dark');
-          localStorage.setItem(THEME_KEY, 'dark');
-          themeSwitch.classList.add('active');
-          themeSwitch.setAttribute('aria-checked', 'true');
-        }
-        
-        this.vibrate(10);
-        
-        // Re-render charts for new theme colors
-        if(this.currentView === 'view-stats') {
-          // Debounce this to avoid spamming chart re-renders
-          this.debounce(() => this.renderStatsDashboard(), 100)();
-        }
-      }
-      
       async renderAll() {
         this.dom.bikeListSkeleton.classList.remove('hidden');
         this.dom.bikeList.classList.add('hidden');
+        
         await this.renderBikeList();
+        
         this.dom.bikeListSkeleton.classList.add('hidden');
         this.dom.bikeList.classList.remove('hidden');
         
-        await this.renderStatsDashboard();
+        // This will also render cash in hand
+        await this.renderStatsDashboard(); 
+      }
+
+      renderCashInHand() {
+        const cashEl = document.getElementById('stat-cash-in-hand');
+        if (cashEl) {
+          cashEl.textContent = this.formatCurrency(this.settings.cashInHand);
+        }
       }
       
       async renderBikeList() {
         let bikes;
         
         try {
+          // Optimized query
           if (this.currentFilters.status === 'sold') {
             bikes = await this.db.bikes.where('[dateSelling+_deleted]').above(['', false]).toArray();
           } else if (this.currentFilters.status === 'unsold') {
@@ -2489,7 +2360,8 @@
             bikes = await this.db.bikes.where('_deleted').equals(false).toArray();
           }
         } catch (e) {
-          console.error("Failed to query database with compound index:", e);
+          // Fallback query for browsers that might struggle with the compound index
+          console.warn("Compound query failed, using slower filter:", e);
           bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
           if (this.currentFilters.status === 'sold') {
             bikes = bikes.filter(b => b.dateSelling && b.dateSelling !== '');
@@ -2597,7 +2469,12 @@
         }
         
         this.updateBulkActionBar();
-        this.renderBikeList();
+        // Just update the single card, not the whole list
+        const card = this.dom.bikeList.querySelector(`[data-id="${idStr}"]`);
+        if (card) {
+          card.classList.toggle('selected');
+          card.querySelector('.bike-checkbox').setAttribute('aria-checked', this.selectedBikes.has(idStr));
+        }
       }
       
       updateBulkActionBar() {
@@ -2616,7 +2493,7 @@
       clearSelection() {
         this.selectedBikes.clear();
         this.updateBulkActionBar();
-        this.renderBikeList();
+        this.renderBikeList(); // Full render needed to remove all 'selected' classes
       }
       
       changePage(delta) {
@@ -2629,14 +2506,17 @@
       }
 
       async renderStatsDashboard() {
+        // This is the source for main page stats too
         let bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
         
-        if (this.statsDateFilter.from || this.statsDateFilter.to) {
-          bikes = bikes.filter(b => {
+        // Apply stats-page-specific date filter if active
+        let filteredBikes = bikes;
+        if (this.currentView === 'view-stats' && (this.statsDateFilter.from || this.statsDateFilter.to)) {
+          filteredBikes = bikes.filter(b => {
             if (!b.dateSelling) return false;
             const saleDate = new Date(b.dateSelling);
             const toDate = this.statsDateFilter.to ? new Date(this.statsDateFilter.to) : null;
-            if (toDate) toDate.setDate(toDate.getDate() + 1);
+            if (toDate) toDate.setDate(toDate.getDate() + 1); // Make 'to' inclusive
             
             if (this.statsDateFilter.from && saleDate < new Date(this.statsDateFilter.from)) return false;
             if (toDate && saleDate >= toDate) return false;
@@ -2644,43 +2524,38 @@
           });
         }
         
+        // Use all bikes for main page stats
         const soldBikes = bikes.filter(b => b.dateSelling && b.dateSelling !== '');
         const unsoldBikes = bikes.filter(b => !b.dateSelling || b.dateSelling === '');
         
         const totalProfit = soldBikes.reduce((sum, b) => sum + parseFloat(b.netProfit || 0), 0);
         const unsoldValue = unsoldBikes.reduce((sum, b) => sum + parseFloat(b.purchasePrice || 0) + parseFloat(b.repairCost || 0), 0);
         
-        const statTotalProfit = document.getElementById('stat-total-profit');
-        const statUnsoldValue = document.getElementById('stat-unsold-value');
-        const statSoldCount = document.getElementById('stat-sold-count');
-        const statUnsoldCount = document.getElementById('stat-unsold-count');
-        
-        if (statTotalProfit) statTotalProfit.textContent = this.formatCurrency(totalProfit);
-        if (statUnsoldValue) statUnsoldValue.textContent = this.formatCurrency(unsoldValue);
-        if (statSoldCount) statSoldCount.textContent = soldBikes.length;
-        if (statUnsoldCount) statUnsoldCount.textContent = unsoldBikes.length;
+        // Update main page stats
+        this.renderCashInHand(); // Update cash
+        document.getElementById('stat-total-profit').textContent = this.formatCurrency(totalProfit);
+        document.getElementById('stat-unsold-value').textContent = this.formatCurrency(unsoldValue);
+        document.getElementById('stat-sold-count').textContent = soldBikes.length;
+        document.getElementById('stat-unsold-count').textContent = unsoldBikes.length;
 
-        const avgProfit = soldBikes.length > 0 ? totalProfit / soldBikes.length : 0;
-        
-        let insightText = `You have ${unsoldBikes.length} bikes in stock (total investment: ${this.settings.currency}${this.formatCurrency(unsoldValue)}).`;
-        if (soldBikes.length > 0) {
-          insightText += ` Your average profit per bike is ${this.settings.currency}${this.formatCurrency(avgProfit)}.`;
-          
-          if (avgProfit < 0) {
-            insightText += ` ⚠️ Review pricing strategy - average loss detected.`;
-          } else if (totalProfit > 100000) {
-            insightText += ` 🎉 Congratulations on crossing ${this.settings.currency}1 lakh in profits!`;
-          }
-        }
-        const insightEl = document.getElementById('auto-insight-text');
-        if (insightEl) insightEl.textContent = insightText;
-        
-        this.renderPerformanceMetrics(soldBikes);
-
+        // Update stats page stats (uses date-filtered bikes)
         if (this.currentView === 'view-stats') {
-          this.renderProfitTrendChart(soldBikes);
-          this.renderProfitPieChart(soldBikes);
-          this.renderTopBikesChart(soldBikes);
+          const filteredSoldBikes = filteredBikes.filter(b => b.dateSelling && b.dateSelling !== '');
+          const filteredTotalProfit = filteredSoldBikes.reduce((sum, b) => sum + parseFloat(b.netProfit || 0), 0);
+          const avgProfit = filteredSoldBikes.length > 0 ? filteredTotalProfit / filteredSoldBikes.length : 0;
+          
+          let insightText = `You have ${unsoldBikes.length} bikes in stock (total investment: ${this.settings.currency}${this.formatCurrency(unsoldValue)}).`;
+          if (filteredSoldBikes.length > 0) {
+            insightText += ` Your average profit per bike (in selected period) is ${this.settings.currency}${this.formatCurrency(avgProfit)}.`;
+          } else if (this.statsDateFilter.from || this.statsDateFilter.to) {
+            insightText += ` No bikes sold in the selected period.`;
+          }
+          document.getElementById('auto-insight-text').textContent = insightText;
+          
+          this.renderPerformanceMetrics(filteredSoldBikes);
+          this.renderProfitTrendChart(filteredSoldBikes);
+          this.renderProfitPieChart(filteredSoldBikes);
+          this.renderTopBikesChart(filteredSoldBikes);
         }
       }
       
@@ -2735,23 +2610,16 @@
       }
       
       applyStatsDateFilter() {
-        const dateFrom = document.getElementById('stats-date-from');
-        const dateTo = document.getElementById('stats-date-to');
-        
-        if (dateFrom && dateTo) {
-          this.statsDateFilter.from = dateFrom.value;
-          this.statsDateFilter.to = dateTo.value;
-          this.renderStatsDashboard();
-          this.showToast('Date filter applied', 'success');
-        }
+        this.statsDateFilter.from = document.getElementById('stats-date-from').value;
+        this.statsDateFilter.to = document.getElementById('stats-date-to').value;
+        this.renderStatsDashboard();
+        this.showToast('Date filter applied', 'success');
       }
       
       resetStatsDateFilter() {
         this.statsDateFilter = { from: null, to: null };
-        const dateFrom = document.getElementById('stats-date-from');
-        const dateTo = document.getElementById('stats-date-to');
-        if (dateFrom) dateFrom.value = '';
-        if (dateTo) dateTo.value = '';
+        document.getElementById('stats-date-from').value = '';
+        document.getElementById('stats-date-to').value = '';
         this.renderStatsDashboard();
         this.showToast('Date filter reset', 'success');
       }
@@ -2759,22 +2627,7 @@
       // --- 5. CHART.JS IMPLEMENTATION ---
       
       getChartColors() {
-        const isDark = document.body.classList.contains('theme-dark') || 
-                      (!document.body.classList.contains('theme-light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        
-        if (isDark) {
-          return {
-            grid: 'rgba(255, 255, 255, 0.1)',
-            text: '#9ca3af',
-            accent1: '#0e7490',
-            accent2: '#059669',
-            loss: '#ef4444',
-            warn: '#f59e0b',
-            profit1: '#16a34a',
-            profit2: '#10b981',
-            profit3: '#059669',
-          };
-        }
+        // Simplified: Always return light theme colors
         return {
           grid: 'rgba(0, 0, 0, 0.05)',
           text: '#6b7280',
@@ -2818,7 +2671,7 @@
           return (arr[idx] + arr[idx - 1] + arr[idx - 2]) / 3;
         });
 
-        const chartConfig = {
+        this.charts.profitTrend = new Chart(ctx, {
           type: 'line',
           data: {
             labels: labels,
@@ -2863,9 +2716,7 @@
               }
             }
           }
-        };
-        
-        this.charts.profitTrend = new Chart(ctx, chartConfig);
+        });
       }
       
       renderProfitPieChart(soldBikes) {
@@ -2897,16 +2748,13 @@
           else profitBins['Profit (5k+)']++;
         });
 
-        const labels = Object.keys(profitBins);
-        const data = Object.values(profitBins);
-
-        const chartConfig = {
+        this.charts.profitPie = new Chart(ctx, {
           type: 'pie',
           data: {
-            labels: labels,
+            labels: Object.keys(profitBins),
             datasets: [{
               label: 'Profit Distribution',
-              data: data,
+              data: Object.values(profitBins),
               backgroundColor: [
                 colors.loss + 'B3',
                 colors.text + 'B3',
@@ -2924,9 +2772,7 @@
               legend: { position: 'top', labels: { color: colors.text } }
             }
           }
-        };
-
-        this.charts.profitPie = new Chart(ctx, chartConfig);
+        });
       }
       
       renderTopBikesChart(soldBikes) {
@@ -2945,16 +2791,13 @@
           .sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0))
           .slice(0, 5);
           
-        const labels = topBikes.map(b => b.no);
-        const data = topBikes.map(b => parseFloat(b.netProfit || 0));
-
-        const chartConfig = {
+        this.charts.topBikes = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: labels,
+            labels: topBikes.map(b => b.no),
             datasets: [{
               label: 'Net Profit',
-              data: data,
+              data: topBikes.map(b => parseFloat(b.netProfit || 0)),
               backgroundColor: colors.accent2 + 'B3',
               borderColor: colors.accent2,
               borderWidth: 1
@@ -2979,9 +2822,7 @@
               legend: { display: false }
             }
           }
-        };
-        
-        this.charts.topBikes = new Chart(ctx, chartConfig);
+        });
       }
 
       downloadChart(canvasId, filename) {
@@ -3023,7 +2864,15 @@
         }
       }
 
-      // --- 6. CORE CRUD (BUY/SELL) OPERATIONS ---
+      // --- 6. CORE CRUD & CASH IN HAND ---
+      
+      updateCashInHand(amount, save = true) {
+        this.settings.cashInHand = (this.settings.cashInHand || 0) + amount;
+        if (save) {
+          this.saveSettings();
+        }
+        this.renderCashInHand();
+      }
       
       handleNewBike() {
         this.openFormModal('buy');
@@ -3075,28 +2924,44 @@
         
         try {
           let oldBike = null;
+          let cashChange = 0;
+
           if (id) {
+            // --- UPDATE ---
             oldBike = await this.db.bikes.get(Number(id));
+            
+            const oldCost = (oldBike.purchasePrice || 0) + (oldBike.repairCost || 0);
+            const newCost = (bikeData.purchasePrice || 0) + (bikeData.repairCost || 0);
+            const oldRevenue = (oldBike.sellingPrice || 0);
+            const newRevenue = (bikeData.sellingPrice || 0);
+            
+            // Cash change = (change in revenue) - (change in cost)
+            cashChange = (newRevenue - oldRevenue) - (newCost - oldCost);
+            
             await this.db.bikes.update(Number(id), {...bikeData});
             this.showToast("Bike updated successfully.", 'success');
-          } else {
-            oldBike = {...bikeData, _id: -1};
-            const newId = await this.db.bikes.add(bikeData);
-            oldBike._id = newId;
-            this.showToast("Bike added successfully.", 'success');
+            this.addToUndoStack('update', oldBike);
             
-            // Confetti removed as requested
-            // if (dateSelling) {
-            //   this.showConfetti();
-            // }
+          } else {
+            // --- CREATE ---
+            // Cost is negative cash flow
+            cashChange = -(bikeData.purchasePrice + bikeData.repairCost);
+            // Revenue (if sold immediately) is positive
+            cashChange += bikeData.sellingPrice;
+
+            const newId = await this.db.bikes.add(bikeData);
+            bikeData._id = newId; // For undo
+            this.showToast("Bike added successfully.", 'success');
+            this.addToUndoStack('create', bikeData);
           }
           
-          this.addToUndoStack(id ? 'update' : 'create', oldBike);
+          // Update cash balance
+          this.updateCashInHand(cashChange); // This also saves
           
           this.vibrate(20);
           this.closeFormModal();
           await this.renderAll();
-          this.triggerAutoSync();
+          this.triggerAutoSync(); // Auto-sync on save
           
         } catch (error) {
           console.error("Save bike failed:", error);
@@ -3112,26 +2977,35 @@
         const id = document.getElementById('form-bike-id').value;
         if (!id) return;
         
-        if (confirm("Are you sure you want to delete this bike? This can be undone (Ctrl+Z).")) {
-          try {
+        if (!confirm("Are you sure you want to delete this bike? This will adjust your cash in hand and can be undone.")) {
+            return;
+        }
+
+        try {
             const bike = await this.db.bikes.get(Number(id));
-            
+            if (!bike) return;
+
             await this.db.bikes.update(Number(id), {
-              _deleted: true,
-              _updatedAt: new Date().toISOString()
+                _deleted: true,
+                _updatedAt: new Date().toISOString()
             });
+
+            // Reverse the cash flow for this bike
+            const cost = (bike.purchasePrice || 0) + (bike.repairCost || 0);
+            const revenue = (bike.sellingPrice || 0);
+            const cashChange = cost - revenue; // Add back cost, remove revenue
             
+            this.updateCashInHand(cashChange);
             this.addToUndoStack('delete', bike);
             this.showToastWithUndo("Bike deleted.", () => this.performUndo());
             
             this.vibrate(50);
             this.closeFormModal();
             await this.renderAll();
-            this.triggerAutoSync();
-          } catch (error) {
+            this.triggerAutoSync(); // Auto-sync on delete
+        } catch (error) {
             console.error("Delete failed:", error);
             this.showToast("Failed to delete bike.", 'error');
-          }
         }
       }
       
@@ -3162,28 +3036,47 @@
       }
       
       async handleBulkMarkSold() {
-        if (this.selectedBikes.size === 0) return;
-        
-        const sellDate = prompt("Enter selling date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (!sellDate || !/^\d{4}-\d{2}-\d{2}$/.test(sellDate)) {
-          if (sellDate !== null) this.showToast("Invalid date format", 'error');
-          return;
+        if (this.selectedBikes.size === 0) {
+            this.showToast('No bikes selected', 'warning');
+            return;
         }
         
-        const sellPriceStr = prompt("Enter selling price for all selected bikes:");
+        // Open the modal instead of using prompts
+        document.getElementById('bulk-sell-count').textContent = this.selectedBikes.size;
+        document.getElementById('bulk-sell-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('bulk-sell-price').value = '';
+        this.dom.bulkSellModal.classList.add('active');
+        document.getElementById('bulk-sell-price').focus();
+      }
+
+      async handleBulkSellModalSubmit() {
+        const sellDate = document.getElementById('bulk-sell-date').value;
+        const sellPriceStr = document.getElementById('bulk-sell-price').value;
         const sellPrice = parseFloat(sellPriceStr);
-        if (isNaN(sellPrice)) {
-          if (sellPriceStr !== null) this.showToast("Invalid selling price", 'error');
-          return;
+
+        if (!sellDate || !/^\d{4}-\d{2}-\d{2}$/.test(sellDate)) {
+            this.showToast("Invalid date format", 'error');
+            return;
+        }
+        if (isNaN(sellPrice) || sellPrice < 0) {
+            this.showToast("Invalid selling price", 'error');
+            return;
         }
         
         try {
           const now = new Date().toISOString();
           const bikesToUpdate = [];
+          const oldBikes = [];
+          let totalCashChange = 0;
           
           for (const idStr of this.selectedBikes) {
             const bike = await this.db.bikes.get(Number(idStr));
             if (bike && (!bike.dateSelling || bike.dateSelling === '')) {
+              oldBikes.push(JSON.parse(JSON.stringify(bike))); // Deep copy for undo
+              
+              const oldRevenue = bike.sellingPrice || 0;
+              totalCashChange += (sellPrice - oldRevenue);
+
               bike.dateSelling = sellDate;
               bike.sellingPrice = sellPrice;
               bike.netProfit = sellPrice - (parseFloat(bike.purchasePrice || 0) + parseFloat(bike.repairCost || 0));
@@ -3194,23 +3087,70 @@
           
           if (bikesToUpdate.length > 0) {
             await this.db.bikes.bulkPut(bikesToUpdate);
+            this.updateCashInHand(totalCashChange);
+            this.addToUndoStack('bulk-update', oldBikes);
             this.showToast(`${bikesToUpdate.length} bikes marked as sold`, 'success');
           } else {
             this.showToast('No unsold bikes were selected', 'info');
           }
           
+          this.closeBulkSellModal();
           this.clearSelection();
           await this.renderAll();
-          this.triggerAutoSync();
+          this.triggerAutoSync(); // Auto-sync on bulk sell
         } catch (error) {
           console.error("Bulk mark sold failed:", error);
           this.showToast("Failed to mark bikes as sold", 'error');
         }
       }
-      
+
+      async handleBulkDelete() {
+        const count = this.selectedBikes.size;
+        if (count === 0) return;
+
+        if (!confirm(`Are you sure you want to delete ${count} selected bikes? This will adjust your cash in hand and can be undone.`)) {
+            return;
+        }
+        
+        try {
+            const now = new Date().toISOString();
+            const bikesToDelete = [];
+            let totalCashChange = 0;
+
+            for (const idStr of this.selectedBikes) {
+                const bike = await this.db.bikes.get(Number(idStr));
+                if (bike) {
+                    bikesToDelete.push(JSON.parse(JSON.stringify(bike))); // Deep copy for undo
+                    
+                    const cost = (bike.purchasePrice || 0) + (bike.repairCost || 0);
+                    const revenue = (bike.sellingPrice || 0);
+                    totalCashChange += (cost - revenue); // Reverse transaction
+
+                    bike._deleted = true;
+                    bike._updatedAt = now;
+                    await this.db.bikes.put(bike); // Update one by one
+                }
+            }
+
+            if (bikesToDelete.length > 0) {
+                this.updateCashInHand(totalCashChange);
+                this.addToUndoStack('bulk-delete', bikesToDelete);
+                this.showToastWithUndo(`${bikesToDelete.length} bikes deleted.`, () => this.performUndo());
+            }
+
+            this.clearSelection();
+            await this.renderAll();
+            this.triggerAutoSync(); // Auto-sync on bulk delete
+        } catch (error) {
+            console.error("Bulk delete failed:", error);
+            this.showToast("Failed to delete bikes", 'error');
+        }
+      }
+
       async handleBulkExport() {
         if (this.selectedBikes.size === 0) return;
         
+        // No need to sync before exporting *selected* items
         const bikes = [];
         for (const idStr of this.selectedBikes) {
           const bike = await this.db.bikes.get(Number(idStr));
@@ -3226,7 +3166,7 @@
         this.showToast(`Exported ${bikes.length} bikes`, 'success');
       }
 
-      // --- 7. FORM & MODAL UI (Buy/Sell/View Logic) ---
+      // --- 7. FORM & MODAL UI ---
       
       openFormModal(mode = 'buy', bike = null) {
         const title = document.getElementById('form-title');
@@ -3300,6 +3240,10 @@
         document.getElementById('form-section-sell').classList.remove('readonly-section');
       }
       
+      closeBulkSellModal() {
+        this.dom.bulkSellModal.classList.remove('active');
+      }
+
       calculateFormProfit() {
         const p = parseFloat(document.getElementById('form-purchasePrice').value) || 0;
         const r = parseFloat(document.getElementById('form-repairCost').value) || 0;
@@ -3319,6 +3263,7 @@
           this.settings.githubPat = newPat;
           sessionStorage.setItem(PAT_KEY, newPat);
           
+          // Trigger browser password save
           const patForm = document.getElementById('pat-save-form');
           const patInput = document.getElementById('pat-save-input');
           if (patForm && patInput) {
@@ -3327,7 +3272,7 @@
           }
         }
         
-        this.settings.lastSyncSha = null;
+        this.settings.lastSyncSha = null; // Force re-check
         this.saveSettings();
         
         this.showToast("Sync settings saved for this session.", 'success');
@@ -3336,9 +3281,14 @@
       handleSaveDisplaySettings() {
         this.settings.businessName = document.getElementById('setting-business-name').value.trim();
         this.settings.currency = document.getElementById('setting-currency').value.trim();
-        this.saveSettings();
+        
+        // This is the only place we manually set cash in hand
+        const newCash = parseFloat(document.getElementById('setting-cash-in-hand').value);
+        this.settings.cashInHand = isNaN(newCash) ? 0 : newCash;
+        
+        this.saveSettings(); // This calls applySettings()
         this.showToast("Display settings saved.", 'success');
-        this.renderAll();
+        this.renderAll(); // Re-render stats with new currency/cash
       }
       
       async handleWipeData() {
@@ -3346,6 +3296,8 @@
           await this.db.bikes.clear();
           this.undoStack = [];
           this.saveUndoStack();
+          // Reset cash in hand too? User might want this.
+          // this.updateCashInHand(-this.settings.cashInHand); // Resets to 0
           this.showToast("All local data has been wiped.", 'success');
           this.renderAll();
         }
@@ -3354,12 +3306,17 @@
       // --- 9. IMPORT / EXPORT ---
       
       async exportData(format) {
+        this.showToast("Syncing data before export...", 'info');
+        await this.triggerAutoSync(true); // Wait for sync to complete
+        this.showToast("Sync complete. Generating export...", 'info');
+
         const bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
         if (bikes.length === 0) {
           this.showToast("No data to export.", 'warning');
           return;
         }
         
+        // Exclude internal _id
         const exportBikes = bikes.map(b => {
           const { _id, ...rest } = b;
           return rest;
@@ -3368,27 +3325,40 @@
         const timestamp = new Date().toISOString().split('T')[0];
         const filename = `bike_inventory_${timestamp}`;
 
-        if (format === 'json') {
-          this.downloadFile(JSON.stringify(exportBikes, null, 2), `${filename}.json`, 'application/json;charset=utf-8;');
-          this.showToast("Exported as JSON", 'success');
-        } else if (format === 'csv') {
-          this.downloadFile(this.jsonToCsv(exportBikes, true), `${filename}.csv`, 'text/csv;charset=utf-8;');
-          this.showToast("Exported as CSV", 'success');
-        } else if (format === 'xlsx') {
-          this.showToast("Exporting as XLSX...", 'info');
-          try {
-            if (typeof XLSX === 'undefined') {
-              await this.loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+        try {
+          if (format === 'json') {
+            this.downloadFile(JSON.stringify(exportBikes, null, 2), `${filename}.json`, 'application/json;charset=utf-8;');
+            this.showToast("Exported as JSON", 'success');
+          } else if (format === 'csv') {
+            this.downloadFile(this.jsonToCsv(exportBikes, true), `${filename}.csv`, 'text/csv;charset=utf-8;');
+            this.showToast("Exported as CSV", 'success');
+          } else if (format === 'pdf') {
+            const { jsPDF } = window.jspdf;
+            if (!jsPDF || !jsPDF.autoTable) {
+                this.showToast('PDF library not loaded. Please try again.', 'error');
+                return;
             }
-            const ws = XLSX.utils.json_to_sheet(exportBikes);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Bikes');
-            XLSX.writeFile(wb, `${filename}.xlsx`);
-            this.showToast("Exported as XLSX", 'success');
-          } catch(e) {
-            console.error('XLSX export failed:', e);
-            this.showToast('Failed to export XLSX.', 'error');
+            
+            const doc = new jsPDF();
+            const head = [['Plate', 'Owner', 'Buy Date', 'Buy Price', 'Repair', 'Sell Date', 'Sell Price', 'Profit']];
+            const body = exportBikes.map(b => [
+                b.no,
+                b.owner,
+                b.datePurchase,
+                this.formatCurrency(b.purchasePrice),
+                this.formatCurrency(b.repairCost),
+                b.dateSelling,
+                this.formatCurrency(b.sellingPrice),
+                this.formatCurrency(b.netProfit)
+            ]);
+            
+            doc.autoTable({ head, body });
+            doc.save(`${filename}.pdf`);
+            this.showToast("Exported as PDF", 'success');
           }
+        } catch(e) {
+          console.error('Export failed:', e);
+          this.showToast(`Failed to export as ${format.toUpperCase()}.`, 'error');
         }
       }
       
@@ -3456,11 +3426,11 @@
               };
             }).filter(b => b.no);
             
-            if (confirm(`Found ${preparedBikes.length} records. This will ADD new records and UPDATE existing records based on bike plate. Continue?`)) {
+            if (confirm(`Found ${preparedBikes.length} records. This will ADD new records and UPDATE existing records based on bike plate. This will NOT affect your "Cash in Hand". Continue?`)) {
               await this.db.bikes.bulkPut(preparedBikes);
               this.showToast(`Successfully imported/updated ${preparedBikes.length} records.`, 'success');
               this.renderAll();
-              this.triggerAutoSync();
+              this.triggerAutoSync(); // Auto-sync on import
             }
             
           } catch (error) {
@@ -3505,26 +3475,59 @@
         }
       }
 
-      // --- 10. GIST SYNC ---
+      // --- 10. GIST SYNC (Now with auto-sync) ---
       
-      syncNow() {
-        this.debouncedSyncNow();
+      /**
+       * Triggers an automatic background sync.
+       * @param {boolean} wait - If true, returns a promise that resolves when sync is complete.
+       */
+      async triggerAutoSync(wait = false) {
+        if (!this.isOnline || !this.settings.gistId || !this.settings.githubPat) {
+          if (wait) {
+            this.showToast("Cannot sync: Offline or no credentials.", 'warning');
+            return; // Resolve immediately if sync can't run
+          }
+          return;
+        }
+
+        console.log(`Triggering auto-sync (wait: ${wait})`);
+        
+        if (wait) {
+          // If we need to wait, bypass debounce and run immediately.
+          return this.syncNowInternal(false);
+        } else {
+          // Otherwise, use the debouncer to batch quick changes.
+          this.debouncedSyncNow();
+        }
       }
       
-      async syncNowInternal() {
+      /**
+       * The core sync logic.
+       * @param {boolean} isManual - True if triggered by user click, shows more toasts.
+       */
+      async syncNowInternal(isManual = false) {
+        if (this.isSyncing) {
+            if (isManual) this.showToast("Sync already in progress.", 'info');
+            return;
+        }
+        
         if (!this.isOnline) {
-          this.showToast("Cannot sync. You are offline.", 'warning');
+          if (isManual) this.showToast("Cannot sync. You are offline.", 'warning');
           return;
         }
         
         const { gistId, githubPat } = this.settings;
         if (!gistId || !githubPat) {
-          this.showToast("Gist ID and GitHub PAT must be set in Settings.", 'error');
-          this.navigateTo('view-settings');
+          if (isManual) {
+            this.showToast("Gist ID and GitHub PAT must be set in Settings.", 'error');
+            this.navigateTo('view-settings');
+          }
           return;
         }
         
+        this.isSyncing = true;
         this.setSyncStatus('syncing', 'Syncing...');
+        if (isManual) this.showToast("Starting sync...", 'info');
         
         try {
           this.setSyncStatus('syncing', 'Fetching remote...');
@@ -3558,10 +3561,12 @@
           this.setSyncStatus('syncing', 'Merging data...');
           const mergedBikesMap = new Map();
           
+          // Local data wins by default
           for (const bike of localBikes) { 
             mergedBikesMap.set(bike.no, bike); 
           }
           
+          // Remote data wins if it's newer
           for (const remoteBike of remoteBikes) {
             const localBike = mergedBikesMap.get(remoteBike.no);
             if (!localBike || new Date(remoteBike._updatedAt) > new Date(localBike._updatedAt)) {
@@ -3578,7 +3583,10 @@
           });
           
           this.setSyncStatus('syncing', 'Pushing remote...');
-          const csvContent = this.jsonToCsv(mergedBikes, false);
+          // Don't export internal _id to CSV
+          const csvContent = this.jsonToCsv(mergedBikes.map(b => {
+            const {_id, ...rest} = b; return rest;
+          }), false);
           
           if (!remoteFile || csvContent !== remoteFile.content) {
             const newSha = await this.pushToGist(csvContent, this.settings.lastSyncSha);
@@ -3590,13 +3598,15 @@
           this.settings.lastSync = new Date().toISOString();
           this.saveSettings();
           this.setSyncStatus('success', 'Up to date');
-          this.showToast("Sync complete.", 'success');
+          if (isManual) this.showToast("Sync complete.", 'success');
           await this.renderAll();
           
         } catch (error) {
           console.error("Sync failed:", error);
           this.setSyncStatus('error', 'Sync Failed');
-          this.showToast(error.message || "Sync failed", 'error');
+          if (isManual) this.showToast(error.message || "Sync failed", 'error');
+        } finally {
+            this.isSyncing = false;
         }
       }
       
@@ -3613,14 +3623,8 @@
         });
         
         if (!response.ok) {
-          if (response.status === 404) {
-            this.showToast("Gist not found. Check Gist ID.", 'error');
-            return null;
-          }
-          if (response.status === 401) {
-            this.showToast("Invalid GitHub PAT. Check settings.", 'error');
-            return null;
-          }
+          if (response.status === 404) throw new Error("Gist not found. Check Gist ID.");
+          if (response.status === 401) throw new Error("Invalid GitHub PAT. Check settings.");
           throw new Error(`GitHub API error: ${response.statusText}`);
         }
         
@@ -3629,7 +3633,8 @@
         const latestSha = gist.history[0].version;
         
         if (!file) {
-          this.showToast(`File "${gistFilename}" not found in Gist.`, 'error');
+          // File doesn't exist, this is fine, we'll create it on push
+          console.log(`File "${gistFilename}" not found in Gist. Will create it.`);
           return null;
         }
         
@@ -3677,17 +3682,11 @@
         return result.history[0].version;
       }
       
-      triggerAutoSync() {
-        if (this.isOnline && this.settings.gistId && this.settings.githubPat) {
-          console.log("Triggering auto-sync in background...");
-          this.debouncedSyncNow();
-        }
-      }
-      
       // --- 11. UNDO FUNCTIONALITY ---
       
       addToUndoStack(action, data) {
-        this.undoStack.push({ action, data, timestamp: Date.now() });
+        // Add current cash state for undo
+        this.undoStack.push({ action, data, timestamp: Date.now(), cashInHand: this.settings.cashInHand });
         if (this.undoStack.length > 10) {
           this.undoStack.shift();
         }
@@ -3725,6 +3724,9 @@
         const lastAction = this.undoStack.pop();
         this.saveUndoStack();
         
+        // Restore cash in hand to state *before* the action
+        const cashBeforeAction = lastAction.cashInHand;
+        
         try {
           if (lastAction.action === 'delete') {
             await this.db.bikes.put(lastAction.data);
@@ -3735,14 +3737,23 @@
           } else if (lastAction.action === 'create') {
             await this.db.bikes.delete(lastAction.data._id);
             this.showToast(`Removed new bike: ${lastAction.data.no}`, 'success');
+          } else if (lastAction.action === 'bulk-delete') {
+            await this.db.bikes.bulkPut(lastAction.data);
+            this.showToast(`Restored ${lastAction.data.length} bikes`, 'success');
+          } else if (lastAction.action === 'bulk-update') {
+            await this.db.bikes.bulkPut(lastAction.data);
+            this.showToast(`Reverted ${lastAction.data.length} bikes`, 'success');
           }
           
+          // Don't calculate, just restore
+          this.updateCashInHand(cashBeforeAction - this.settings.cashInHand); 
+
           await this.renderAll();
-          this.triggerAutoSync();
+          this.triggerAutoSync(); // Sync after undo
         } catch (error) {
           console.error("Undo failed:", error);
           this.showToast("Failed to perform undo", 'error');
-          this.undoStack.push(lastAction);
+          this.undoStack.push(lastAction); // Put it back
           this.saveUndoStack();
         }
       }
@@ -3813,7 +3824,7 @@
         this.isOnline = navigator.onLine;
         if (this.isOnline) {
           this.setSyncStatus('success', 'Online');
-          this.triggerAutoSync();
+          this.triggerAutoSync(); // Auto-sync on coming online
         } else {
           this.setSyncStatus('offline', 'Offline');
         }
@@ -3824,8 +3835,6 @@
           navigator.vibrate(duration);
         }
       }
-      
-      // Confetti function removed.
       
       showToast(message, type = 'info') {
         const container = document.getElementById('toast-container');
@@ -3928,6 +3937,7 @@
       }
       
       jsonToCsv(items, skipDeleted = false) {
+        // We don't export _id
         const headers = ['no', 'owner', 'purchasePrice', 'repairCost', 'sellingPrice', 'netProfit', 'datePurchase', 'dateSelling', '_updatedAt', '_deleted'];
         const headerRow = headers.map(h => `"${h}"`).join(',');
         
@@ -3954,20 +3964,6 @@
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#039;');
-      }
-      
-      loadScript(src) {
-        return new Promise((resolve, reject) => {
-          if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-          }
-          const script = document.createElement('script');
-          script.src = src;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-          document.head.appendChild(script);
-        });
       }
       
     }
