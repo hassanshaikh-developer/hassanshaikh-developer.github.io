@@ -216,23 +216,112 @@ class BikeManagerApp {
    * Initialize IndexedDB
    */
   async initDatabase() {
-    this.db = new Dexie('BikeManagerDB');
-    
-    // Version 1: Original schema with 'no' as indexed (implicitly unique)
-    this.db.version(1).stores({
-      bikes: '_id, no, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
-    });
-    
-    // Version 2: Remove 'no' from direct index to allow duplicates, keep only compound index
-    this.db.version(2).stores({
-      bikes: '_id, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
-    }).upgrade(async tx => {
-      // Migration: no action needed, just schema change
-      console.log('Upgraded to schema v2: removed unique constraint on plate number');
-    });
-    
-    await this.db.open();
-    console.log('Database initialized');
+    try {
+      this.db = new Dexie('BikeManagerDB');
+      
+      // Version 1: Original schema with 'no' as indexed (implicitly unique)
+      this.db.version(1).stores({
+        bikes: '_id, no, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
+      });
+      
+      // Version 2: Remove 'no' from direct index to allow duplicates
+      this.db.version(2).stores({
+        bikes: '_id, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
+      }).upgrade(async tx => {
+        console.log('Upgrading to schema v2: removing unique constraint on plate number');
+        // The index removal happens automatically when we remove 'no' from stores
+      });
+      
+      await this.db.open();
+      console.log('Database initialized');
+      
+      // Verify the upgrade worked by checking version
+      const version = await this.db.verno;
+      console.log(`Database version: ${version}`);
+      
+      // Double-check: if still on v1, force upgrade
+      if (version === 1) {
+        console.warn('Database is still on v1, attempting forced upgrade...');
+        try {
+          // Close and reopen to trigger upgrade
+          await this.db.close();
+          await this.db.open();
+          const newVersion = await this.db.verno;
+          if (newVersion === 2) {
+            console.log('Forced upgrade successful');
+          } else {
+            console.warn('Upgrade may not have completed, but continuing...');
+          }
+        } catch (upgradeError) {
+          console.error('Forced upgrade failed:', upgradeError);
+          // Continue anyway - the individual operation handlers will catch errors
+        }
+      }
+      
+    } catch (error) {
+      // If upgrade fails (e.g., due to existing duplicates), we need to handle it
+      if (error.name === 'UpgradeError' || (error.name === 'ConstraintError' && error.message && error.message.includes('no'))) {
+        console.warn('Database upgrade failed due to unique constraint, attempting to fix...', error);
+        
+        try {
+          // Try to open with a new database name (migration approach)
+          // First, try to read existing data if possible
+          let existingData = [];
+          try {
+            const tempDb = new Dexie('BikeManagerDB');
+            tempDb.version(1).stores({
+              bikes: '_id, no, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
+            });
+            await tempDb.open();
+            existingData = await tempDb.bikes.toArray();
+            await tempDb.close();
+            await tempDb.delete();
+            console.log(`Found ${existingData.length} existing records to migrate`);
+          } catch (readError) {
+            console.warn('Could not read existing data:', readError);
+          }
+          
+          // Delete and recreate with new schema
+          await this.db.delete();
+          this.db = new Dexie('BikeManagerDB');
+          this.db.version(2).stores({
+            bikes: '_id, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
+          });
+          await this.db.open();
+          console.log('Database recreated successfully');
+          
+          // Re-import existing data if we got it
+          if (existingData.length > 0) {
+            console.log('Re-importing existing data...');
+            for (const bike of existingData) {
+              try {
+                // Generate new _id to avoid conflicts
+                const newBike = { ...bike };
+                newBike._id = `bike_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                await this.db.bikes.add(newBike);
+              } catch (addError) {
+                console.warn('Failed to re-import bike:', bike.no, addError);
+              }
+            }
+            console.log('Data re-imported');
+          }
+        } catch (recreateError) {
+          console.error('Failed to recreate database:', recreateError);
+          // Last resort: delete and start fresh
+          try {
+            await this.db.delete();
+          } catch (e) {}
+          this.db = new Dexie('BikeManagerDB');
+          this.db.version(2).stores({
+            bikes: '_id, owner, datePurchase, dateSelling, _deleted, [dateSelling+_deleted]'
+          });
+          await this.db.open();
+          console.log('Database recreated (fresh start)');
+        }
+      } else {
+        throw error;
+      }
+    }
   }
 
   /**
@@ -353,15 +442,18 @@ class BikeManagerApp {
       }));
 
       // Use individual adds to handle duplicates gracefully
+      // Since 'no' is no longer unique, we can have duplicates
       let successCount = 0;
       let errorCount = 0;
+      
       for (const bike of bikes) {
         try {
+          // Use add (not put) since these are new records
           await this.db.bikes.add(bike);
           successCount++;
         } catch (error) {
-          // If duplicate _id, try update instead
-          if (error.name === 'ConstraintError') {
+          // If duplicate _id (not 'no'), try put instead
+          if (error.name === 'ConstraintError' && error.message && error.message.includes('_id')) {
             try {
               await this.db.bikes.put(bike);
               successCount++;
@@ -370,8 +462,20 @@ class BikeManagerApp {
               errorCount++;
             }
           } else {
-            console.warn('Failed to add bike:', bike.no, error);
-            errorCount++;
+            // If it's a 'no' constraint error, generate new _id and retry
+            if (error.message && error.message.includes('no')) {
+              try {
+                bike._id = `migrated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                await this.db.bikes.add(bike);
+                successCount++;
+              } catch (retryError) {
+                console.warn('Failed to add bike after retry:', bike.no, retryError);
+                errorCount++;
+              }
+            } else {
+              console.warn('Failed to add bike:', bike.no, error);
+              errorCount++;
+            }
           }
         }
       }
@@ -738,6 +842,40 @@ class BikeManagerApp {
     setTimeout(() => {
       this.setSyncStatus('success', 'Synced');
     }, 1000);
+  }
+
+  /**
+   * Safe bulk put - handles duplicates gracefully
+   */
+  async safeBulkPut(bikes) {
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const bike of bikes) {
+      try {
+        // Try put first (updates if exists, adds if not)
+        await this.db.bikes.put(bike);
+        successCount++;
+      } catch (error) {
+        // If constraint error, try generating new _id
+        if (error.name === 'ConstraintError') {
+          try {
+            const newBike = { ...bike };
+            newBike._id = `bike_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            await this.db.bikes.add(newBike);
+            successCount++;
+          } catch (retryError) {
+            console.warn('Failed to add bike after retry:', bike.no, retryError);
+            errorCount++;
+          }
+        } else {
+          console.warn('Failed to put bike:', bike.no, error);
+          errorCount++;
+        }
+      }
+    }
+    
+    return { successCount, errorCount };
   }
 
   /**
