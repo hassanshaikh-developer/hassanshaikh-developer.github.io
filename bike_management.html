@@ -2911,6 +2911,23 @@
           return (arr[idx] + arr[idx - 1] + arr[idx - 2]) / 3;
         });
 
+        if (typeof Chart === 'undefined') {
+          const parent = canvas.parentElement;
+          if (parent) {
+            parent.querySelectorAll('.chart-fallback').forEach(n => n.remove());
+            const div = document.createElement('div');
+            div.className = 'chart-fallback analytics-summary';
+            const latest = data[data.length - 1] || 0;
+            const prev = data[data.length - 2] || 0;
+            const growth = prev ? (((latest - prev) / Math.abs(prev)) * 100).toFixed(1) : 'N/A';
+            div.innerHTML = `
+              <div class="analytics-row"><div class="analytics-label">Monthly Growth</div><div class="analytics-value">${growth === 'N/A' ? 'N/A' : (growth >= 0 ? '↗' : '↘') + ' ' + Math.abs(growth) + '%'}</div></div>
+              <div class="analytics-row"><div class="analytics-label">Latest Month</div><div class="analytics-value">${this.settings.currency} ${this.formatCurrency(latest)}</div></div>
+            `;
+            parent.appendChild(div);
+          }
+          return;
+        }
         this.charts.profitTrend = new Chart(ctx, {
           type: 'line',
           data: {
@@ -2988,6 +3005,17 @@
           else profitBins['Profit (5k+)']++;
         });
 
+        if (typeof Chart === 'undefined') {
+          const parent = canvas.parentElement;
+          if (parent) {
+            parent.querySelectorAll('.chart-fallback').forEach(n => n.remove());
+            const div = document.createElement('div');
+            div.className = 'chart-fallback analytics-summary';
+            div.innerHTML = `<div class="analytics-row"><div class="analytics-label">Profit Distribution</div><div class="analytics-value">Charts disabled, showing counts</div></div>`;
+            parent.appendChild(div);
+          }
+          return;
+        }
         this.charts.profitPie = new Chart(ctx, {
           type: 'pie',
           data: {
@@ -3031,6 +3059,17 @@
           .sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0))
           .slice(0, 5);
           
+        if (typeof Chart === 'undefined') {
+          const parent = canvas.parentElement;
+          if (parent) {
+            parent.querySelectorAll('.chart-fallback').forEach(n => n.remove());
+            const div = document.createElement('div');
+            div.className = 'chart-fallback analytics-summary';
+            div.innerHTML = `<div class="analytics-row"><div class="analytics-label">Top Bikes</div><div class="analytics-value">${topBikes.map(b => b.no).join(', ') || '-'}</div></div>`;
+            parent.appendChild(div);
+          }
+          return;
+        }
         this.charts.topBikes = new Chart(ctx, {
           type: 'bar',
           data: {
@@ -3330,35 +3369,6 @@
         element.style.color = percentChange > 0 ? this.getChartColors().success : 
                              percentChange < 0 ? this.getChartColors().error : 
                              'var(--text-secondary)';
-      }
-              intersect: false,
-              mode: 'index'
-            },
-            scales: {
-              x: {
-                type: 'time',
-                time: { unit: 'day' },
-                grid: { display: false },
-                ticks: { color: colors.text }
-              },
-              y: {
-                grid: { color: colors.grid },
-                ticks: { color: colors.text }
-              }
-            },
-            plugins: {
-              legend: { position: 'top', labels: { color: colors.text } },
-              tooltip: {
-                callbacks: {
-                  label: (context) => {
-                    const value = Math.abs(context.raw);
-                    return `${context.dataset.label}: ${this.settings.currency} ${this.formatCurrency(value)}`;
-                  }
-                }
-              }
-            }
-          }
-        });
       }
       
       async openCashModal(mode = 'set') {
