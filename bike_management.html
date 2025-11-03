@@ -92,6 +92,35 @@
       --transition-speed: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    /* Analytics Components */
+    .analytics-summary {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+    }
+    .analytics-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--border-color-subtle);
+    }
+    .analytics-row:last-child {
+      border-bottom: none;
+    }
+    .analytics-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .analytics-value {
+      font-weight: 600;
+    }
+    .stat-card-trend {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
     /* --- 3. Base & Reset --- */
     *, *::before, *::after { box-sizing: border-box; }
     html { 
@@ -1451,21 +1480,44 @@
               <div class="stat-card">
                 <div class="stat-card-title">Total Cash Inflow</div>
                 <div class="stat-card-value text-success" id="stat-cash-inflow">₹ 0.00</div>
+                <div class="stat-card-trend" id="stat-inflow-trend"></div>
               </div>
               <div class="stat-card">
                 <div class="stat-card-title">Total Cash Outflow</div>
                 <div class="stat-card-value text-error" id="stat-cash-outflow">₹ 0.00</div>
+                <div class="stat-card-trend" id="stat-outflow-trend"></div>
               </div>
               <div class="stat-card">
                 <div class="stat-card-title">Net Cash Flow</div>
                 <div class="stat-card-value" id="stat-net-cash">₹ 0.00</div>
+                <div class="stat-card-trend" id="stat-net-trend"></div>
               </div>
               <div class="stat-card">
                 <div class="stat-card-title">Current Cash</div>
                 <div class="stat-card-value" id="stat-cash-current">₹ 0.00</div>
+                <div class="stat-card-trend" id="stat-balance-trend"></div>
               </div>
             </div>
-            <canvas id="chart-cash-flow" role="img" aria-label="Cash flow trend chart" style="width: 100%; height: 200px;"></canvas>
+            
+            <!-- Text Analytics Summary -->
+            <div class="analytics-summary">
+              <div class="analytics-row">
+                <div class="analytics-label">30-Day Summary:</div>
+                <div class="analytics-value" id="cash-30-day-summary">Loading...</div>
+              </div>
+              <div class="analytics-row">
+                <div class="analytics-label">Monthly Growth:</div>
+                <div class="analytics-value" id="cash-monthly-growth">Loading...</div>
+              </div>
+              <div class="analytics-row">
+                <div class="analytics-label">Largest Inflow:</div>
+                <div class="analytics-value" id="cash-largest-inflow">Loading...</div>
+              </div>
+              <div class="analytics-row">
+                <div class="analytics-label">Largest Outflow:</div>
+                <div class="analytics-value" id="cash-largest-outflow">Loading...</div>
+              </div>
+            </div>
           </div>
 
           <!-- Cash Log -->
@@ -1820,8 +1872,6 @@
     Loaded via CDN. The Service Worker will cache these for offline use.
   -->
   <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <!-- Added for PDF Export -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
@@ -1978,8 +2028,6 @@
               'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
               'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2',
               'https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js',
-              'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
-              'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js',
               'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
               'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'
             ];
@@ -2161,7 +2209,20 @@
 
       async migrateFromLocalStorage() {
         const oldDataRaw = localStorage.getItem(OLD_STORAGE_KEY);
-        if (!oldDataRaw) return;
+        if (!oldDataRaw) {
+          // Create initial cash log entry if none exists
+          const cashCount = await this.db.cashLog.count();
+          if (cashCount === 0 && this.settings.cashInHand > 0) {
+            await this.db.cashLog.add({
+              timestamp: new Date().toISOString(),
+              type: 'set',
+              amount: this.settings.cashInHand,
+              reason: 'Initial balance',
+              balance: this.settings.cashInHand
+            });
+          }
+          return;
+        }
         
         try {
           const oldDb = JSON.parse(oldDataRaw);
@@ -2683,7 +2744,7 @@
       async renderStatsDashboard() {
         // Render cash flow first since it's most important
         await this.renderCashLog();
-        await this.renderCashFlowChart();
+        await this.renderCashFlowAnalytics();
         
         // This is the source for main page stats too
         let bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
@@ -3068,7 +3129,7 @@
           }
           this.renderCashInHand();
           this.renderCashLog(); // Update the log view if visible
-          this.renderCashFlowChart(); // Update the cash flow chart
+          this.renderCashFlowAnalytics(); // Update analytics
           
           // Don't trigger sync for every minor change
           if (['set', 'increase', 'decrease'].includes(type)) {
@@ -3166,35 +3227,49 @@
         });
       }
       
-      async renderCashFlowChart() {
-        const canvas = document.getElementById('chart-cash-flow');
-        if (!canvas) return; // Not on stats page
-        
-        const ctx = canvas.getContext('2d');
-        const colors = this.getChartColors();
-        
-        if (this.charts.cashFlow) {
-          this.charts.cashFlow.destroy();
-          this.charts.cashFlow = null;
-        }
-        
+      async renderCashFlowAnalytics() {
         const entries = await this.getCashLog(1000);
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        // Aggregate daily data
         const dailyData = {};
         let totalIn = 0;
         let totalOut = 0;
+        let largestInflow = { amount: 0, date: null, description: '' };
+        let largestOutflow = { amount: 0, date: null, description: '' };
         
         entries.forEach(entry => {
+          const entryDate = new Date(entry.timestamp);
           const day = entry.timestamp.substring(0, 10);
+          
           if (!dailyData[day]) {
             dailyData[day] = { in: 0, out: 0 };
           }
+          
           if (entry.type !== 'set') { // Exclude "set" operations from flow calculation
             if (entry.amount > 0) {
               dailyData[day].in += entry.amount;
               totalIn += entry.amount;
+              if (entry.amount > largestInflow.amount) {
+                largestInflow = {
+                  amount: entry.amount,
+                  date: entryDate,
+                  description: entry.reason || ''
+                };
+              }
             } else {
-              dailyData[day].out += Math.abs(entry.amount);
-              totalOut += Math.abs(entry.amount);
+              const absAmount = Math.abs(entry.amount);
+              dailyData[day].out += absAmount;
+              totalOut += absAmount;
+              if (absAmount > largestOutflow.amount) {
+                largestOutflow = {
+                  amount: absAmount,
+                  date: entryDate,
+                  description: entry.reason || ''
+                };
+              }
             }
           }
         });
@@ -3209,32 +3284,53 @@
         document.getElementById('stat-cash-current').textContent = 
           `${this.settings.currency} ${this.formatCurrency(this.settings.cashInHand)}`;
         
-        const sortedDays = Object.keys(dailyData).sort();
-        const labels = sortedDays.map(day => new Date(day));
+        // Calculate monthly trends
+        const thisMonth = entries
+          .filter(entry => new Date(entry.timestamp).getMonth() === today.getMonth())
+          .reduce((sum, entry) => sum + (entry.type !== 'set' ? entry.amount : 0), 0);
         
-        this.charts.cashFlow = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: 'Cash In',
-                data: sortedDays.map(day => dailyData[day].in),
-                backgroundColor: colors.success + 'B3',
-                stack: 'stack0',
-              },
-              {
-                label: 'Cash Out',
-                data: sortedDays.map(day => -dailyData[day].out),
-                backgroundColor: colors.error + 'B3',
-                stack: 'stack0',
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
+        const lastMonth = entries
+          .filter(entry => {
+            const entryMonth = new Date(entry.timestamp).getMonth();
+            return entryMonth === (today.getMonth() - 1 + 12) % 12;
+          })
+          .reduce((sum, entry) => sum + (entry.type !== 'set' ? entry.amount : 0), 0);
+        
+        const growthRate = lastMonth ? ((thisMonth - lastMonth) / Math.abs(lastMonth) * 100) : 0;
+        
+        // Update trend indicators
+        this.updateTrendIndicator('stat-inflow-trend', totalIn, lastMonth > 0 ? totalIn - lastMonth : 0);
+        this.updateTrendIndicator('stat-outflow-trend', totalOut, lastMonth < 0 ? totalOut - Math.abs(lastMonth) : 0);
+        this.updateTrendIndicator('stat-net-trend', totalIn - totalOut, thisMonth - lastMonth);
+        this.updateTrendIndicator('stat-balance-trend', this.settings.cashInHand, thisMonth);
+        
+        // Update analytics summary
+        const recentEntries = entries.filter(entry => new Date(entry.timestamp) >= thirtyDaysAgo);
+        
+        document.getElementById('cash-30-day-summary').textContent = 
+          `Net flow of ${this.settings.currency} ${this.formatCurrency(totalIn - totalOut)} from ${recentEntries.length} transactions`;
+        
+        document.getElementById('cash-monthly-growth').textContent = 
+          `${growthRate >= 0 ? '↗' : '↘'} ${Math.abs(growthRate).toFixed(1)}% vs last month`;
+        
+        document.getElementById('cash-largest-inflow').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(largestInflow.amount)} on ${largestInflow.date.toLocaleDateString()}`;
+        
+        document.getElementById('cash-largest-outflow').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(largestOutflow.amount)} on ${largestOutflow.date.toLocaleDateString()}`;
+      }
+      
+      updateTrendIndicator(elementId, current, change) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+      
+        const percentChange = change !== 0 ? (change / Math.abs(current - change) * 100) : 0;
+        const indicator = percentChange > 0 ? '↗' : percentChange < 0 ? '↘' : '→';
+        element.textContent = `${indicator} ${Math.abs(percentChange).toFixed(1)}%`;
+        element.style.color = percentChange > 0 ? this.getChartColors().success : 
+                             percentChange < 0 ? this.getChartColors().error : 
+                             'var(--text-secondary)';
+      }
               intersect: false,
               mode: 'index'
             },
@@ -4029,13 +4125,19 @@
         this.setSyncStatus('syncing', 'Syncing...');
         if (isManual) this.showToast("Starting sync...", 'info');
         
+        const cashFilename = 'cash_log.json';
+        
         try {
           this.setSyncStatus('syncing', 'Fetching remote...');
           const remoteFile = await this.fetchFromGist();
           
+          // Get both bikes and cash data from Gist
+          const gistData = await this.fetchFromGist();
           let remoteBikes = [];
-          if (remoteFile && remoteFile.content) {
-            const remoteBikesRaw = this.csvToJson(remoteFile.content);
+          let remoteCashLog = [];
+
+          if (gistData.bikes && gistData.bikes.content) {
+            const remoteBikesRaw = this.csvToJson(gistData.bikes.content);
             
             remoteBikes = remoteBikesRaw.map(b => {
               const purchasePrice = parseFloat(b.purchasePrice) || 0;
@@ -4053,7 +4155,17 @@
                 _deleted: b._deleted === 'true' || b._deleted === true || false,
               };
             });
-            this.settings.lastSyncSha = remoteFile.sha;
+            this.settings.lastSyncSha = gistData.bikes.sha;
+          }
+          
+          // Handle cash log sync
+          if (gistData.cash && gistData.cash.content) {
+            try {
+              remoteCashLog = JSON.parse(gistData.cash.content);
+            } catch (e) {
+              console.error('Failed to parse remote cash log:', e);
+              remoteCashLog = [];
+            }
           }
           
           const localBikes = await this.db.bikes.toArray();
@@ -4076,20 +4188,43 @@
           
           const mergedBikes = Array.from(mergedBikesMap.values());
           
+          // Get local cash log
+          const localCashLog = await this.db.cashLog.toArray();
+          
+          // Merge cash log entries - local wins on conflict
+          const cashLogMap = new Map();
+          remoteCashLog.forEach(entry => {
+            cashLogMap.set(entry.timestamp, entry);
+          });
+          localCashLog.forEach(entry => {
+            cashLogMap.set(entry.timestamp, entry);
+          });
+          const mergedCashLog = Array.from(cashLogMap.values())
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
           this.setSyncStatus('syncing', 'Saving local...');
-          await this.db.transaction('rw', this.db.bikes, async () => {
+          await this.db.transaction('rw', this.db.bikes, this.db.cashLog, async () => {
             await this.db.bikes.clear();
             await this.db.bikes.bulkPut(mergedBikes);
+            
+            await this.db.cashLog.clear();
+            await this.db.cashLog.bulkPut(mergedCashLog);
           });
           
           this.setSyncStatus('syncing', 'Pushing remote...');
-          // Don't export internal _id to CSV
+          // Don't export internal _id to CSV/JSON
           const csvContent = this.jsonToCsv(mergedBikes.map(b => {
             const {_id, ...rest} = b; return rest;
           }), false);
           
-          if (!remoteFile || csvContent !== remoteFile.content) {
-            const newSha = await this.pushToGist(csvContent, this.settings.lastSyncSha);
+          const cashContent = mergedCashLog.map(entry => {
+            const {_id, ...rest} = entry;
+            return rest;
+          });
+          
+          if (!gistData.bikes || csvContent !== gistData.bikes.content || 
+              !gistData.cash || JSON.stringify(cashContent) !== gistData.cash.content) {
+            const newSha = await this.pushToGist(csvContent, cashContent, this.settings.lastSyncSha);
             this.settings.lastSyncSha = newSha;
           } else {
             console.log("No changes to push.");
@@ -4129,27 +4264,43 @@
         }
         
         const gist = await response.json();
-        const file = gist.files[gistFilename];
         const latestSha = gist.history[0].version;
         
-        if (!file) {
-          // File doesn't exist, this is fine, we'll create it on push
-          console.log(`File "${gistFilename}" not found in Gist. Will create it.`);
-          return null;
+        const result = {
+          bikes: null,
+          cash: null
+        };
+
+        // Get bikes CSV file
+        const bikesFile = gist.files[gistFilename];
+        if (bikesFile) {
+          let content;
+          if (bikesFile.truncated) {
+            const rawResponse = await fetch(bikesFile.raw_url);
+            content = await rawResponse.text();
+          } else {
+            content = bikesFile.content;
+          }
+          result.bikes = { content, sha: latestSha };
+        }
+
+        // Get cash log JSON file
+        const cashFile = gist.files['cash_log.json'];
+        if (cashFile) {
+          let content;
+          if (cashFile.truncated) {
+            const rawResponse = await fetch(cashFile.raw_url);
+            content = await rawResponse.text();
+          } else {
+            content = cashFile.content;
+          }
+          result.cash = { content, sha: latestSha };
         }
         
-        let content;
-        if (file.truncated) {
-          const rawResponse = await fetch(file.raw_url);
-          content = await rawResponse.text();
-        } else {
-          content = file.content;
-        }
-        
-        return { content, sha: latestSha };
+        return result;
       }
       
-      async pushToGist(plainTextContent, sha) {
+      async pushToGist(bikesContent, cashContent, sha) {
         const { gistId, githubPat, gistFilename } = this.settings;
         const url = `https://api.github.com/gists/${gistId}`;
         
@@ -4157,7 +4308,10 @@
           description: `Bike Manager DB updated ${new Date().toISOString()}`,
           files: {
             [gistFilename]: {
-              content: plainTextContent
+              content: bikesContent
+            },
+            'cash_log.json': {
+              content: JSON.stringify(cashContent, null, 2)
             }
           }
         };
