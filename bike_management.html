@@ -2028,6 +2028,8 @@
               'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
               'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2',
               'https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js',
+              'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+              'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js',
               'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
               'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'
             ];
@@ -2744,7 +2746,7 @@
       async renderStatsDashboard() {
         // Render cash flow first since it's most important
         await this.renderCashLog();
-        await this.renderCashFlowAnalytics();
+        await this.renderCashFlowChart();
         
         // This is the source for main page stats too
         let bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
@@ -2911,23 +2913,6 @@
           return (arr[idx] + arr[idx - 1] + arr[idx - 2]) / 3;
         });
 
-        if (typeof Chart === 'undefined') {
-          const parent = canvas.parentElement;
-          if (parent) {
-            parent.querySelectorAll('.chart-fallback').forEach(n => n.remove());
-            const div = document.createElement('div');
-            div.className = 'chart-fallback analytics-summary';
-            const latest = data[data.length - 1] || 0;
-            const prev = data[data.length - 2] || 0;
-            const growth = prev ? (((latest - prev) / Math.abs(prev)) * 100).toFixed(1) : 'N/A';
-            div.innerHTML = `
-              <div class="analytics-row"><div class="analytics-label">Monthly Growth</div><div class="analytics-value">${growth === 'N/A' ? 'N/A' : (growth >= 0 ? '↗' : '↘') + ' ' + Math.abs(growth) + '%'}</div></div>
-              <div class="analytics-row"><div class="analytics-label">Latest Month</div><div class="analytics-value">${this.settings.currency} ${this.formatCurrency(latest)}</div></div>
-            `;
-            parent.appendChild(div);
-          }
-          return;
-        }
         this.charts.profitTrend = new Chart(ctx, {
           type: 'line',
           data: {
@@ -3005,17 +2990,6 @@
           else profitBins['Profit (5k+)']++;
         });
 
-        if (typeof Chart === 'undefined') {
-          const parent = canvas.parentElement;
-          if (parent) {
-            parent.querySelectorAll('.chart-fallback').forEach(n => n.remove());
-            const div = document.createElement('div');
-            div.className = 'chart-fallback analytics-summary';
-            div.innerHTML = `<div class="analytics-row"><div class="analytics-label">Profit Distribution</div><div class="analytics-value">Charts disabled, showing counts</div></div>`;
-            parent.appendChild(div);
-          }
-          return;
-        }
         this.charts.profitPie = new Chart(ctx, {
           type: 'pie',
           data: {
@@ -3059,17 +3033,6 @@
           .sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0))
           .slice(0, 5);
           
-        if (typeof Chart === 'undefined') {
-          const parent = canvas.parentElement;
-          if (parent) {
-            parent.querySelectorAll('.chart-fallback').forEach(n => n.remove());
-            const div = document.createElement('div');
-            div.className = 'chart-fallback analytics-summary';
-            div.innerHTML = `<div class="analytics-row"><div class="analytics-label">Top Bikes</div><div class="analytics-value">${topBikes.map(b => b.no).join(', ') || '-'}</div></div>`;
-            parent.appendChild(div);
-          }
-          return;
-        }
         this.charts.topBikes = new Chart(ctx, {
           type: 'bar',
           data: {
@@ -3168,7 +3131,7 @@
           }
           this.renderCashInHand();
           this.renderCashLog(); // Update the log view if visible
-          this.renderCashFlowAnalytics(); // Update analytics
+          this.renderCashFlowChart(); // Update the cash flow chart
           
           // Don't trigger sync for every minor change
           if (['set', 'increase', 'decrease'].includes(type)) {
@@ -3266,49 +3229,35 @@
         });
       }
       
-      async renderCashFlowAnalytics() {
-        const entries = await this.getCashLog(1000);
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
+      async renderCashFlowChart() {
+        const canvas = document.getElementById('chart-cash-flow');
+        if (!canvas) return; // Not on stats page
         
-        // Aggregate daily data
+        const ctx = canvas.getContext('2d');
+        const colors = this.getChartColors();
+        
+        if (this.charts.cashFlow) {
+          this.charts.cashFlow.destroy();
+          this.charts.cashFlow = null;
+        }
+        
+        const entries = await this.getCashLog(1000);
         const dailyData = {};
         let totalIn = 0;
         let totalOut = 0;
-        let largestInflow = { amount: 0, date: null, description: '' };
-        let largestOutflow = { amount: 0, date: null, description: '' };
         
         entries.forEach(entry => {
-          const entryDate = new Date(entry.timestamp);
           const day = entry.timestamp.substring(0, 10);
-          
           if (!dailyData[day]) {
             dailyData[day] = { in: 0, out: 0 };
           }
-          
           if (entry.type !== 'set') { // Exclude "set" operations from flow calculation
             if (entry.amount > 0) {
               dailyData[day].in += entry.amount;
               totalIn += entry.amount;
-              if (entry.amount > largestInflow.amount) {
-                largestInflow = {
-                  amount: entry.amount,
-                  date: entryDate,
-                  description: entry.reason || ''
-                };
-              }
             } else {
-              const absAmount = Math.abs(entry.amount);
-              dailyData[day].out += absAmount;
-              totalOut += absAmount;
-              if (absAmount > largestOutflow.amount) {
-                largestOutflow = {
-                  amount: absAmount,
-                  date: entryDate,
-                  description: entry.reason || ''
-                };
-              }
+              dailyData[day].out += Math.abs(entry.amount);
+              totalOut += Math.abs(entry.amount);
             }
           }
         });
@@ -3323,52 +3272,60 @@
         document.getElementById('stat-cash-current').textContent = 
           `${this.settings.currency} ${this.formatCurrency(this.settings.cashInHand)}`;
         
-        // Calculate monthly trends
-        const thisMonth = entries
-          .filter(entry => new Date(entry.timestamp).getMonth() === today.getMonth())
-          .reduce((sum, entry) => sum + (entry.type !== 'set' ? entry.amount : 0), 0);
+        const sortedDays = Object.keys(dailyData).sort();
+        const labels = sortedDays.map(day => new Date(day));
         
-        const lastMonth = entries
-          .filter(entry => {
-            const entryMonth = new Date(entry.timestamp).getMonth();
-            return entryMonth === (today.getMonth() - 1 + 12) % 12;
-          })
-          .reduce((sum, entry) => sum + (entry.type !== 'set' ? entry.amount : 0), 0);
-        
-        const growthRate = lastMonth ? ((thisMonth - lastMonth) / Math.abs(lastMonth) * 100) : 0;
-        
-        // Update trend indicators
-        this.updateTrendIndicator('stat-inflow-trend', totalIn, lastMonth > 0 ? totalIn - lastMonth : 0);
-        this.updateTrendIndicator('stat-outflow-trend', totalOut, lastMonth < 0 ? totalOut - Math.abs(lastMonth) : 0);
-        this.updateTrendIndicator('stat-net-trend', totalIn - totalOut, thisMonth - lastMonth);
-        this.updateTrendIndicator('stat-balance-trend', this.settings.cashInHand, thisMonth);
-        
-        // Update analytics summary
-        const recentEntries = entries.filter(entry => new Date(entry.timestamp) >= thirtyDaysAgo);
-        
-        document.getElementById('cash-30-day-summary').textContent = 
-          `Net flow of ${this.settings.currency} ${this.formatCurrency(totalIn - totalOut)} from ${recentEntries.length} transactions`;
-        
-        document.getElementById('cash-monthly-growth').textContent = 
-          `${growthRate >= 0 ? '↗' : '↘'} ${Math.abs(growthRate).toFixed(1)}% vs last month`;
-        
-        document.getElementById('cash-largest-inflow').textContent = 
-          `${this.settings.currency} ${this.formatCurrency(largestInflow.amount)} on ${largestInflow.date.toLocaleDateString()}`;
-        
-        document.getElementById('cash-largest-outflow').textContent = 
-          `${this.settings.currency} ${this.formatCurrency(largestOutflow.amount)} on ${largestOutflow.date.toLocaleDateString()}`;
-      }
-      
-      updateTrendIndicator(elementId, current, change) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-      
-        const percentChange = change !== 0 ? (change / Math.abs(current - change) * 100) : 0;
-        const indicator = percentChange > 0 ? '↗' : percentChange < 0 ? '↘' : '→';
-        element.textContent = `${indicator} ${Math.abs(percentChange).toFixed(1)}%`;
-        element.style.color = percentChange > 0 ? this.getChartColors().success : 
-                             percentChange < 0 ? this.getChartColors().error : 
-                             'var(--text-secondary)';
+        this.charts.cashFlow = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Cash In',
+                data: sortedDays.map(day => dailyData[day].in),
+                backgroundColor: colors.success + 'B3',
+                stack: 'stack0',
+              },
+              {
+                label: 'Cash Out',
+                data: sortedDays.map(day => -dailyData[day].out),
+                backgroundColor: colors.error + 'B3',
+                stack: 'stack0',
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            },
+            scales: {
+              x: {
+                type: 'time',
+                time: { unit: 'day' },
+                grid: { display: false },
+                ticks: { color: colors.text }
+              },
+              y: {
+                grid: { color: colors.grid },
+                ticks: { color: colors.text }
+              }
+            },
+            plugins: {
+              legend: { position: 'top', labels: { color: colors.text } },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = Math.abs(context.raw);
+                    return `${context.dataset.label}: ${this.settings.currency} ${this.formatCurrency(value)}`;
+                  }
+                }
+              }
+            }
+          }
+        });
       }
       
       async openCashModal(mode = 'set') {
