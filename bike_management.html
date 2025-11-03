@@ -1,11 +1,185 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Bike Manager</title>
+  <meta name="description" content="Offline-first bike inventory manager with GitHub sync and analytics." />
+  
+  <!-- 
+    Bike Manager v2 (Refactored)
+    - UI: Simplified, flat, light-theme-only, mobile-first design.
+    - Code: All CSS and JS are self-contained.
+    - Removed: Dark mode, theme toggle, shadows, ripple effects, and all non-essential UI.
+    - Added: "Cash in Hand" feature (tracks balance across transactions).
+    - Added: Bulk Delete.
+    - Added: PDF Export (using jsPDF).
+    - Added: Auto-sync after major CUD operations and before export.
+    - Updated: Bulk Sell now uses a modal instead of prompts.
+  -->
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bike Manager" />
+  
+  <!-- 
+    CSP: Content Security Policy. 
+    Allows required CDNs for libraries (Dexie, Chart.js, jsPDF) and Gist sync.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+    style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://api.github.com;
+    img-src 'self' data: blob:;
+    object-src 'none';
+    frame-ancestors 'none';
+  ">
+  
+  <!-- Inline Web App Manifest -->
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8;base64,ew0KICAibmFtZSI6ICJCaWtlIE1hbmFnZXIiLA0KICAic2hvcnRfbmFtZSI6ICJCaWtlTWdyIiwNCiAgImRlc2NyaXB0aW9uIjogIk9mZmxpbmUtZmlyc3QgYmlrZSBpbnZlbnRvcnkgbWFuYWdlci4iLA0KICAic3RhcnRfdXJsIjogIi4vIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmNGY1ZjciLA0KICAidGhlbWVfY29sb3IiOiAiIzMzNDFlMiIsDQogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdC1wcmltYXJ5IiwNCiAgImljb25zIjogWw0KICAgIHsNCiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyBmaWxsPSclMjMwMEIwQzknJTNFJTNDcmVjdCB3aWR0aD0nMTkyJyBoZWlnaHQ9JzE5Micgcng9JzMyJyBmaWxsPSclMjNmZmYnLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGEnIGZvbnQtc2l6ZT0nOTYnIGZvbnQtZmFtaWx5PSdzYW5zLXNlcmlmJyBmaWxsPSclMjMwYzQ3NWInIGZvbnQtd2VpZ3Q9J2JvbGQnJTNFQk0lM0MvdGV4dCUzRSUzQy9zdmclM0UiLA0KICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsDQogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsDQogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiDQogICAgfSwNCiAgICB7DQogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCwlM0NzdWcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgNTEyIDUxMicgZmlsbD0nJTIzMDBCMEM5JTNFJTNDcmVjdCB3aWR0aD0nNTEyJyBoZWlnaHQ9JzUxMicgcng9JzY0JyBmaWxsPSclMjNmZmYnLz4lM0N0ZXh0IHg9JzUwJTI1JyB5PSc1MCUyNScgZG9taW5hbnQtYmFzZWxpbmU9J2NlbnRyYWwnIHRleHQtYW5jaG9yPSdtaWRkbGEnIGZvbnQtc2l6ZT0nMjU2JyBmb250LWZhbWlseT0nc2Fucy1zZXJpZicgZmlsbD0nJTIzMGM0NzViJyBmb250LXdlaWdodD0nYm9sZCclM0VCTSVDMyVBRi90ZXh0JTNFJTNDL3N2ZyUzRSIsDQogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwNCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIg0KICAgIH0NCiAgXQ0KfQ0K" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%2300B0C9'%3E%3Crect width='192' height='192' rx='32' fill='%23fff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='96' font-family='sans-serif' fill='%230c475b' font-weight='bold'%3EBM%3C/text%3E%3C/svg%3E" />
+
+  <!-- 
+    Simplified Flat Styles
+    All CSS is self-contained here. Removed shadows, dark mode, and complex effects.
+  -->
   <style>
+    /* --- 1. Fonts & Root Variables (Simplified Light Theme) --- */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      /* Base Light Theme */
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-page: #f4f7fa;
+      --bg-card: #ffffff;
+      --bg-header: rgba(255, 255, 255, 0.85);
+      --bg-modal: rgba(244, 247, 250, 0.9);
+      --bg-input: #f4f7fa;
+      --bg-input-focus: #ffffff;
+      --bg-hover: #f0f4f8;
+      --bg-active: #e9eef3;
+      --bg-nav: var(--bg-header);
+
+      --accent-1: #0e7490; /* Teal/Blue accent */
+      --accent-1-hover: #155e75;
+      --accent-text: #ffffff;
+
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --text-disabled: #9ca3af;
+      --text-placeholder: #9ca3af;
+
+      --border-color: #e5e7eb;
+      --border-color-subtle: #f3f4f6;
+      --border-focus: var(--accent-1);
+      
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+      
+      --nav-height-mobile: 60px;
+      --header-height: 60px;
+      --tap-target: 44px;
+      --transition-speed: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Analytics Components */
+    .analytics-summary {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+    }
+    .analytics-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--border-color-subtle);
+    }
+    .analytics-row:last-child {
+      border-bottom: none;
+    }
+    .analytics-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .analytics-value {
+      font-weight: 600;
+    }
+    .stat-card-trend {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    /* --- 3. Base & Reset --- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { 
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      scroll-behavior: smooth; 
+    }
+    body {
+      margin: 0;
+      font-family: var(--font-family);
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    input, button, select, textarea {
+      font-family: inherit;
+      color: inherit;
+      font-size: 1rem;
+    }
+    button { 
+      cursor: pointer; 
+      border: none; 
+      background: none; 
+      padding: 0; 
+      -webkit-appearance: none;
+    }
+    h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; }
+    a { color: var(--accent-1); text-decoration: none; }
+    svg { display: block; }
+    ::placeholder { color: var(--text-placeholder); opacity: 1; }
+
+    *:focus-visible {
+      outline: 2px solid var(--accent-1);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* --- 4. Main App Layout --- */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
     .app-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      height: var(--header-height);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -273,12 +447,6 @@
     .cash-entry-amount.decrease {
       color: var(--error);
     }
-
-    /* Log message helpers */
-    .log-message { padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; }
-    .log-message.success { background: rgba(22,163,74,0.06); color: var(--success); border: 1px solid rgba(22,163,74,0.12); }
-    .log-message.warning { background: rgba(245,158,11,0.06); color: var(--warning); border: 1px solid rgba(245,158,11,0.12); }
-    .log-message.error { background: rgba(239,68,68,0.06); color: var(--error); border: 1px solid rgba(239,68,68,0.12); }
 
     .btn-icon {
       padding: 10px;
@@ -672,9 +840,7 @@
       position: fixed;
       bottom: calc(var(--nav-height-mobile) + 16px);
       left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      opacity: 0;
-      pointer-events: none;
+      transform: translateX(-50%) translateY(120px);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
@@ -683,12 +849,10 @@
       gap: 8px;
       align-items: center;
       z-index: 150;
-      transition: transform 0.28s var(--transition-speed), opacity 0.28s var(--transition-speed);
+      transition: transform 0.3s ease;
     }
     .bulk-action-bar.active {
       transform: translateX(-50%) translateY(0);
-      opacity: 1;
-      pointer-events: auto;
     }
     .bulk-action-bar .count {
       font-weight: 600;
@@ -702,12 +866,10 @@
         left: auto;
         right: 32px;
         bottom: 32px;
-        transform: translateY(20px);
+        transform: translateY(150px);
       }
       .bulk-action-bar.active {
         transform: translateY(0);
-        opacity: 1;
-        pointer-events: auto;
       }
     }
 
@@ -871,7 +1033,6 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
-      margin-bottom: 24px;
     }
     @media (min-width: 1024px) {
       .stats-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
@@ -899,47 +1060,8 @@
       font-weight: 500;
       color: var(--text-secondary);
     }
-    .stat-card-trend {
-      font-size: 0.85rem;
-      font-weight: 500;
-      margin-top: 8px;
-    }
-
-    /* Analytics Sections */
-    .analytics-summary {
-      padding: 16px 0;
-      border-top: 1px solid var(--border-color);
-      margin-top: 16px;
-    }
-    .analytics-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-    }
-    .analytics-label {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-    }
-    .analytics-value {
-      font-weight: 500;
-    }
     
-    .card h3 {
-      font-size: 1.1rem;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    /* Analytics controls */
-    .control-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    /* Chart-related styles removed — charts have been disabled per requirements */
     
     .date-filter {
       display: flex;
@@ -1112,7 +1234,7 @@
   -->
   <svg width="0" height="0" style="position:absolute; overflow:hidden;">
     <symbol id="icon-list" viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
-    <symbol id="icon-analytics" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2h2V7h-2v10zm-4 0h2v-7H8v7zm8 0h2v-4h-2v4z"/></symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24"><path fill="currentColor" d="M3 22v-9h4v9H3zm0-11V3h4v8H3zm6 11v-5h4v5H9zm0-7V3h4v12H9zm6 7v-9h4v9h-4zm0-11V3h4v8h-4z"/></symbol>
     <symbol id="icon-settings" viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 12c0-.2.1-.4.1-.6c0-.2-.1-.4-.1-.6l1.7-1.3c.2-.1.2-.4 0-.6l-1.6-2.8c-.1-.2-.4-.3-.6-.2l-2 .8c-.4-.3-.8-.5-1.3-.7l-.3-2.1c0-.3-.2-.4-.5-.4h-3.2c-.3 0-.5.1-.5.4l-.3 2.1c-.5.2-.9.4-1.3.7l-2-.8c-.2-.1-.5 0-.6.2l-1.6 2.8c-.1.2-.1.5 0 .6l1.7 1.3c-.1.2-.1.4-.1.6c0 .2.1.4.1.6l-1.7 1.3c-.2.1-.2.4 0 .6l1.6 2.8c.1.2.4.3.6.2l2-.8c.4.3.8.5 1.3.7l.3 2.1c0 .3.2.4.5.4h3.2c.3 0 .5-.1.5.4l.3-2.1c.5-.2.9-.4 1.3-.7l2 .8c.2.1.5 0-.6.2l1.6-2.8c.1-.2.1-.5 0-.6l-1.7-1.3zm-7.4 2.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z"/></symbol>
     <symbol id="icon-buy" viewBox="0 0 24 24"><path fill="currentColor" d="M11 9h2v8h-2V9zm-2 2h-2v6h2v-6zm8 0h-2v6h2v-6zm-4-4h-2V5h2v2zm7-3H4.01L4 21h16V4zm-2 15H6V6h12v13z"/></symbol>
     <symbol id="icon-close" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/></symbol>
@@ -1147,7 +1269,7 @@
         <span>Bikes</span>
       </button>
       <button class="nav-btn" data-view="view-stats" aria-label="Statistics and analytics">
-        <svg><use href="#icon-analytics"></use></svg>
+        <svg><use href="#icon-chart"></use></svg>
         <span>Stats</span>
       </button>
       <button class="nav-btn" data-view="view-settings" aria-label="Settings">
@@ -1289,41 +1411,7 @@
           </div>
           
           <!-- Charts -->
-          <div class="card">
-            <h3>
-              <span>Monthly Profit — Key Insights</span>
-              <div class="control-actions">
-                <button class="btn-icon btn-ghost" id="export-profit-csv" title="Export Data" aria-label="Export profit data as CSV">
-                  <svg width="20" height="20"><use href="#icon-save"></use></svg>
-                </button>
-              </div>
-            </h3>
-            <div id="profit-analytics" class="analytics-summary">Calculating profit analytics...</div>
-          </div>
-
-          <div class="card">
-            <h3>
-              <span>Profit Distribution (Sold Bikes)</span>
-              <div class="analytics-summary">
-                <button class="btn-icon btn-ghost" id="export-distribution-csv" title="Export Data" aria-label="Export distribution data as CSV">
-                  <svg width="20" height="20"><use href="#icon-save"></use></svg>
-                </button>
-              </div>
-            </h3>
-            <div id="profit-distribution-analytics" class="analytics-summary">Calculating distribution...</div>
-          </div>
-
-          <div class="card">
-            <h3>
-              <span>Top 5 Profitable Bikes (Sold)</span>
-              <div class="chart-controls">
-                <button class="btn-icon btn-ghost" id="export-top-csv" title="Export Data" aria-label="Export top bikes data as CSV">
-                  <svg width="20" height="20"><use href="#icon-save"></use></svg>
-                </button>
-              </div>
-            </h3>
-            <div id="top-bikes-analytics" class="analytics-summary">Calculating top bikes...</div>
-          </div>
+          <!-- Charts removed as requested. Analytics will show textual summaries and cash log only. -->
 
           <!-- Cash Flow Panel -->
           <div class="card">
@@ -1376,7 +1464,7 @@
           <div class="card">
             <h3>
               <span>Cash Transaction Log</span>
-              <div class="control-actions">
+              <div class="chart-controls">
                 <button class="btn-icon btn-ghost" id="export-cash-log" title="Export Log" aria-label="Export cash log as CSV">
                   <svg width="20" height="20"><use href="#icon-save"></use></svg>
                 </button>
@@ -1473,30 +1561,19 @@
             <p>Export all local data or import from a file. Exports will be synced first.</p>
             <div class="form-grid" style="gap: 12px; grid-template-columns: 1fr 1fr 1fr;">
               <button class="btn btn-secondary" id="export-csv">Export CSV</button>
-              <button class="btn btn-secondary" id="export-json">Export JSON</button>
               <button class="btn btn-secondary" id="export-pdf">
                  <svg width="18" height="18"><use href="#icon-pdf"></use></svg>
                 <span>Export PDF</span>
               </button>
-              <button class="btn btn-secondary" id="import-csv">Import CSV/JSON</button>
+              <button class="btn btn-secondary" id="import-csv">Import CSV</button>
               <button class="btn btn-secondary" id="download-template">
                 <svg width="18" height="18"><use href="#icon-download"></use></svg>
                 <span>Template</span>
               </button>
-              <button class="btn btn-secondary hidden" id="share-data">
-                <svg width="18" height="18"><use href="#icon-share"></use></svg>
-                <span>Share</span>
-              </button>
             </div>
-            <input type="file" id="import-file-input" class="hidden" accept=".csv,.json,text/csv,application/json" />
+            <input type="file" id="import-file-input" class="hidden" accept=".csv,text/csv" />
             
-            <h4 class="mt-2">Keyboard Shortcuts</h4>
-            <p class="text-secondary">
-              <span class="kbd">Ctrl</span> + <span class="kbd">N</span> New bike &nbsp;•&nbsp;
-              <span class="kbd">Ctrl</span> + <span class="kbd">S</span> Save &nbsp;•&nbsp;
-              <span class="kbd">Esc</span> Close modal &nbsp;•&nbsp;
-              <span class="kbd">Ctrl</span> + <span class="kbd">Z</span> Undo
-            </p>
+            <!-- Keyboard shortcuts UI removed per request; keyboard handler remains active. -->
             
             <h4 class="mt-2">Danger Zone</h4>
             <button class="btn btn-danger" id="wipe-data-btn">
@@ -1880,6 +1957,7 @@
               'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
               'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2',
               'https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js',
+              /* Chart.js removed from cache list per requirements */
               'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
               'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'
             ];
@@ -2170,10 +2248,7 @@
         const desktopBtn = document.getElementById('buy-bike-desktop');
         if (desktopBtn) desktopBtn.style.display = this.isMobile ? 'none' : 'inline-flex';
         
-        if ('share' in navigator) {
-          const shareBtn = document.getElementById('share-data');
-          if (shareBtn) shareBtn.classList.remove('hidden');
-        }
+        // Share button removed — sharing disabled in this build per request.
         
         // Initialize cash buttons
         document.getElementById('cash-set').addEventListener('click', () => this.openCashModal('set'));
@@ -2320,20 +2395,17 @@
         });
         
         // Data Management
-        document.getElementById('export-csv').addEventListener('click', () => this.exportData('csv'));
-        document.getElementById('export-json').addEventListener('click', () => this.exportData('json'));
-        document.getElementById('export-pdf').addEventListener('click', () => this.exportData('pdf'));
-        document.getElementById('import-csv').addEventListener('click', () => document.getElementById('import-file-input').click());
-        document.getElementById('download-template').addEventListener('click', () => this.downloadTemplate());
-        document.getElementById('share-data').addEventListener('click', () => this.handleShareData());
+  document.getElementById('export-csv').addEventListener('click', () => this.exportData('csv'));
+  document.getElementById('export-pdf').addEventListener('click', () => this.exportData('pdf'));
+  document.getElementById('import-csv').addEventListener('click', () => document.getElementById('import-file-input').click());
+  document.getElementById('download-template').addEventListener('click', () => this.downloadTemplate());
         document.getElementById('import-file-input').addEventListener('change', (e) => this.handleImportFile(e));
         document.getElementById('wipe-data-btn').addEventListener('click', () => this.handleWipeData());
         
         // Stats Page
         document.getElementById('apply-date-filter').addEventListener('click', () => this.applyStatsDateFilter());
         document.getElementById('reset-date-filter').addEventListener('click', () => this.resetStatsDateFilter());
-        document.getElementById('export-profit-csv').addEventListener('click', () => this.exportChartData('profit'));
-  document.getElementById('download-top-chart').addEventListener('click', () => this.exportChartData('top'));
+  // Chart-related controls removed — functions disabled earlier per request.
         
         // PAT Modal
         document.getElementById('pat-skip').addEventListener('click', () => {
@@ -2411,95 +2483,6 @@
             localStorage.setItem('pat_needs_reentry', 'true');
           }
         });
-      }
-
-      // --- 5. TEXT ANALYTICS IMPLEMENTATION ---
-
-      getAnalyticsColors() {
-        return {
-          success: 'var(--success)',
-          warning: 'var(--warning)',
-          error: 'var(--error)',
-          muted: 'var(--text-secondary)',
-          accent: 'var(--accent-1)'
-        };
-      }
-
-      renderProfitAnalytics(soldBikes) {
-        const container = document.getElementById('profit-analytics');
-        if (!container) return;
-
-        const monthlyData = soldBikes.reduce((acc, bike) => {
-          if (!bike.dateSelling) return acc;
-          try {
-            const month = bike.dateSelling.substring(0, 7);
-            acc[month] = (acc[month] || 0) + parseFloat(bike.netProfit || 0);
-          } catch (e) {}
-          return acc;
-        }, {});
-
-        const sortedMonths = Object.keys(monthlyData).sort();
-        const data = sortedMonths.map(m => monthlyData[m]);
-        const latest = data[data.length - 1] || 0;
-        const prev = data[data.length - 2] || 0;
-        const growth = prev ? ((latest - prev) / Math.abs(prev) * 100) : 0;
-        const avg = data.length ? data.reduce((s, v) => s + v, 0) / data.length : 0;
-        const best = data.length ? Math.max(...data) : 0;
-        const worst = data.length ? Math.min(...data) : 0;
-
-        container.innerHTML = `
-          <div class="analytics-row"><div class="analytics-label">Latest month</div><div class="analytics-value">${this.settings.currency} ${this.formatCurrency(latest)}</div></div>
-          <div class="analytics-row"><div class="analytics-label">Month-over-month</div><div class="analytics-value" style="color: ${growth >= 0 ? 'var(--success)' : 'var(--error)'}">${growth >= 0 ? '↗' : '↘'} ${Math.abs(growth).toFixed(1)}%</div></div>
-          <div class="analytics-row"><div class="analytics-label">Average per month</div><div class="analytics-value">${this.settings.currency} ${this.formatCurrency(avg)}</div></div>
-          <div class="analytics-row"><div class="analytics-label">Best month</div><div class="analytics-value">${this.settings.currency} ${this.formatCurrency(best)}</div></div>
-          <div class="analytics-row"><div class="analytics-label">Lowest month</div><div class="analytics-value">${this.settings.currency} ${this.formatCurrency(worst)}</div></div>
-        `;
-      }
-
-      renderProfitDistributionAnalytics(soldBikes) {
-        const container = document.getElementById('profit-distribution-analytics');
-        if (!container) return;
-
-        const bins = {
-          loss: 0,
-          breakEven: 0,
-          small: 0,
-          medium: 0,
-          large: 0
-        };
-
-        soldBikes.forEach(b => {
-          const p = parseFloat(b.netProfit || 0);
-          if (p < 0) bins.loss++;
-          else if (p === 0) bins.breakEven++;
-          else if (p <= 1000) bins.small++;
-          else if (p <= 5000) bins.medium++;
-          else bins.large++;
-        });
-
-        container.innerHTML = `
-          <div class="analytics-row"><div class="analytics-label">Losses</div><div class="analytics-value text-error">${bins.loss}</div></div>
-          <div class="analytics-row"><div class="analytics-label">Break-even</div><div class="analytics-value">${bins.breakEven}</div></div>
-          <div class="analytics-row"><div class="analytics-label">Small profits (&le;1k)</div><div class="analytics-value">${bins.small}</div></div>
-          <div class="analytics-row"><div class="analytics-label">Medium profits (1k-5k)</div><div class="analytics-value">${bins.medium}</div></div>
-          <div class="analytics-row"><div class="analytics-label">Large profits (&gt;5k)</div><div class="analytics-value">${bins.large}</div></div>
-        `;
-      }
-
-      renderTopBikesAnalytics(soldBikes) {
-        const container = document.getElementById('top-bikes-analytics');
-        if (!container) return;
-
-        const top = [...soldBikes].sort((a, b) => parseFloat(b.netProfit || 0) - parseFloat(a.netProfit || 0)).slice(0, 5);
-        if (top.length === 0) {
-          container.innerHTML = '<div class="analytics-row">No sold bikes yet.</div>';
-          return;
-        }
-
-        container.innerHTML = top.map(b => `
-          <div class="analytics-row"><div class="analytics-label">${this.escapeHtml(b.no || '-')}</div>
-            <div class="analytics-value">${this.settings.currency} ${this.formatCurrency(parseFloat(b.netProfit || 0))}</div></div>
-        `).join('');
       }
       
       async renderAll() {
@@ -2658,14 +2641,10 @@
         const countEl = document.getElementById('selected-count');
         if (countEl) countEl.textContent = count;
         
-        if (bar) {
-          if (count > 0) {
-            bar.classList.add('active');
-            bar.setAttribute('aria-hidden', 'false');
-          } else {
-            bar.classList.remove('active');
-            bar.setAttribute('aria-hidden', 'true');
-          }
+        if (count > 0) {
+          bar.classList.add('active');
+        } else {
+          bar.classList.remove('active');
         }
       }
       
@@ -2687,7 +2666,7 @@
       async renderStatsDashboard() {
         // Render cash flow first since it's most important
         await this.renderCashLog();
-  await this.renderCashFlowAnalytics();
+        await this.renderCashFlowChart();
         
         // This is the source for main page stats too
         let bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
@@ -2736,9 +2715,7 @@
           document.getElementById('auto-insight-text').textContent = insightText;
           
           this.renderPerformanceMetrics(filteredSoldBikes);
-            this.renderProfitAnalytics(filteredSoldBikes);
-            this.renderProfitDistributionAnalytics(filteredSoldBikes);
-            this.renderTopBikesAnalytics(filteredSoldBikes);
+          // Chart rendering removed — textual and tabular summaries shown instead.
         }
       }
       
@@ -2807,56 +2784,11 @@
         this.showToast('Date filter reset', 'success');
       }
       
-      // --- 5. ANALYTICS IMPLEMENTATION ---
+      // --- 5. CHART.JS IMPLEMENTATION ---
       
-      // Text-based analytics implemented in renderProfitAnalytics(), renderProfitDistributionAnalytics(), and renderTopBikesAnalytics().
-
-      // Removed unused chart download function
+      // Chart utilities removed. Charts disabled in this build.
       
-      async exportChartData(chartType) {
-        const soldBikes = (await this.db.bikes.filter(b => !b._deleted && b.dateSelling && b.dateSelling !== '').toArray());
-        
-        if (chartType === 'profit') {
-          const monthlyData = soldBikes.reduce((acc, bike) => {
-            if (!bike.dateSelling) return acc;
-            const month = bike.dateSelling.substring(0, 7);
-            acc[month] = (acc[month] || 0) + parseFloat(bike.netProfit || 0);
-            return acc;
-          }, {});
-          
-          const csvData = Object.keys(monthlyData).sort().map(month => ({
-            month,
-            profit: monthlyData[month]
-          }));
-          
-          const csv = this.jsonToCsv(csvData, true);
-          this.downloadFile(csv, `profit-trend-data-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
-          this.showToast('Profit data exported', 'success');
-        }
-        else if (chartType === 'distribution') {
-          const bins = {};
-          soldBikes.forEach(b => {
-            const p = parseFloat(b.netProfit || 0);
-            let key = 'Profit (>5k)';
-            if (p < 0) key = 'Loss (<0)';
-            else if (p === 0) key = 'Break Even';
-            else if (p <= 1000) key = 'Profit (0-1k)';
-            else if (p <= 5000) key = 'Profit (1k-5k)';
-            bins[key] = (bins[key] || 0) + 1;
-          });
-          const csvData = Object.keys(bins).sort().map(k => ({ bucket: k, count: bins[k] }));
-          const csv = this.jsonToCsv(csvData, true);
-          this.downloadFile(csv, `profit-distribution-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
-          this.showToast('Distribution data exported', 'success');
-        }
-        else if (chartType === 'top') {
-          const top = [...soldBikes].sort((a,b) => parseFloat(b.netProfit||0)-parseFloat(a.netProfit||0)).slice(0,5);
-          const csvData = top.map(b => ({ no: b.no, netProfit: b.netProfit, purchasePrice: b.purchasePrice || '', dateSelling: b.dateSelling || '' }));
-          const csv = this.jsonToCsv(csvData, true);
-          this.downloadFile(csv, `top-bikes-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
-          this.showToast('Top bikes exported', 'success');
-        }
-      }
+      // Chart rendering, downloads and chart data export removed. Charts have been disabled.
 
       // --- 6. CORE CRUD & CASH IN HAND ---
       
@@ -2883,7 +2815,7 @@
           }
           this.renderCashInHand();
           this.renderCashLog(); // Update the log view if visible
-          this.renderCashFlowAnalytics(); // Update the cash flow analytics
+          this.renderCashFlowChart(); // Update the cash flow chart
           
           // Don't trigger sync for every minor change
           if (['set', 'increase', 'decrease'].includes(type)) {
@@ -2981,79 +2913,38 @@
         });
       }
       
-      async renderCashFlowAnalytics() {
+      async renderCashFlowChart() {
+        // Charts removed. Compute and update cash summary stats and textual analytics only.
         const entries = await this.getCashLog(1000);
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-
-        const dailyData = {};
         let totalIn = 0;
         let totalOut = 0;
-        let largestInflow = { amount: 0, date: null };
-        let largestOutflow = { amount: 0, date: null };
 
         entries.forEach(entry => {
-          const day = entry.timestamp.substring(0, 10);
-          if (!dailyData[day]) dailyData[day] = { in: 0, out: 0 };
           if (entry.type !== 'set') {
-            if (entry.amount > 0) {
-              dailyData[day].in += entry.amount;
-              totalIn += entry.amount;
-              if (entry.amount > largestInflow.amount) largestInflow = { amount: entry.amount, date: new Date(entry.timestamp) };
-            } else {
-              const absAmt = Math.abs(entry.amount);
-              dailyData[day].out += absAmt;
-              totalOut += absAmt;
-              if (absAmt > largestOutflow.amount) largestOutflow = { amount: absAmt, date: new Date(entry.timestamp) };
-            }
+            if (entry.amount > 0) totalIn += entry.amount;
+            else totalOut += Math.abs(entry.amount);
           }
         });
 
         // Update summary stats
-        const inflowEl = document.getElementById('stat-cash-inflow');
-        const outflowEl = document.getElementById('stat-cash-outflow');
-        const netEl = document.getElementById('stat-net-cash');
-        const currentEl = document.getElementById('stat-cash-current');
-        if (inflowEl) inflowEl.textContent = `${this.settings.currency} ${this.formatCurrency(totalIn)}`;
-        if (outflowEl) outflowEl.textContent = `${this.settings.currency} ${this.formatCurrency(totalOut)}`;
-        if (netEl) netEl.textContent = `${this.settings.currency} ${this.formatCurrency(totalIn - totalOut)}`;
-        if (currentEl) currentEl.textContent = `${this.settings.currency} ${this.formatCurrency(this.settings.cashInHand)}`;
+        document.getElementById('stat-cash-inflow').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(totalIn)}`;
+        document.getElementById('stat-cash-outflow').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(totalOut)}`;
+        document.getElementById('stat-net-cash').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(totalIn - totalOut)}`;
+        document.getElementById('stat-cash-current').textContent = 
+          `${this.settings.currency} ${this.formatCurrency(this.settings.cashInHand)}`;
 
-        // 30-day summary and trends
-        const recent = entries.filter(e => new Date(e.timestamp) >= thirtyDaysAgo);
-        const thisMonth = entries.filter(e => new Date(e.timestamp).getMonth() === today.getMonth()).reduce((s, e) => s + (e.type !== 'set' ? e.amount : 0), 0);
-        const lastMonth = entries.filter(e => new Date(e.timestamp).getMonth() === (today.getMonth() - 1 + 12) % 12).reduce((s, e) => s + (e.type !== 'set' ? e.amount : 0), 0);
-        const growth = lastMonth ? ((thisMonth - lastMonth) / Math.abs(lastMonth) * 100) : 0;
+        // Populate small textual analytics (reused existing analytics-summary elements)
+        const cash30 = entries.slice(0, 30).reduce((s, e) => s + (e.type !== 'set' ? e.amount : 0), 0);
+        document.getElementById('cash-30-day-summary').textContent = `${this.settings.currency} ${this.formatCurrency(cash30)}`;
 
-        const el30 = document.getElementById('cash-30-day-summary');
-        const elGrowth = document.getElementById('cash-monthly-growth');
-        const elLargestIn = document.getElementById('cash-largest-inflow');
-        const elLargestOut = document.getElementById('cash-largest-outflow');
-
-        if (el30) el30.textContent = `Net flow of ${this.settings.currency} ${this.formatCurrency(totalIn - totalOut)} from ${recent.length} transactions`;
-        if (elGrowth) elGrowth.textContent = `${growth >= 0 ? '↗' : '↘'} ${Math.abs(growth).toFixed(1)}% vs last month`;
-        if (elLargestIn) elLargestIn.textContent = `${this.settings.currency} ${this.formatCurrency(largestInflow.amount)}${largestInflow.date ? ' on ' + largestInflow.date.toLocaleDateString() : ''}`;
-        if (elLargestOut) elLargestOut.textContent = `${this.settings.currency} ${this.formatCurrency(largestOutflow.amount)}${largestOutflow.date ? ' on ' + largestOutflow.date.toLocaleDateString() : ''}`;
-
-        // Update small trend indicators if present
-        this.updateTrendIndicator && this.updateTrendIndicator('stat-inflow-trend', totalIn, thisMonth - lastMonth);
-        this.updateTrendIndicator && this.updateTrendIndicator('stat-outflow-trend', totalOut, thisMonth - lastMonth);
-        this.updateTrendIndicator && this.updateTrendIndicator('stat-net-trend', totalIn - totalOut, thisMonth - lastMonth);
-        this.updateTrendIndicator && this.updateTrendIndicator('stat-balance-trend', this.settings.cashInHand, thisMonth);
-      }
-
-      updateTrendIndicator(elementId, current, change) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-
-        // Avoid divide-by-zero; compute percent change relative to previous period
-        const prev = current - change;
-        const percent = prev ? (change / Math.abs(prev) * 100) : 0;
-        const indicator = percent > 0 ? '↗' : percent < 0 ? '↘' : '→';
-        element.textContent = `${indicator} ${Math.abs(percent).toFixed(1)}%`;
-        const colors = this.getAnalyticsColors ? this.getAnalyticsColors() : { success: 'var(--success)', error: 'var(--error)', muted: 'var(--text-secondary)' };
-        element.style.color = percent > 0 ? colors.success : percent < 0 ? colors.error : colors.muted;
+        // Largest inflow/outflow
+        const inflows = entries.filter(e => e.amount > 0).map(e => e.amount);
+        const outflows = entries.filter(e => e.amount < 0).map(e => Math.abs(e.amount));
+        document.getElementById('cash-largest-inflow').textContent = inflows.length ? `${this.settings.currency} ${this.formatCurrency(Math.max(...inflows))}` : '—';
+        document.getElementById('cash-largest-outflow').textContent = outflows.length ? `${this.settings.currency} ${this.formatCurrency(Math.max(...outflows))}` : '—';
       }
       
       async openCashModal(mode = 'set') {
@@ -3686,12 +3577,11 @@
             const content = e.target.result;
             let bikesToImport = [];
             
-            if (file.name.endsWith('.json')) {
-              bikesToImport = JSON.parse(content);
-            } else if (file.name.endsWith('.csv')) {
+            // Only CSV import is supported now
+            if (file.name.endsWith('.csv')) {
               bikesToImport = this.csvToJson(content);
             } else {
-              this.showToast("Unsupported file type. Please use .csv or .json", 'error');
+              this.showToast("Unsupported file type. Please use .csv", 'error');
               return;
             }
             
@@ -3735,36 +3625,7 @@
         reader.readAsText(file);
       }
 
-      async handleShareData() {
-        if (!navigator.share) {
-          this.showToast("Sharing not supported on this device", 'warning');
-          return;
-        }
-        
-        try {
-          const bikes = await this.db.bikes.filter(b => !b._deleted).toArray();
-          const csv = this.jsonToCsv(bikes.map(b => {
-            const { _id, ...rest } = b;
-            return rest;
-          }), true);
-          
-          const file = new File([csv], `bikes_${new Date().toISOString().split('T')[0]}.csv`, {
-            type: 'text/csv;charset=utf-8;'
-          });
-          
-          await navigator.share({
-            title: 'Bike Inventory',
-            text: `Bike inventory export (${bikes.length} bikes)`,
-            files: [file]
-          });
-          
-        } catch (error) {
-          if (error.name !== 'AbortError') {
-            console.error("Share failed:", error);
-            this.showToast("Failed to share data", 'error');
-          }
-        }
-      }
+      // Sharing feature removed — share button and handler disabled per request.
 
       // --- 10. GIST SYNC (Now with auto-sync) ---
       
