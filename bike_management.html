@@ -376,14 +376,20 @@
                         throw new Error("GitHub Token not set.");
                     }
                     
+                    const headers = {
+                        ...(options.headers || {}),
+                        'Authorization': `token ${app.state.gistToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    };
+
+                    if (options.body && !headers['Content-Type']) {
+                        headers['Content-Type'] = 'application/json';
+                    }
+
                     const response = await fetch(url, {
                         ...options,
-                        headers: {
-                            ...options.headers,
-                            'Authorization': `token ${app.state.gistToken}`,
-                            'Accept': 'application/vnd.github.v3+json',
-                            'X-GitHub-Api-Version': '2022-11-28'
-                        }
+                        headers
                     });
 
                     if (!response.ok) {
@@ -935,10 +941,11 @@
                             const bikeId = e.target.dataset.id;
                             const bike = app.state.bikes.find(b => b.id === bikeId);
                             if (bike) {
+                                const sellForm = document.getElementById('sell-bike-form');
+                                sellForm.reset();
                                 document.getElementById('sell-bike-id').value = bike.id;
                                 document.getElementById('sell-bike-model').textContent = `${bike.plateNo} - ${bike.model}`;
                                 document.getElementById('sell-bike-total-cost').textContent = app.ui.formatCurrency(bike.totalCost);
-                                document.getElementById('sell-bike-form').reset();
                                 document.getElementById('sellDate').valueAsDate = new Date();
                                 app.ui.showModal('sell-bike-modal');
                             }
