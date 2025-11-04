@@ -302,7 +302,6 @@
     <script type="module">
         // Import PDF generation tools from CDN
         const { jsPDF } = window.jspdf;
-        const autoTable = window.jspdf.autoTable;
 
         const app = {
             state: {
@@ -1061,6 +1060,9 @@
                 // Analytics Tab -> Download Full PDF Report
                 async fullPDFReport() {
                     const doc = new jsPDF();
+                    if (typeof doc.autoTable !== 'function') {
+                        throw new Error('PDF export unavailable. jsPDF-AutoTable plugin not loaded.');
+                    }
                     const stats = app.logic.getAnalyticsData();
                     const monthlyStats = app.logic.getMonthlyStats();
                     const topModels = app.logic.getRankingData('model', 'profit');
@@ -1072,7 +1074,7 @@
                     doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, 28);
                     
                     // Summary Table
-                    autoTable(doc, {
+                    doc.autoTable({
                         startY: 35,
                         head: [['Metric', 'Value']],
                         body: [
@@ -1084,10 +1086,10 @@
                         ]
                     });
                     
-                    let lastY = doc.lastAutoTable.finalY + 10;
+                    let lastY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 45;
                     
                     // Per-Month Summary
-                    autoTable(doc, {
+                    doc.autoTable({
                         startY: lastY,
                         head: [['Month', 'Buys', 'Repairs', 'Sells', 'Profit']],
                         body: monthlyStats.map(m => [
@@ -1097,28 +1099,28 @@
                             app.ui.formatCurrency(m.sells),
                             app.ui.formatCurrency(m.profit)
                         ]),
-                        didDrawPage: (data) => lastY = data.cursor.y + 10
+                        didDrawPage: (data) => { lastY = data.cursor.y + 10; }
                     });
                     
                     // Rankings
-                    autoTable(doc, {
+                    doc.autoTable({
                         startY: lastY,
                         head: [['Top Model', 'Profit']],
                         body: topModels.map(m => [m.name, app.ui.formatCurrency(m.value)]),
-                        didDrawPage: (data) => lastY = data.cursor.y + 10
+                        didDrawPage: (data) => { lastY = data.cursor.y + 10; }
                     });
                     
-                    autoTable(doc, {
+                    doc.autoTable({
                         startY: lastY,
                         head: [['Top Owner', 'Purchase Value']],
                         body: topOwners.map(o => [o.name, app.ui.formatCurrency(o.value)]),
-                        didDrawPage: (data) => lastY = data.cursor.y + 10
+                        didDrawPage: (data) => { lastY = data.cursor.y + 10; }
                     });
 
                     // All Bikes List
                     doc.addPage();
                     doc.text("All Bikes", 14, 22);
-                    autoTable(doc, {
+                    doc.autoTable({
                         startY: 30,
                         head: [['Plate No', 'Model', 'Owner', 'Total Cost', 'Sell Price', 'Profit', 'Status']],
                         body: app.state.bikes.map(b => [
@@ -1135,7 +1137,7 @@
                     // Capital Log
                     doc.addPage();
                     doc.text("Capital Ledger", 14, 22);
-                    autoTable(doc, {
+                    doc.autoTable({
                         startY: 30,
                         head: [['Date', 'Type', 'Reason', 'Amount']],
                         body: app.state.capitalLog.map(l => [
