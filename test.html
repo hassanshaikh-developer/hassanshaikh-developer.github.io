@@ -1,1994 +1,1354 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Resell Manager</title>
-    <!-- 
-      This is a single-file, offline-first, PWA for Bike Resell Management.
-      It uses vanilla JavaScript, IndexedDB for local storage, and syncs
-      to a single GitHub Gist JSON file.
-      All HTML, CSS, and JS are in this file.
-    -->
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://api.github.com; worker-src blob:; base-uri 'none'; form-action 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Bike Resell Manager</title>
+<meta name="theme-color" content="#0f172a" />
+<!-- Inline Web App Manifest as data URL -->
+<link rel="manifest" id="manifest-link" href='data:application/manifest+json,{
+  "name":"Bike Resell Manager",
+  "short_name":"BRM",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#0f172a",
+  "theme_color":"#0f172a",
+  "icons":[
+    {"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 128 128%27%3E%3Crect width=%27128%27 height=%27128%27 rx=%2724%27 fill=%27%230f172a%27/%3E%3Cpath fill=%27%23fff%27 d=%27M22 88h12l8-20h34l8 20h12l-9-22c6-4 9-10 9-16 0-12-10-22-22-22H53c-12 0-22 10-22 22 0 6 3 12 9 16l-18 22zm31-30c-7 0-13-6-13-13s6-13 13-13h25c7 0 13 6 13 13s-6 13-13 13H53zM38 100a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm52 0a10 10 0 1 1 0-20 10 10 0 0 1 0 20z%27/%3E%3C/svg%3E","sizes":"128x128","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}' />
+<style>
+:root{
+  --bg:#0b1220; --bg-soft:#0f172a; --bg-elev:#111827; --txt:#e5e7eb; --muted:#9ca3af; --brand:#22c55e;
+  --danger:#ef4444; --warn:#f59e0b; --ok:#10b981; --card:#0f172a; --stroke:#1f2937; --chip:#1f2937;
+  --focus:#60a5fa;
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";color:var(--txt);background:linear-gradient(180deg,#0b1220,#0a1020 40%,#0b1220)}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+header{
+  position:sticky;top:0;z-index:5;background:rgba(15,23,42,.9);backdrop-filter: blur(6px);
+  border-bottom:1px solid var(--stroke)
+}
+.container{max-width:1000px;margin:0 auto;padding:0 12px}
+.h-row{display:flex;align-items:center;gap:10px;min-height:56px}
+h1{font-size:18px;margin:0}
+.pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--stroke);background:var(--bg-elev)}
+.pill[data-state="offline"]{background:#1f2937;color:#fca5a5;border-color:#374151}
+.pill[data-state="syncing"]{background:#1f2937;color:#fde68a;border-color:#374151}
+.pill[data-state="ok"]{background:#052e1a;color:#a7f3d0;border-color:#064e3b}
+main{padding-bottom:72px}
+.grid{display:grid;gap:12px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (min-width:720px){ .cards{grid-template-columns:repeat(4,1fr)} }
+.card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius);padding:12px}
+.card h3{margin:0 0 6px 0;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kpi{font-size:18px;font-weight:700}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input[type="text"],input[type="number"],input[type="date"],input[type="datetime-local"],select,textarea{
+  width:100%;padding:10px;border-radius:12px;border:1px solid var(--stroke);background:#0b1020
+}
+input::placeholder{color:#6b7280}
+label{display:block;margin:8px 0 4px 0;font-size:12px;color:#9fb0c6}
+.btn{border:1px solid var(--stroke);background:#0b1020;border-radius:12px;padding:10px 12px;cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,#16a34a,#15803d);border:0}
+.btn.warn{background:linear-gradient(180deg,#f59e0b,#b45309);border:0}
+.btn.ghost{background:transparent}
+.btn.danger{background:linear-gradient(180deg,#ef4444,#b91c1c);border:0}
+.btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--chip);border:1px solid var(--stroke);border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:#1f2937;outline:2px solid var(--brand)}
+.list{display:grid;gap:8px}
+.item{background:var(--card);border:1px solid var(--stroke);border-radius:14px;padding:10px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.item .meta{font-size:12px;color:var(--muted)}
+.item .title{font-weight:700}
+.bulkbar{position:sticky;bottom:56px;z-index:4;background:#0b1020;border-top:1px solid var(--stroke);padding:10px;display:none;gap:8px}
+.bulkbar[data-show="true"]{display:flex}
+.bottom-nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(15,23,42,.95);
+  border-top:1px solid var(--stroke);display:grid;grid-template-columns:repeat(3,1fr)
+}
+.tabbtn{appearance:none;border:0;background:transparent;padding:8px 4px;font:inherit;color:#c4cfde;display:flex;flex-direction:column;align-items:center;gap:4px}
+.tabbtn[data-active="true"]{color:#e5e7eb}
+.tabcontent{display:none;padding:12px}
+.tabcontent[data-active="true"]{display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#111827;border:1px solid var(--stroke);padding:10px 14px;border-radius:12px;display:none;z-index:7}
+.toast[data-show="true"]{display:block;animation:fade 3.2s ease}
+@keyframes fade{0%{opacity:0;transform:translate(-50%,10px)}10%,90%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}
+.badge{font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid var(--stroke);background:#0b1020}
+hr.sep{border:0;border-top:1px solid var(--stroke);margin:8px 0}
+.help{font-size:13px;color:#9fb0c6}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid var(--stroke);padding:6px;text-align:left}
+th{background:#0a1222;color:#cbd5e1}
+dialog{border:1px solid var(--stroke);border-radius:14px;background:#0b1020;color:var(--txt);padding:0;max-width:560px;width:calc(100% - 24px)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dhead{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--stroke)}
+.dbody{padding:12px;max-height:65vh;overflow:auto}
+.dfoot{padding:12px;border-top:1px solid var(--stroke);display:flex;gap:8px;justify-content:flex-end}
+.small{font-size:12px;color:#9fb0c6}
+code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;border-radius:6px}
+.hidden{display:none !important}
+.sticky-undo{position:fixed;right:12px;bottom:120px;z-index:8}
+</style>
+</head>
+<body>
+<header role="banner">
+  <div class="container h-row" aria-live="polite">
+    <h1 aria-label="App title">Bike Resell Manager</h1>
+    <span class="pill" id="syncPill" data-state="offline" title="Sync status">Offline</span>
+    <span class="small" id="lastSyncedText" aria-live="polite"></span>
+    <span class="small" style="margin-left:auto">Only talks to <code class="inline">api.github.com</code></span>
+  </div>
+</header>
 
-    <!-- Inlined minified jsPDF (v2.5.1) -->
-    <!-- This is required for PDF export functionality -->
-    <script>
-        !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):"undefined"!=typeof globalThis?globalThis.jspdf=e():(t=t||self).jspdf=e()}(this,(function(){"use strict";
-        function t(t,e){var n=Object.keys(t);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(t);e&&(r=r.filter((function(e){return Object.getOwnPropertyDescriptor(t,e).enumerable}))),n.push.apply(n,r)}return n}function e(e){for(var n=1;n<arguments.length;n++){var r=null!=arguments[n]?arguments[n]:{};n%2?t(Object(r),!0).forEach((function(t){i(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):t(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}function n(t){return(n="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t})(t)}function r(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function o(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}function i(t,e,n){return e in t?Object.defineProperty(t,e,{value:n,enumerable:!0,configurable:!0,writable:!0}):t[e]=n,t}function a(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function");t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,writable:!0,configurable:!0}}),e&&u(t,e)}function c(t){return(c=Object.setPrototypeOf?Object.getPrototypeOf:function(t){return t.__proto__||Object.getPrototypeOf(t)})(t)}function u(t,e){return(u=Object.setPrototypeOf||function(t,e){return t.__proto__=e,t})(t,e)}function s(t){if(void 0===t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return t}function l(t,e){return!e||"object"!=typeof e&&"function"!=typeof e?s(t):e}function f(t){var e=function(){if("undefined"==typeof Reflect||!Reflect.construct)return!1;if(Reflect.construct.sham)return!1;if("function"==typeof Proxy)return!0;try{return Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){}))),!0}catch(t){return!1}}();return function(){var n,r=c(t);if(e){var o=c(this).constructor;n=Reflect.construct(r,arguments,o)}else n=r.apply(this,arguments);return l(this,n)}}function h(t,e){return(h=t.split(e).filter((function(t){return t}))).length?"."===h[0]?h.slice(1):h:[]}function d(t,e,n){return t.call(n,e)}function p(t,e,n){return"string"==typeof e&&(e=h(e,n)),e.reduce(d,t)}function g(t){return Array.isArray(t)?[].concat(t):Array.from(t)}function m(t){return"object"===n(t)&&null!==t}var v=function(t){return t.replace(/\\s/g," ").trim()};function y(t,e){return t.reduce((function(t,n){return t+e(n)}),"")}function b(t){var e={};return t.forEach((function(t){Object.keys(t).forEach((function(n){e[n]=t[n]}))})),e}function w(t){return("0"+(Number(t).toString(16))).slice(-2)}function k(t,e){void 0===e&&(e=void 0),e=e||"black";var n=e,r=!1;if(Array.isArray(t))n=t[0],r="object"===n(t[0]);else{var o;/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(t);(o=new RegExp("^rgba?\\((.+)\\)$").exec(t))?t=(o=o[1].split(",").map((function(t){return parseInt(t,10)})))[3]<=1?["","","",""]:[t[0],t[1],t[2],t[3]]:t.startsWith("#")&&(t=t.slice(1)),n={w:1,W:1,k:1,K:1,g:1,G:1}[t.charAt(0)]?{w:[1,1,1],W:[1,1,1],k:[0,0,0],K:[0,0,0],g:[.5,.5,.5],G:[.5,.5,.5]}[t.charAt(0)]:{1:[1,1,1],0:[0,0,0]}[t.length]||{3:[t[0]+t[0],t[1]+t[1],t[2]+t[2]].map(w),6:[t.slice(0,2),t.slice(2,4),t.slice(4,6)].map(w)}[t.length]||!1}return[n,"i"==t||r?"i":{true:1,"1":1}[n.K]?"k":"w",n]}function x(t){return[t.r,t.g,t.b]}function C(t){return"string"==typeof t&&A.hasOwnProperty(t)?A[t]:"number"==typeof t?t:void 0}var A={black:[0,0,0],white:[1,1,1],red:[1,0,0],green:[0,1,0],blue:[0,0,1],cyan:[0,1,1],magenta:[1,0,1],yellow:[1,1,0],gray:[.5,.5,.5]};function S(t){return/^(-)?([\d]*\.[\d]+|[\d]+)$/.test(t)}function N(t){var e=t.match(/[rR][gG][bB]([aA])?\(([\d]{1,3}),([\d]{1,3}),([\d]{1,3})(,([\d\.]+))?\)/);if(null!==e)return e[2]=parseInt(e[2]),e[3]=parseInt(e[3]),e[4]=parseInt(e[4]),e[6]&&(e[6]=parseFloat(e[6])),e}function F(t){return"string"==typeof t&&t.startsWith("#")&&(t=t.substring(1)),3===t.length?t.split("").map((function(t){return t+t})):6!==t.length?null:[t.substring(0,2),t.substring(2,4),t.substring(4,6)]}function E(t){return(Array.isArray(t)?t:[t.r,t.g,t.b]).map((function(t){return t>255?255:t<0?0:Math.round(t)}))}function P(t){return E(t).map((function(t){return t.toString(16).padStart(2,"0")})).join("")}var L=function(t){return"#"===t.charAt(0)?t.substring(1):t};function j(t,e){return void 0===t&&(t=0),void 0===e&&(e=0),"number"==typeof t&&(t=t.toString()),"number"==typeof e&&(e=e.toString()),t=t.split("."),e=e.split("."),t[0]===e[0]?(t[1]||"0").localeCompare(e[1]||"0",void 0,{numeric:!0}):(t[0]||"0").localeCompare(e[0]||"0",void 0,{numeric:!0})}function O(t,e){var n=t[0],r=t[1],o=t[2],i=e[0],a=e[1],c=e[2];return(n*i+r*a+o*c)/Math.sqrt(n*n+r*r+o*o)/Math.sqrt(i*i+a*a+c*c)}function M(t,e,n){return Math.min(n,Math.max(e,t))}function I(t){var e={};return Object.keys(t).forEach((function(n){e[n]=t[n]})),e}function R(t,e){return(t=I(t)).width=e,t.style&&(t.style.width=e,t.style.minWidth=e,t.style.maxWidth=e),t}function B(t,e){return(t=I(t)).height=e,t.style&&(t.style.height=e,t.style.minHeight=e,t.style.maxHeight=e),t}function D(t,e){if(t&&e){var n=t.cells;Object.keys(n).forEach((function(t){Object.keys(n[t]).forEach((function(r){var o=n[t][r];e.apply(this,[o])}))}))}}function T(t,e){return(t=I(t)).valign=e,t.style&&(t.style.verticalAlign=e),t}function q(t,e,n){return(t=I(t)).halign=e,t.style&&(t.style.textAlign=e,"right"===e?t.style.paddingLeft=n:t.style.paddingRight=n),t}var U={auto:0,avoid:1,always:2,left:3,right:4};function H(t){return-1!==Object.keys(U).indexOf(t)}var z=[19.05,25.4];function W(t){var n;switch(t){case"pt":n=1;break;case"mm":n=72/z[1];break;case"cm":n=72/z[0];break;case"in":n=7Z[1];break;case"px":n=96/72;break;case"pc":n=12;break;case"em":n=12;break;case"ex":n=6;break;default:throw new Error("Invalid unit "+t)}return n}var V=function(t,e,n,r){return t/e*(n-r)};function G(t,e){var n={font:"helvetica",fontStyle:"normal",fontSize:12,fillColor:20,textColor:200,lineColor:0,lineWidth:.1,lineHeightFactor:1.15,cellPadding:1,minCellHeight:0,minCellWidth:0,pageBreak:"auto"};return Object.keys(n).forEach((function(r){n[r]=p(t,["window",e,r],n[r]),n[r]=p(t,["document",e,r],n[r]),n[r]=p(t,["parent",e,r],n[r]),n[r]=p(t,[e,r],n[r])})),Object.keys(n).forEach((function(r){var o=r.match(/^(\w+)(Color)$/);if(o){var i=n[r];n[o[1]]=C(i),n[o[2]]=i}})),Object.keys(n).forEach((function(t){n[t]=V(n[t],W("pt"),r,0)})),n}var K=function(){function t(e,n){r(this,t),this.rows=e,this.columns=n,this.spans=[],this.styles={}}return o(t,[{key:"get",value:function(t,e){for(var n=this.spans.filter((function(n){return n.isWithin(t,e)})),r=n.filter((function(t){return t.isMain(t,e)})),o=0;o<n.length;o+=1)if(!0===n[o].isMain(t,e))return n[o];return r.length>0?r[0]:n.length>0?n[0]:void 0}},{key:"map",value:function(t){for(var e=[],n=0;n<this.rows;n+=1)for(var r=0;r<this.columns;r+=1){var o=this.get(n,r);o?e.push(t(o)):e.push(t(this.get(n,r)))}return e}},{key:"mapCells",value:function(t){for(var e=[],n=0;nANALYTICS_TAB",
-            content: renderAnalyticsTab()
-        },
-        {
-            id: "SETTINGS_TAB",
-            content: renderSettingsTab()
-        }
-    ];
+<main class="container" id="app" role="main">
+  <!-- Bikes / Dashboard Tab -->
+  <section id="tab-bikes" class="tabcontent" data-active="true" aria-labelledby="nav-bikes">
+    <div class="cards" role="region" aria-label="Stats">
+      <div class="card" aria-live="polite"><h3>Cash in Hand</h3><div class="kpi" id="kpi-cash">₹0</div></div>
+      <div class="card"><h3>Profit (Sold)</h3><div class="kpi" id="kpi-profit">₹0</div></div>
+      <div class="card"><h3>Unsold Investment</h3><div class="kpi" id="kpi-unsold">₹0</div></div>
+      <div class="card"><h3>Inventory S/U</h3><div class="kpi"><span id="kpi-stock">0</span> / <span id="kpi-sold">0</span></div></div>
+    </div>
+    <div class="card">
+      <div class="toolbar" role="toolbar" aria-label="List actions">
+        <label class="hidden" for="searchInput">Search</label>
+        <input id="searchInput" type="text" placeholder="Search plate / model / owner" aria-label="Search" />
+        <select id="sortSelect" aria-label="Sort">
+          <option value="latest">Sort: Latest</option>
+          <option value="oldest">Oldest</option>
+          <option value="profitDesc">Profit high → low</option>
+          <option value="profitAsc">Profit low → high</option>
+        </select>
+        <button class="btn" id="btnFilters" aria-haspopup="dialog">Filters</button>
+        <button class="btn primary" id="btnBuy">Buy Bike</button>
+        <button class="btn" id="btnAdjust">Adjust Cash</button>
+      </div>
+      <div class="chips" role="tablist" aria-label="Status filter">
+        <button class="chip" data-status="all" aria-pressed="true">All</button>
+        <button class="chip" data-status="sold" aria-pressed="false">Sold</button>
+        <button class="chip" data-status="available" aria-pressed="false">Unsold</button>
+      </div>
+    </div>
 
-    tabs.forEach(tab => {
-        const tabEl = document.createElement('div');
-        tabEl.id = tab.id;
-        tabEl.className = 'tab-content';
-        if (tab.id !== activeTab) {
-            tabEl.classList.add('hidden');
-        }
-        tabEl.innerHTML = tab.content;
-        $main.appendChild(tabEl);
+    <div id="bikeList" class="list" role="list" aria-label="Bikes"></div>
+
+    <div class="bulkbar" id="bulkBar" aria-live="polite" aria-label="Bulk actions">
+      <span id="bulkCount">0 selected</span>
+      <button class="btn primary" id="bulkSell">Mass Sell</button>
+      <button class="btn" id="bulkExport">Export CSV</button>
+      <button class="btn danger" id="bulkWriteoff">Write-off</button>
+    </div>
+
+    <button id="undoSticky" class="btn sticky-undo hidden">Undo last action</button>
+  </section>
+
+  <!-- Analytics Tab -->
+  <section id="tab-analytics" class="tabcontent" aria-labelledby="nav-analytics">
+    <div class="card">
+      <h3>Filters</h3>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div><label for="anaFrom">From Date</label><input type="date" id="anaFrom"/></div>
+        <div><label for="anaTo">To Date</label><input type="date" id="anaTo"/></div>
+      </div>
+      <div class="dfoot" style="padding:0;margin-top:8px"><button class="btn" id="btnApplyAnalytics">Apply</button></div>
+    </div>
+
+    <div class="card">
+      <h3>Quick Insights</h3>
+      <div class="grid">
+        <div>Total Investment: <span class="badge" id="anaInvest">₹0</span></div>
+        <div>Total Returns: <span class="badge" id="anaReturns">₹0</span></div>
+        <div>Net Profit: <span class="badge" id="anaNet">₹0</span></div>
+        <div>Total Repair Cost: <span class="badge" id="anaRepair">₹0</span></div>
+        <div>Average ROI: <span class="badge" id="anaROI">0%</span></div>
+        <div>Average Days to Sell: <span class="badge" id="anaDays">0</span></div>
+      </div>
+      <hr class="sep"/>
+      <h3>Cash Flow (Last 30 days)</h3>
+      <div class="grid">
+        <div>Inflow: <span class="badge" id="anaInflow">₹0</span></div>
+        <div>Outflow: <span class="badge" id="anaOutflow">₹0</span></div>
+        <div>Net: <span class="badge" id="anaNetFlow">₹0</span></div>
+        <div>Current Cash: <span class="badge" id="anaCash">₹0</span></div>
+        <div>Largest Inflow: <span class="badge" id="anaLargestIn">₹0</span></div>
+        <div>Largest Outflow: <span class="badge" id="anaLargestOut">₹0</span></div>
+      </div>
+      <hr class="sep"/>
+      <h3>Top Models / Owners</h3>
+      <div class="grid" id="anaTop"></div>
+      <hr class="sep"/>
+      <div id="anaMonthly" class="grid"></div>
+      <div class="dfoot" style="padding:0;margin-top:8px;gap:8px">
+        <button class="btn" id="btnDownloadCSV">Download All Data (CSV)</button>
+        <button class="btn primary" id="btnDownloadPDF">Download Full Report (PDF)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Settings Tab -->
+  <section id="tab-settings" class="tabcontent" aria-labelledby="nav-settings">
+    <div class="card">
+      <h3>Appearance & Finance</h3>
+      <div class="grid">
+        <div><label for="setBiz">Business Name</label><input id="setBiz" type="text" placeholder="e.g., RoadRunner Bikes"/></div>
+        <div><label for="setCurrency">Default Currency</label><input id="setCurrency" type="text" value="₹" maxlength="3"/></div>
+      </div>
+      <div class="dfoot" style="padding:0;margin-top:8px">
+        <button class="btn" id="saveAppearance">Save</button>
+        <button class="btn" id="btnAdjustSettings">Adjust Cash</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>GitHub Sync</h3>
+      <div class="grid">
+        <div><label for="setGist">Gist ID</label><input id="setGist" type="text" placeholder="e.g., a1b2c3d4e5..."/></div>
+        <div><label for="setPAT">Session PAT (gist scope)</label><input id="setPAT" type="password" autocomplete="current-password" placeholder="ghp_... (not persisted)"/></div>
+      </div>
+      <div class="toolbar" style="margin-top:8px">
+        <button class="btn" id="btnValidateGist">Validate</button>
+        <button class="btn" id="btnCreateGist">Create Gist</button>
+        <button class="btn primary" id="btnSyncNow">Sync Now</button>
+      </div>
+      <p class="help">
+        Your PAT is <strong>not persisted</strong>. It’s kept in this browser session only (sessionStorage). Enter it at the start of each session — your password manager can remember it for you.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Data Management</h3>
+      <div class="toolbar">
+        <button class="btn" id="dmFullPDF">Download Full PDF Report</button>
+        <button class="btn" id="dmAllCSV">Download All Data CSV</button>
+        <button class="btn" id="dmBikesCSV">Export Bikes CSV</button>
+        <button class="btn" id="dmTxCSV">Export Transactions CSV</button>
+        <button class="btn" id="dmCapCSV">Export Capital Log CSV</button>
+      </div>
+      <hr class="sep"/>
+      <div class="toolbar">
+        <button class="btn danger" id="btnReset">Reset Local Cache</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Help</h3>
+      <p class="help">
+        <strong>Personal Access Token (PAT):</strong> Create a token with only the <em>gist</em> scope. Paste it above to enable syncing with a single private Gist that holds one <code class="inline">db.json</code> file.
+        We never send data anywhere else. To revoke access, delete or regenerate the token on GitHub and/or delete the Gist.
+      </p>
+    </div>
+  </section>
+</main>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav" role="tablist" aria-label="Primary">
+  <button class="tabbtn" id="nav-bikes" data-active="true" aria-selected="true" aria-controls="tab-bikes">
+    🏍️<span>Bikes</span>
+  </button>
+  <button class="tabbtn" id="nav-analytics" aria-controls="tab-analytics">
+    📊<span>Analytics</span>
+  </button>
+  <button class="tabbtn" id="nav-settings" aria-controls="tab-settings">
+    ⚙️<span>Settings</span>
+  </button>
+</nav>
+
+<!-- Dialogs -->
+<dialog id="dlgBuy" aria-labelledby="dlgBuyTitle">
+  <div class="dhead"><strong id="dlgBuyTitle">Buy Bike</strong><button class="btn ghost" onclick="closeDialog('dlgBuy')" aria-label="Close">✕</button></div>
+  <form class="dbody" id="buyForm" method="dialog">
+    <div class="grid">
+      <div><label for="buyPlate">Bike No/Plate *</label><input id="buyPlate" required/></div>
+      <div><label for="buyModel">Model *</label><input id="buyModel" required/></div>
+      <div><label for="buyOwner">Owner Name *</label><input id="buyOwner" required/></div>
+      <div><label for="buyPrice">Buying Price *</label><input id="buyPrice" type="number" min="0" required/></div>
+      <div><label for="buyDate">Date of Purchase *</label><input id="buyDate" type="date" required/></div>
+      <div><label for="buyRepair">Repair Cost</label><input id="buyRepair" type="number" min="0" value="0"/></div>
+      <div><label for="buyNotes">Notes</label><textarea id="buyNotes" rows="2" placeholder="Optional notes"></textarea></div>
+    </div>
+    <p class="small">Total cost is calculated automatically: buying price + repair cost. Capital decreases by total cost on buy.</p>
+  </form>
+  <div class="dfoot">
+    <button class="btn" onclick="closeDialog('dlgBuy')">Cancel</button>
+    <button class="btn primary" id="buySubmit">Add</button>
+  </div>
+</dialog>
+
+<dialog id="dlgAdjust" aria-labelledby="dlgAdjustTitle">
+  <div class="dhead"><strong id="dlgAdjustTitle">Manual Capital Adjustment</strong><button class="btn ghost" onclick="closeDialog('dlgAdjust')" aria-label="Close">✕</button></div>
+  <form class="dbody" id="adjustForm" method="dialog">
+    <div class="grid">
+      <div><label for="adjAmount">Amount (+/-) *</label><input id="adjAmount" type="number" required/></div>
+      <div><label for="adjReason">Reason *</label><input id="adjReason" required placeholder="Required"/></div>
+      <div><label for="adjDate">Date</label><input id="adjDate" type="date"/></div>
+    </div>
+    <p class="small">Reason is mandatory. Adjustment will create a capital ledger entry.</p>
+  </form>
+  <div class="dfoot">
+    <button class="btn" onclick="closeDialog('dlgAdjust')">Cancel</button>
+    <button class="btn primary" id="adjustSubmit">Apply</button>
+  </div>
+</dialog>
+
+<dialog id="dlgFilters" aria-labelledby="dlgFiltersTitle">
+  <div class="dhead"><strong id="dlgFiltersTitle">Advanced Filters</strong><button class="btn ghost" onclick="closeDialog('dlgFilters')" aria-label="Close">✕</button></div>
+  <form class="dbody" id="filterForm" method="dialog">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div><label for="fFrom">From Date</label><input type="date" id="fFrom"/></div>
+      <div><label for="fTo">To Date</label><input type="date" id="fTo"/></div>
+      <div><label for="fPriceMin">Min Price</label><input type="number" id="fPriceMin" min="0"/></div>
+      <div><label for="fPriceMax">Max Price</label><input type="number" id="fPriceMax" min="0"/></div>
+      <div><label for="fProfitMin">Min Profit</label><input type="number" id="fProfitMin"/></div>
+      <div><label for="fProfitMax">Max Profit</label><input type="number" id="fProfitMax"/></div>
+    </div>
+  </form>
+  <div class="dfoot">
+    <button class="btn" onclick="closeDialog('dlgFilters')">Close</button>
+    <button class="btn primary" id="applyFilters">Apply</button>
+  </div>
+</dialog>
+
+<dialog id="dlgMassSell" aria-labelledby="dlgMassSellTitle">
+  <div class="dhead"><strong id="dlgMassSellTitle">Mass Sell</strong><button class="btn ghost" onclick="closeDialog('dlgMassSell')" aria-label="Close">✕</button></div>
+  <div class="dbody">
+    <div class="grid">
+      <div><label for="msDefaultPrice">Default Sell Price</label><input id="msDefaultPrice" type="number" min="0"/></div>
+      <div><label for="msDefaultDate">Sell Date</label><input id="msDefaultDate" type="date"/></div>
+      <div><label for="msBuyer">Buyer Info</label><input id="msBuyer" placeholder="Optional"/></div>
+    </div>
+    <hr class="sep"/>
+    <div id="msList" class="grid" aria-live="polite"></div>
+  </div>
+  <div class="dfoot">
+    <button class="btn" onclick="closeDialog('dlgMassSell')">Cancel</button>
+    <button class="btn primary" id="msSubmit">Sell Selected</button>
+  </div>
+</dialog>
+
+<dialog id="dlgConfirm" aria-labelledby="dlgConfirmTitle">
+  <div class="dhead"><strong id="dlgConfirmTitle">Confirm</strong></div>
+  <div class="dbody" id="dlgConfirmBody">Are you sure?</div>
+  <div class="dfoot">
+    <button class="btn" onclick="closeDialog('dlgConfirm')">Cancel</button>
+    <button class="btn danger" id="confirmYes">Yes</button>
+  </div>
+</dialog>
+
+<dialog id="dlgPAT" aria-labelledby="dlgPATTitle">
+  <div class="dhead"><strong id="dlgPATTitle">Enter GitHub PAT (gist scope)</strong></div>
+  <form class="dbody" id="patForm" method="dialog" autocomplete="on">
+    <label for="patInput">Personal Access Token (not persisted)</label>
+    <input id="patInput" type="password" name="password" autocomplete="current-password" placeholder="ghp_..." required>
+    <p class="small">Stored only for this session. Your browser’s password manager can remember it.</p>
+  </form>
+  <div class="dfoot">
+    <button class="btn" onclick="closeDialog('dlgPAT')">Skip</button>
+    <button class="btn primary" id="patSubmit">Save for Session</button>
+  </div>
+</dialog>
+
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   Bike Resell Manager — Single-file PWA (Hardened)
+   Changes vs. previous version:
+   - PAT is session-only (sessionStorage). Never persisted.
+   - Strict CSP and removal of risky innerHTML paths.
+   - "Delete" → Write-off bulk action with proper ledger adjust.
+   - Merge now re-computes capital balances deterministically.
+   - Added Top Models/Owners analytics + PDF section.
+   - Added PAT-at-session-start dialog.
+   ========================================================= */
+
+/* ---------- Utilities ---------- */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const fmt = (n,curr) => (curr||state.settings.currency||'₹') + (Number(n||0).toLocaleString('en-IN'));
+const todayISODate = () => new Date().toISOString().slice(0,10);
+const toISO = (dateStr) => new Date(dateStr).toISOString();
+const ym = (d) => new Date(d).toISOString().slice(0,7);
+const uuid = (p='id_')=> p + Date.now().toString(36)+ Math.random().toString(36).slice(2,7);
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+/* ---------- PAT session handling ---------- */
+const PAT_KEY = 'brm_session_pat';
+const pat = {
+  get(){ return sessionStorage.getItem(PAT_KEY)||''; },
+  set(token){ if(token){ sessionStorage.setItem(PAT_KEY, token); } },
+  clear(){ sessionStorage.removeItem(PAT_KEY); }
+};
+
+/* ---------- IndexedDB tiny wrapper ---------- */
+const idb = (() => {
+  let dbp;
+  function open(){
+    if(dbp) return dbp;
+    dbp = new Promise((res,rej)=>{
+      const req = indexedDB.open('bike-resell',4);
+      req.onupgradeneeded = e=>{
+        const db = req.result;
+        if(!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+        if(!db.objectStoreNames.contains('ops')) db.createObjectStore('ops',{keyPath:'id'});
+      };
+      req.onsuccess = ()=>res(req.result);
+      req.onerror = ()=>rej(req.error);
     });
-}
-
-function renderDashboardTab() {
-    const analytics = calculateAnalytics(appState.data);
-    const { currency } = appState.settings;
-    const {
-        currentCash,
-        totalProfit,
-        totalUnsoldInvestment,
-        inventoryCount
-    } = analytics;
-
-    const filteredBikes = getFilteredBikes();
-
-    // Determine which bulk actions are visible
-    const selectedBikes = getSelectedBikes();
-    const bulkActionVisibility = selectedBikes.length > 0 ? '' : 'hidden';
-    const canBulkSell = selectedBikes.length > 0 && selectedBikes.every(b => b.status === 'available');
-
-    return `
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Cash in Hand</h3>
-                <p>${formatCurrency(currentCash, currency)}</p>
-            </div>
-            <div class="stat-card">
-                <h3>Profit (Sold)</h3>
-                <p>${formatCurrency(totalProfit, currency)}</p>
-            </div>
-            <div class="stat-card">
-                <h3>Unsold Investment</h3>
-                <p>${formatCurrency(totalUnsoldInvestment, currency)}</p>
-            </div>
-            <div class="stat-card">
-                <h3>Inventory (S/U)</h3>
-                <p>${inventoryCount.sold} / ${inventoryCount.available}</p>
-            </div>
-        </div>
-
-        <div class="quick-actions">
-            <button class="btn btn-primary" data-action="show-buy-form">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg>
-                Buy Bike
-            </button>
-            <button class="btn" data-action="show-adjust-capital-form">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd" /></svg>
-                Adjust Cash
-            </button>
-        </div>
-
-        <div class="filter-controls">
-            <div class="search-bar">
-                <input type="search" id="search-input" placeholder="Search Plate, Model, Owner...">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
-            </div>
-            <div class="filter-chips">
-                <button class="chip" data-filter="status" data-value="all">All</button>
-                <button class="chip" data-filter="status" data-value="available">Unsold</button>
-                <button class="chip" data-filter="status" data-value="sold">Sold</button>
-            </div>
-            <div class="sort-controls">
-                <select id="sort-select">
-                    <option value="purchaseDate-desc">Date: Newest First</option>
-                    <option value="purchaseDate-asc">Date: Oldest First</option>
-                    <option value="profit-desc">Profit: High to Low</option>
-                    <option value="totalCost-desc">Cost: High to Low</option>
-                </select>
-                <button class="btn-icon" data-action="show-advanced-filters">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.033a.75.75 0 01-1.12.673l-2.75-1.375a.75.75 0 01-.38-.673v-3.033a2.25 2.25 0 00-.659-1.59L3.256 6.22a2.25 2.25 0 01-.659-1.59V2.34a.75.75 0 01.628-.74z" clip-rule="evenodd" /></svg>
-                </button>
-            </div>
-        </div>
-
-        <div id="bulk-action-bar" class="${bulkActionVisibility}">
-            <p><span id="selection-count">${selectedBikes.length}</span> selected</p>
-            <div>
-                <button class="btn" data-action="show-bulk-sell-form" ${!canBulkSell ? 'disabled' : ''}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M3.125 5.5A.375.375 0 013.5 5h13a.375.375 0 01.375.375v9A.375.375 0 0116.5 15h-13a.375.375 0 01-.375-.375v-9zM4.25 6.25v7.5h11.5v-7.5H4.25z" /><path d="M10 9a.75.75 0 01.75.75v2.5a.75.75 0 01-1.5 0v-2.5A.75.75 0 0110 9zM12.25 10.75a.75.75 0 000 1.5h2.5a.75.75 0 000-1.5h-2.5zM5.25 10.75a.75.75 0 000 1.5h2.5a.75.75 0 000-1.5h-2.5z" /></svg>
-                    Sell
-                </button>
-                <button class="btn" data-action="bulk-export-csv">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 00-1 1v4a1 1 0 00.82.978l4 1a1 1 0 10-.36 1.956L10 9.571V15a1 1 0 102 0V9.429l3.48 1.392a1 1 0 10.36-1.956l-4-1A1 1 0 0010 7V4a1 1 0 00-1-1z" /></svg>
-                Export CSV
-                </button>
-                <button class="btn btn-danger" data-action="bulk-delete-bikes">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.67.042 2.48.091V3.75a1.25 1.25 0 10-2.5 0V4.09c.81-.049 1.64-.09 2.48-.09zM8.25 6.5a.75.75 0 01.75.75v7.5a.75.75 0 01-1.5 0v-7.5a.75.75 0 01.75-.75zm3.5 0a.75.75 0 01.75.75v7.5a.75.75 0 01-1.5 0v-7.5a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>
-                    Delete
-                </button>
-            </div>
-        </div>
-
-        <div id="bike-list" class="bike-list">
-            ${filteredBikes.length === 0 ? '<p class="empty-state">No bikes found. Add one to get started!</p>' : filteredBikes.map(bike => renderBikeCard(bike, currency)).join('')}
-        </div>
-    `;
-}
-
-function renderBikeCard(bike, currency) {
-    const isSold = bike.status === 'sold';
-    const profit = isSold ? (bike.profit || 0) : (bike.sellPrice ? (bike.sellPrice - bike.totalCost) : null);
-    const profitClass = profit === null ? '' : (profit > 0 ? 'profit-positive' : 'profit-negative');
-    const profitText = profit === null ? `Est. ${formatCurrency(0, currency)}` : `${formatCurrency(profit, currency)}`;
-
-    return `
-        <div class="bike-card ${isSold ? 'sold' : ''}" data-bike-id="${bike.id}">
-            <div class="bike-card-selection">
-                <input type="checkbox" class="bike-select-checkbox" data-bike-id="${bike.id}">
-            </div>
-            <div class="bike-card-details">
-                <div class="bike-card-header">
-                    <span class="plate-no">${bike.plateNo}</span>
-                    <span class="status status-${bike.status}">${bike.status}</span>
-                </div>
-                <p class="model">${bike.model}</p>
-                <p class="owner">Owner: ${bike.ownerName}</p>
-                <div class="bike-card-footer">
-                    <span class="cost">Cost: ${formatCurrency(bike.totalCost, currency)}</span>
-                    <span class="profit ${profitClass}">Profit: ${profitText}</span>
-                </div>
-            </div>
-            <div class="bike-card-actions">
-                ${!isSold ? `<button class="btn btn-small" data-action="show-sell-form" data-bike-id="${bike.id}">Sell</button>` : ''}
-                <button class="btn-icon" data-action="show-edit-bike-form" data-bike-id="${bike.id}">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function renderAnalyticsTab() {
-    const analytics = calculateAnalytics(appState.data);
-    const { currency } = appState.settings;
-
-    return `
-        <h2>Analytics</h2>
-        <div class="analytics-section">
-            <h3>Quick Insights</h3>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Total Investment (Sold)</h3>
-                    <p>${formatCurrency(analytics.totalCostOfSoldBikes, currency)}</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Returns</h3>
-                    <p>${formatCurrency(analytics.totalReturns, currency)}</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Net Profit/Loss</h3>
-                    <p class="${analytics.totalProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(analytics.totalProfit, currency)}</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Repair Cost</h3>
-                    <p>${formatCurrency(analytics.totalRepairCost, currency)}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="analytics-section">
-            <h3>Inventory & Performance</h3>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Avg. ROI</h3>
-                    <p>${analytics.averageROI.toFixed(2)}%</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Avg. Days to Sell</h3>
-                    <p>${analytics.averageDaysToSell.toFixed(1)} days</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Best Performer</h3>
-                    <p>${analytics.bestPerformer ? `${analytics.bestPerformer.plateNo} (${formatCurrency(analytics.bestPerformer.profit, currency)})` : 'N/A'}</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Worst Performer</h3>
-                    <p>${analytics.worstPerformer ? `${analytics.worstPerformer.plateNo} (${formatCurrency(analytics.worstPerformer.profit, currency)})` : 'N/A'}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="analytics-section">
-            <h3>Cash Flow Summary</h3>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Total Inflow</h3>
-                    <p class="profit-positive">${formatCurrency(analytics.cashFlow.inflow, currency)}</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Outflow</h3>
-                    <p class="profit-negative">${formatCurrency(analytics.cashFlow.outflow, currency)}</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Net Flow</h3>
-                    <p class="${analytics.cashFlow.net >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(analytics.cashFlow.net, currency)}</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Current Cash</h3>
-                    <p>${formatCurrency(analytics.currentCash, currency)}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="analytics-section">
-            <h3>Monthly Summaries</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th>Bikes Sold</th>
-                            <th>Net Profit</th>
-                            <th>Cash Flow</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${Object.keys(analytics.monthlySummaries).length === 0 ? '<tr><td colspan="4">No data yet.</td></tr>' : ''}
-                        ${Object.entries(analytics.monthlySummaries).map(([month, summary]) => `
-                            <tr>
-                                <td>${month}</td>
-                                <td>${summary.bikesSold}</td>
-                                <td class="${summary.netProfit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(summary.netProfit, currency)}</td>
-                                <td class="${summary.cashFlow >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(summary.cashFlow, currency)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="analytics-section">
-            <h3>Reports</h3>
-            <div class="button-group">
-                <button class="btn" data-action="export-pdf">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.75 2a.75.75 0 01.75.75V5h-2.5V2.75a.75.75 0 01.75-.75zM14 6V2.75A2.75 2.75 0 0011.25 0H5.75A2.75 2.75 0 003 2.75v14.5A2.75 2.75 0 005.75 20h8.5A2.75 2.75 0 0017 17.25V6h-3zM9 10.75a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5a.75.75 0 01-.75-.75zm4 0a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5a.75.75 0 01-.75-.75zM9 13.75a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5a.75.75 0 01-.75-.75zm4 0a.75.75 0 01.75-.75h.5a.75.75 0 010 1.5h-.5a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>
-                    Download Full Report (PDF)
-                </button>
-                <button class="btn" data-action="export-csv-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd" /></svg>
-                    Download All Data (CSV)
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function renderSettingsTab() {
-    const { settings } = appState;
-    return `
-        <h2>Settings</h2>
-        <div class="settings-section">
-            <h3>Appearance & Finance</h3>
-            <form id="settings-finance-form" class="form-layout">
-                <div class="form-group">
-                    <label for="setting-business-name">Business Name</label>
-                    <input type="text" id="setting-business-name" value="${escapeHTML(settings.businessName || '')}" required>
-                </div>
-                <div class="form-group">
-                    <label for="setting-currency">Default Currency</label>
-                    <input type="text" id="setting-currency" value="${escapeHTML(settings.currency || '₹')}" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Save Finance Settings</button>
-            </form>
-        </div>
-
-        <div class="settings-section">
-            <h3>GitHub Sync</h3>
-            <p class="help-text">Store your data in a private GitHub Gist. Create a <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank" rel="noopener">Personal Access Token (PAT)</a> with only the <code>gist</code> scope.</p>
-            <form id="settings-sync-form" class="form-layout">
-                <div class="form-group">
-                    <label for="setting-gist-id">Gist ID</label>
-                    <input type="text" id="setting-gist-id" placeholder="e.g., a1b2c3d4e5f6a1b2c3d4e5f6" value="${escapeHTML(settings.gistId || '')}">
-                </div>
-                <div class="form-group">
-                    <label for="setting-pat">Personal Access Token (PAT)</label>
-                    <input type="password" id="setting-pat" placeholder="ghp_..." value="${escapeHTML(settings.pat || '')}" required>
-                </div>
-                <div class="button-group">
-                    <button type="submit" class="btn btn-primary">Save Sync Settings</button>
-                    <button type="button" class="btn" data-action="validate-create-gist">Validate / Create Gist</button>
-                    <button type="button" class="btn" data-action="sync-now">Sync Now</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="settings-section">
-            <h3>Data Management</h3>
-            <p class="help-text">Export your data or reset your local cache.</p>
-            <div class="button-group-vertical">
-                <button class="btn" data-action="export-pdf">Download Full PDF Report</button>
-                <button class="btn" data-action="export-csv-all">Download All Data CSV</button>
-                <button class="btn" data-action="export-csv-bikes">Export Bikes CSV</button>
-                <button class="btn" data-action="export-csv-txns">Export Transactions CSV</button>
-                <button class="btn" data-action="export-csv-ledger">Export Capital Log CSV</button>
-                <button class="btn btn-danger" data-action="reset-local-cache">Reset Local Cache</button>
-            </div>
-        </div>
-
-        <div class="settings-section">
-            <h3>Help</h3>
-            <p class="help-text"><strong>Personal Access Token (PAT):</strong> Your PAT is stored *only* in your browser's local database. It is never sent to any server except GitHub's API. For security, use a token with *only* the <code>gist</code> scope. You can revoke this token anytime in your GitHub settings.</p>
-            <p class="help-text"><strong>Sync Logic:</strong> The app saves all changes locally first. When you "Sync Now", it pushes your local changes to your Gist. If the Gist has been updated by another device, the sync will be aborted to prevent data loss. In case of a conflict, you may need to "Reset Local Cache" (which pulls the remote data, deleting local changes) or manually resolve the Gist data.</p>
-        </div>
-    `;
-}
-
-// --- Modals & Forms ---
-
-function showBuyForm(bike = null) {
-    const isEditing = bike !== null;
-    const title = isEditing ? 'Edit Bike' : 'Add Bike (Buy)';
-    const today = new Date().toISOString().split('T')[0];
-
-    const formHtml = `
-        <form id="buy-bike-form" class="form-layout" data-bike-id="${isEditing ? bike.id : ''}">
-            <div class="form-group">
-                <label for="bike-plateNo">Bike No/Plate</label>
-                <input type="text" id="bike-plateNo" value="${escapeHTML(bike?.plateNo || '')}" required>
-            </div>
-            <div class="form-group">
-                <label for="bike-model">Model</label>
-                <input type="text" id="bike-model" value="${escapeHTML(bike?.model || '')}" required>
-            </div>
-            <div class="form-group">
-                <label for="bike-ownerName">Owner Name (Seller)</label>
-                <input type="text" id="bike-ownerName" value="${escapeHTML(bike?.ownerName || '')}" required>
-            </div>
-            <div class="form-group">
-                <label for="bike-purchasePrice">Buying Price</label>
-                <input type="number" id="bike-purchasePrice" value="${escapeHTML(bike?.purchasePrice || '')}" required>
-            </div>
-            <div class="form-group">
-                <label for="bike-repairCost">Repair Cost</label>
-                <input type="number" id="bike-repairCost" value="${escapeHTML(bike?.repairCost || 0)}">
-            </div>
-            <div class="form-group">
-                <label for="bike-purchaseDate">Date of Purchase</label>
-                <input type="date" id="bike-purchaseDate" value="${escapeHTML(bike?.purchaseDate ? bike.purchaseDate.split('T')[0] : today)}" required>
-            </div>
-            <div class="form-group">
-                <label for="bike-notes">Notes</label>
-                <textarea id="bike-notes">${escapeHTML(bike?.notes || '')}</textarea>
-            </div>
-        </form>
-    `;
-
-    showFormModal(title, formHtml, async (form) => {
-        const formData = {
-            plateNo: form.querySelector('#bike-plateNo').value,
-            model: form.querySelector('#bike-model').value,
-            ownerName: form.querySelector('#bike-ownerName').value,
-            purchasePrice: parseFloat(form.querySelector('#bike-purchasePrice').value),
-            repairCost: parseFloat(form.querySelector('#bike-repairCost').value || 0),
-            purchaseDate: new Date(form.querySelector('#bike-purchaseDate').value).toISOString(),
-            notes: form.querySelector('#bike-notes').value,
-        };
-
-        if (isEditing) {
-            formData.id = bike.id;
-            formData.yyyymm = getYearMonth(bike.purchaseDate); // original month
-            await handleEditBike(formData);
-        } else {
-            await handleAddBike(formData);
-        }
-        showToast(`Bike ${isEditing ? 'updated' : 'added'} successfully!`, 'success');
-        return true; // Close modal
+    return dbp;
+  }
+  async function get(store,key){
+    const db = await open(); return new Promise((res,rej)=>{
+      const tx = db.transaction(store,'readonly'); const st=tx.objectStore(store);
+      const r = st.get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
     });
-}
-
-function showSellForm(bike) {
-    const title = `Sell Bike: ${bike.plateNo}`;
-    const today = new Date().toISOString().split('T')[0];
-
-    const formHtml = `
-        <form id="sell-bike-form" class="form-layout">
-            <p><strong>Model:</strong> ${escapeHTML(bike.model)}</p>
-            <p><strong>Total Cost:</strong> ${formatCurrency(bike.totalCost, appState.settings.currency)}</p>
-            <hr/>
-            <div class="form-group">
-                <label for="sell-price">Selling Price</label>
-                <input type="number" id="sell-price" required>
-            </div>
-            <div class="form-group">
-                <label for="sell-date">Date of Sale</label>
-                <input type="date" id="sell-date" value="${today}" required>
-            </div>
-            <div class="form-group">
-                <label for="sell-buyer-name">Buyer Name</label>
-                <input type="text" id="sell-buyer-name" required>
-            </div>
-            <div class="form-group">
-                <label for="sell-notes">Notes</label>
-                <textarea id="sell-notes"></textarea>
-            </div>
-        </form>
-    `;
-
-    showFormModal(title, formHtml, async (form) => {
-        const sellData = {
-            sellPrice: parseFloat(form.querySelector('#sell-price').value),
-            sellDate: new Date(form.querySelector('#sell-date').value).toISOString(),
-            buyerName: form.querySelector('#sell-buyer-name').value,
-            notes: form.querySelector('#sell-notes').value,
-        };
-
-        const profit = sellData.sellPrice - bike.totalCost;
-        await handleSellBike(bike, sellData);
-        showToast(`Bike sold for ${formatCurrency(sellData.sellPrice, appState.settings.currency)} (Profit: ${formatCurrency(profit, appState.settings.currency)})`, 'success');
-        return true;
+  }
+  async function set(store,key,val){
+    const db = await open(); return new Promise((res,rej)=>{
+      const tx = db.transaction(store,'readwrite'); const st=tx.objectStore(store);
+      const r = st.put(val,key); r.onsuccess=()=>res(true); r.onerror=()=>rej(r.error);
     });
+  }
+  async function del(store,key){
+    const db = await open(); return new Promise((res,rej)=>{
+      const tx = db.transaction(store,'readwrite'); const st=tx.objectStore(store);
+      const r = st.delete(key); r.onsuccess=()=>res(true); r.onerror=()=>rej(r.error);
+    });
+  }
+  async function allOps(){
+    const db = await open(); return new Promise((res,rej)=>{
+      const tx = db.transaction('ops','readonly'); const st=tx.objectStore('ops');
+      const arr=[]; const c = st.openCursor();
+      c.onsuccess = e=>{
+        const cur=e.target.result; if(cur){arr.push(cur.value);cur.continue()} else res(arr);
+      };
+      c.onerror=()=>rej(e.target.error);
+    });
+  }
+  async function putOp(op){
+    op.id ||= uuid('op_');
+    const db = await open(); return new Promise((res,rej)=>{
+      const tx = db.transaction('ops','readwrite'); const st=tx.objectStore('ops');
+      const r = st.put(op); r.onsuccess=()=>res(op); r.onerror=()=>rej(r.error);
+    });
+  }
+  async function clearOps(){
+    const db = await open(); return new Promise((res,rej)=>{
+      const tx = db.transaction('ops','readwrite'); const st=tx.objectStore('ops');
+      const r = st.clear(); r.onsuccess=()=>res(true); r.onerror=()=>rej(r.error);
+    });
+  }
+  return {get,set,del,allOps,putOp,clearOps};
+})();
+
+/* ---------- Default DB ---------- */
+function defaultDB(){
+  const now = new Date().toISOString();
+  return {
+    meta:{app:'bike-resell',version:2,createdAt:now,updatedAt:now},
+    settings:{businessName:'',currency:'₹',gistId:''}, // PAT removed from persistence
+    months:{} // keyed YYYY-MM
+  };
 }
 
-function showBulkSellForm() {
-    const selectedBikes = getSelectedBikes().filter(b => b.status === 'available');
-    if (selectedBikes.length === 0) {
-        showToast('No available bikes selected for bulk sale.', 'error');
-        return;
+/* ---------- Global state (in-memory) ---------- */
+const state = {
+  db: null,
+  settings: {businessName:'',currency:'₹',gistId:''},
+  filters: {status:'all', search:'', sort:'latest', adv:{}},
+  selection: new Set(),
+  lastSync: null,
+  syncing: false,
+  conflicts: [],
+  lastUndo: null
+};
+
+/* ---------- Toast ---------- */
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.dataset.show="true"; setTimeout(()=>{t.dataset.show="";}, 3000);}
+
+/* ---------- Dialog helpers ---------- */
+function openDialog(id){ const d=$("#"+id); if(d){ d.showModal(); d.querySelector('button, [tabindex="0"], input, select, textarea')?.focus();}}
+function closeDialog(id){ $("#"+id)?.close();}
+
+/* ---------- DB helpers ---------- */
+async function load(){
+  let db = await idb.get('kv','db');
+  if(!db){ db = defaultDB(); await idb.set('kv','db',db); }
+  // Migrate: strip persisted PAT if older versions had it
+  if(db.settings && 'pat' in db.settings){ delete db.settings.pat; await idb.set('kv','db',db); }
+  state.db = db;
+  state.settings = {...db.settings};
+  $("#setBiz").value = state.settings.businessName || '';
+  $("#setCurrency").value = state.settings.currency || '₹';
+  $("#setGist").value = state.settings.gistId || '';
+  // PAT field loads from session only
+  $("#setPAT").value = pat.get() || '';
+  state.lastSync = await idb.get('kv','lastSync');
+  recomputeBalances(); // ensure balanceAfter fields are consistent
+  renderAll();
+  // Ask PAT at session start if empty, to support password managers
+  if(!pat.get()){ $("#patForm").reset(); openDialog('dlgPAT'); }
+}
+async function saveDB(){
+  state.db.meta.updatedAt = new Date().toISOString();
+  await idb.set('kv','db', state.db);
+}
+async function saveSettings(){
+  state.db.settings = {...state.settings};
+  await saveDB();
+}
+
+/* ---------- Normalized getters ---------- */
+function monthEnsure(yyyyMM){
+  if(!state.db.months[yyyyMM]){
+    state.db.months[yyyyMM] = {bikes:[],transactions:[],capitalLedger:[]};
+  }
+  return state.db.months[yyyyMM];
+}
+function getAllMonths(){ return state.db.months || {}; }
+function allBikes(){
+  const res=[];
+  const months = getAllMonths();
+  for(const m in months) for(const b of months[m].bikes){ if(!b.deleted) res.push({...b, _month:m});}
+  return res;
+}
+function allTx(){
+  const res=[];
+  const months = getAllMonths();
+  for(const m in months) for(const t of months[m].transactions){ if(!t.deleted) res.push({...t, _month:m});}
+  return res;
+}
+function allCap(){
+  const res=[];
+  const months = getAllMonths();
+  for(const m in months) for(const c of months[m].capitalLedger){ if(!c.deleted) res.push({...c, _month:m});}
+  return res;
+}
+
+/* ---------- Capital recompute (order-independent) ---------- */
+function recomputeBalances(){
+  const caps = allCap().slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let bal = 0;
+  for(const c of caps){
+    bal += Number(c.change||0);
+    // write back to the original month store
+    const mm = monthEnsure(c._month);
+    const ref = mm.capitalLedger.find(x=>x.id===c.id);
+    if(ref){ ref.balanceAfter = bal; }
+  }
+}
+function lastBalance(){
+  const caps = allCap().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  return caps.reduce((s,c)=>s+Number(c.change||0),0);
+}
+
+/* ---------- Data model ops ---------- */
+function setBalanceEntry(monthKey, change, type, reason, dateISO){
+  const m = monthEnsure(monthKey);
+  // balanceAfter will be recomputed globally
+  const cap = {
+    id: uuid('cap_'), change: Number(change), balanceAfter: 0,
+    type, reason, date: dateISO, updatedAt: new Date().toISOString()
+  };
+  m.capitalLedger.push(cap);
+  return cap;
+}
+function addTransaction(monthKey, type, bikeId, amount, dateISO, meta={}){
+  const m = monthEnsure(monthKey);
+  const tx = {id: uuid('txn_'), type, bikeId, amount: Number(amount), date: dateISO, meta, updatedAt: new Date().toISOString()};
+  m.transactions.push(tx);
+  return tx;
+}
+function addBike(data){
+  const dateISO = toISO(data.purchaseDate);
+  const mKey = ym(dateISO);
+  const m = monthEnsure(mKey);
+  const totalCost = Number(data.purchasePrice||0) + Number(data.repairCost||0);
+  const bike = {
+    id: uuid('bike_'),
+    plateNo: data.plateNo.trim(),
+    model: data.model.trim(),
+    ownerName: data.ownerName.trim(),
+    purchasePrice: Number(data.purchasePrice),
+    repairCost: Number(data.repairCost||0),
+    totalCost,
+    purchaseDate: dateISO,
+    sellPrice: null,
+    sellDate: null,
+    profit: null,
+    status: 'available',
+    notes: data.notes||'',
+    updatedAt: new Date().toISOString()
+  };
+  m.bikes.push(bike);
+  addTransaction(mKey, 'buy', bike.id, totalCost, dateISO, {seller: data.ownerName||''});
+  setBalanceEntry(mKey, -totalCost, 'buy', `Bought ${bike.plateNo}`, dateISO);
+  recomputeBalances();
+  return bike;
+}
+function sellBike(bikeId, price, buyer, dateISO){
+  const bike = allBikes().find(b=>b.id===bikeId);
+  if(!bike) throw new Error('Bike not found');
+  const bm = monthEnsure(ym(bike.purchaseDate));
+  const ref = bm.bikes.find(b=>b.id===bikeId);
+  ref.sellPrice = Number(price); ref.sellDate = dateISO;
+  ref.profit = Number(price) - Number(ref.totalCost);
+  ref.status = 'sold';
+  ref.updatedAt = new Date().toISOString();
+  addTransaction(ym(dateISO), 'sell', bikeId, Number(price), dateISO, {buyer: buyer||''});
+  setBalanceEntry(ym(dateISO), Number(price), 'sell', `Sold ${ref.plateNo}`, dateISO);
+  recomputeBalances();
+  return ref;
+}
+/* Write-off (replaces destructive delete):
+   - Marks bike as deleted
+   - Adds reversing capital entry (+totalCost) and a writeoff transaction
+   This restores cash, and records the write-off event. */
+function writeOffBikes(ids){
+  const months = getAllMonths();
+  let total=0, count=0;
+  for(const m in months){
+    for(const b of months[m].bikes){
+      if(ids.has(b.id) && !b.deleted){
+        b.deleted = true; b.updatedAt = new Date().toISOString();
+        total += Number(b.totalCost||0); count++;
+      }
     }
-
-    const title = `Bulk Sell ${selectedBikes.length} Bikes`;
-    const today = new Date().toISOString().split('T')[0];
-
-    let bikeListHtml = selectedBikes.map(bike => `
-        <div class="bulk-sell-item" data-bike-id="${bike.id}">
-            <strong>${escapeHTML(bike.plateNo)}</strong> (${escapeHTML(bike.model)})
-            <br>
-            <small>Cost: ${formatCurrency(bike.totalCost, appState.settings.currency)}</small>
-            <div class="form-group">
-                <label for="bulk-sell-price-${bike.id}">Sell Price</label>
-                <input type="number" id="bulk-sell-price-${bike.id}" class="bulk-sell-price-input" placeholder="e.g., 60000" required>
-            </div>
-        </div>
-    `).join('<hr>');
-
-    const formHtml = `
-        <form id="bulk-sell-form" class="form-layout">
-            <p>Enter individual selling prices below. You can use the fields below to set defaults for all.</p>
-            <hr/>
-            <div class="form-group">
-                <label for="bulk-sell-date">Date of Sale (for all)</label>
-                <input type="date" id="bulk-sell-date" value="${today}" required>
-            </div>
-            <div class="form-group">
-                <label for="bulk-sell-buyer-name">Buyer Name (for all)</label>
-                <input type="text" id="bulk-sell-buyer-name" placeholder="e.g., 'Various' or 'Used Bikes Dealer'">
-            </div>
-            <hr/>
-            <h3>Individual Prices</h3>
-            <div id="bulk-sell-list">
-                ${bikeListHtml}
-            </div>
-        </form>
-    `;
-
-    showFormModal(title, formHtml, async (form) => {
-        const sellDate = new Date(form.querySelector('#bulk-sell-date').value).toISOString();
-        const buyerName = form.querySelector('#bulk-sell-buyer-name').value;
-
-        const sellOps = [];
-        let totalSold = 0;
-        let totalProfit = 0;
-
-        for (const bike of selectedBikes) {
-            const priceInput = form.querySelector(`#bulk-sell-price-${bike.id}`);
-            const sellPrice = parseFloat(priceInput.value);
-
-            if (!sellPrice || sellPrice <= 0) {
-                priceInput.focus();
-                priceInput.style.borderColor = 'red';
-                showToast(`Please enter a valid price for ${bike.plateNo}`, 'error');
-                return false; // Don't close modal
-            }
-
-            const sellData = {
-                sellPrice,
-                sellDate,
-                buyerName: buyerName || 'Bulk Sale',
-                notes: `Bulk sale.`,
-            };
-            
-            // We create the op payload but don't queue it yet,
-            // we'll queue a single "BULK_SELL" op
-            const op = createSellBikeOp(bike, sellData);
-            sellOps.push(op); // op is { bike, ... }
-            totalSold++;
-            totalProfit += (sellData.sellPrice - bike.totalCost);
-        }
-
-        if (sellOps.length > 0) {
-            await queueOp('BULK_SELL', sellOps);
-            await optimisticUpdate({ type: 'BULK_SELL', payload: sellOps });
-            showToast(`${totalSold} bikes sold. Total Profit: ${formatCurrency(totalProfit, appState.settings.currency)}`, 'success');
-        }
-        
-        return true; // Close modal
-    });
+  }
+  const dateISO = new Date().toISOString();
+  const mKey = ym(dateISO);
+  if(total>0){
+    addTransaction(mKey,'writeoff', null, 0, dateISO, {count, reason:'Write-off deleted bikes'});
+    setBalanceEntry(mKey, +total, 'writeoff_reverse', `Write-off reverse ${count} bikes`, dateISO);
+  }
+  recomputeBalances();
+  return {count,total};
 }
 
-function showAdjustCapitalForm() {
-    const title = 'Adjust Capital';
-    const formHtml = `
-        <form id="adjust-capital-form" class="form-layout">
-            <div class="form-group">
-                <label for="adj-amount">Amount</label>
-                <input type="number" id="adj-amount" placeholder="e.g., 50000 or -10000" required>
-            </div>
-            <div class="form-group">
-                <label for="adj-reason">Reason</label>
-                <input type="text" id="adj-reason" placeholder="e.g., 'Initial capital' or 'Withdrawal'" required>
-            </div>
-        </form>
-    `;
-
-    showFormModal(title, formHtml, async (form) => {
-        const amount = parseFloat(form.querySelector('#adj-amount').value);
-        const reason = form.querySelector('#adj-reason').value;
-
-        if (!amount) {
-            showToast('Amount cannot be zero.', 'error');
-            return false;
-        }
-        if (!reason.trim()) {
-            showToast('Reason is required.', 'error');
-            return false;
-        }
-
-        await handleAdjustCapital({ amount, reason });
-        showToast(`Capital adjusted by ${formatCurrency(amount, appState.settings.currency)}`, 'success');
-        return true;
-    });
+/* ---------- Search / Filters / Sort ---------- */
+function applyFiltersTo(list){
+  const {search, sort, status, adv} = state.filters;
+  let out = list;
+  if(status!=='all'){ out = out.filter(b=>b.status===status); }
+  if(search){ const s=search.toLowerCase();
+    out = out.filter(b=>(b.plateNo+' '+b.model+' '+b.ownerName).toLowerCase().includes(s));
+  }
+  if(adv){
+    if(adv.from) out = out.filter(b=>new Date(b.purchaseDate)>=new Date(adv.from));
+    if(adv.to) out = out.filter(b=>new Date(b.purchaseDate)<=new Date(adv.to));
+    if(adv.priceMin!=null && adv.priceMin!=="") out = out.filter(b=>b.purchasePrice>=Number(adv.priceMin));
+    if(adv.priceMax!=null && adv.priceMax!=="") out = out.filter(b=>b.purchasePrice<=Number(adv.priceMax));
+    if(adv.profitMin!=null && adv.profitMin!=="") out = out.filter(b=>(b.profit??-Infinity)>=Number(adv.profitMin));
+    if(adv.profitMax!=null && adv.profitMax!=="") out = out.filter(b=>(b.profit??Infinity)<=Number(adv.profitMax));
+  }
+  switch(sort){
+    case 'latest': out.sort((a,b)=>new Date(b.purchaseDate)-new Date(a.purchaseDate)); break;
+    case 'oldest': out.sort((a,b)=>new Date(a.purchaseDate)-new Date(b.purchaseDate)); break;
+    case 'profitDesc': out.sort((a,b)=>(b.profit??-Infinity)-(a.profit??-Infinity)); break;
+    case 'profitAsc': out.sort((a,b)=>(a.profit??Infinity)-(b.profit??Infinity)); break;
+  }
+  return out;
 }
 
-function showAdvancedFilters() {
-    const { filters } = appState.ui;
-    const formHtml = `
-        <form id="advanced-filter-form" class="form-layout">
-            <div class="form-group">
-                <label for="filter-date-from">Purchase Date From</label>
-                <input type="date" id="filter-date-from" value="${filters.dateFrom || ''}">
-            </div>
-            <div class="form-group">
-                <label for="filter-date-to">Purchase Date To</label>
-                <input type="date" id="filter-date-to" value="${filters.dateTo || ''}">
-            </div>
-            <div class="form-group">
-                <label for="filter-cost-min">Min Total Cost</label>
-                <input type="number" id="filter-cost-min" value="${filters.costMin || ''}">
-            </div>
-            <div class="form-group">
-                <label for="filter-cost-max">Max Total Cost</label>
-                <input type="number" id="filter-cost-max" value="${filters.costMax || ''}">
-            </div>
-            <div class="form-group">
-                <label for="filter-profit-min">Min Profit (for sold)</label>
-                <input type="number" id="filter-profit-min" value="${filters.profitMin || ''}">
-            </div>
-            <div class="form-group">
-                <label for="filter-profit-max">Max Profit (for sold)</label>
-                <input type="number" id="filter-profit-max" value="${filters.profitMax || ''}">
-            </div>
-        </form>
-    `;
-
-    showFormModal('Advanced Filters', formHtml, (form) => {
-        appState.ui.filters.dateFrom = form.querySelector('#filter-date-from').value;
-        appState.ui.filters.dateTo = form.querySelector('#filter-date-to').value;
-        appState.ui.filters.costMin = form.querySelector('#filter-cost-min').value ? parseFloat(form.querySelector('#filter-cost-min').value) : null;
-        appState.ui.filters.costMax = form.querySelector('#filter-cost-max').value ? parseFloat(form.querySelector('#filter-cost-max').value) : null;
-        appState.ui.filters.profitMin = form.querySelector('#filter-profit-min').value ? parseFloat(form.querySelector('#filter-profit-min').value) : null;
-        appState.ui.filters.profitMax = form.querySelector('#filter-profit-max').value ? parseFloat(form.querySelector('#filter-profit-max').value) : null;
-        
-        renderApp();
-        showToast('Filters applied', 'info');
-        return true;
-    }, () => {}, 'Apply', 'Clear Filters', () => {
-        // Clear filters
-        appState.ui.filters = {
-            search: appState.ui.filters.search,
-            status: appState.ui.filters.status,
-            sort: appState.ui.filters.sort,
-        };
-        renderApp();
-        showToast('Filters cleared', 'info');
-    });
+/* ---------- Rendering ---------- */
+function renderStats(){
+  const currency = state.settings.currency||'₹';
+  const cash = lastBalance();
+  $("#kpi-cash").textContent = fmt(cash,currency);
+  const bikes = allBikes();
+  const sold = bikes.filter(b=>b.status==='sold');
+  const profit = sold.reduce((s,b)=>s+(b.profit||0),0);
+  $("#kpi-profit").textContent = fmt(profit,currency);
+  const unsold = bikes.filter(b=>b.status!=='sold');
+  const inv = unsold.reduce((s,b)=>s+(b.totalCost||0),0);
+  $("#kpi-unsold").textContent = fmt(inv,currency);
+  $("#kpi-stock").textContent = unsold.length;
+  $("#kpi-sold").textContent = sold.length;
 }
-
-
-// --- Event Handlers ---
-
-function attachEventListeners() {
-    const $app = $('#app-container');
-
-    // --- Navigation ---
-    $('#bottom-nav').addEventListener('click', (e) => {
-        const $button = e.target.closest('button');
-        if (!$button) return;
-
-        const tabId = $button.dataset.tab;
-        navigateTo(tabId);
-    });
-
-    // --- Delegated Clicks ---
-    $app.addEventListener('click', async (e) => {
-        const $target = e.target;
-        const $button = $target.closest('button');
-        const $card = $target.closest('.bike-card');
-
-        // Card click (not a button or checkbox)
-        if ($card && !$target.closest('button') && $target.type !== 'checkbox') {
-            const bikeId = $card.dataset.bikeId;
-            const bike = findBikeById(bikeId);
-            if (bike) {
-                showBuyForm(bike); // Show edit form
-            }
-            return;
-        }
-
-        // Checkbox click
-        if ($target.matches('.bike-select-checkbox')) {
-            handleSelectionChange();
-            return;
-        }
-
-        if (!$button) return;
-
-        const action = $button.dataset.action;
-        const bikeId = $button.dataset.bikeId || $target.closest('.bike-card')?.dataset.bikeId;
-        let bike;
-        if (bikeId) {
-            bike = findBikeById(bikeId);
-        }
-
-        switch (action) {
-            // Dashboard
-            case 'show-buy-form':
-                showBuyForm();
-                break;
-            case 'show-adjust-capital-form':
-                showAdjustCapitalForm();
-                break;
-            case 'show-advanced-filters':
-                showAdvancedFilters();
-                break;
-            case 'show-sell-form':
-                if (bike) showSellForm(bike);
-                break;
-            case 'show-edit-bike-form':
-                if (bike) showBuyForm(bike);
-                break;
-            case 'show-bulk-sell-form':
-                showBulkSellForm();
-                break;
-            case 'bulk-export-csv':
-                handleBulkExport();
-                break;
-            case 'bulk-delete-bikes':
-                handleBulkDelete();
-                break;
-
-            // Settings
-            case 'validate-create-gist':
-                await handleValidateAndCreateGist();
-                break;
-            case 'sync-now':
-                await syncNow();
-                break;
-            case 'reset-local-cache':
-                handleResetLocalCache();
-                break;
-
-            // Exports
-            case 'export-pdf':
-                await exportPDF();
-                break;
-            case 'export-csv-all':
-                await exportCSV('ALL_DATA');
-                break;
-            case 'export-csv-bikes':
-                await exportCSV('BIKES');
-                break;
-            case 'export-csv-txns':
-                await exportCSV('TRANSACTIONS');
-                break;
-            case 'export-csv-ledger':
-                await exportCSV('CAPITAL_LOG');
-                break;
-        }
-    });
-
-    // --- Delegated Form Submissions ---
-    $app.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const $form = e.target;
-
-        if ($form.id === 'settings-finance-form') {
-            await handleUpdateSettings({
-                businessName: $('#setting-business-name').value,
-                currency: $('#setting-currency').value,
-            });
-            showToast('Finance settings saved!', 'success');
-        } else if ($form.id === 'settings-sync-form') {
-            await handleUpdateSettings({
-                gistId: $('#setting-gist-id').value,
-                pat: $('#setting-pat').value,
-            });
-            showToast('Sync settings saved! Validate & Sync now.', 'success');
-        }
-    });
-
-    // --- Filters ---
-    $app.addEventListener('input', (e) => {
-        const $target = e.target;
-        if ($target.id === 'search-input') {
-            appState.ui.filters.search = $target.value;
-            renderApp();
-        }
-    });
-
-    $app.addEventListener('change', (e) => {
-        const $target = e.target;
-        if ($target.id === 'sort-select') {
-            appState.ui.filters.sort = $target.value;
-            renderApp();
-        }
-    });
-
-    $app.addEventListener('click', (e) => {
-        const $target = e.target.closest('.chip[data-filter="status"]');
-        if ($target) {
-            appState.ui.filters.status = $target.dataset.value;
-            renderApp();
-        }
-    });
-
-    // --- Online/Offline Sync ---
-    window.addEventListener('online', () => {
-        showToast('You are back online. Attempting to sync...', 'info');
-        syncNow();
-    });
-    window.addEventListener('offline', () => {
-        setSyncState('offline');
-        showToast('You are offline. Changes will be saved locally.', 'info');
-    });
-}
-
-// --- Handler Functions ---
-
-async function handleAddBike(bikeData) {
-    const op = createAddBikeOp(bikeData);
-    await queueOp('ADD_BIKE', op);
-    await optimisticUpdate({ type: 'ADD_BIKE', payload: op });
-}
-
-async function handleEditBike(bikeData) {
-    // This is more complex. We need to find the original bike,
-    // calculate the *difference* in cost, and adjust capital.
-    const originalBike = findBikeById(bikeData.id);
-    if (!originalBike) return;
-
-    const op = {
-        type: 'EDIT_BIKE',
-        payload: {
-            bikeId: bikeData.id,
-            yyyymm: getYearMonth(originalBike.purchaseDate),
-            newData: bikeData
-        }
-    };
-    await queueOp('EDIT_BIKE', op);
-    await optimisticUpdate(op);
-}
-
-async function handleSellBike(bike, sellData) {
-    const op = createSellBikeOp(bike, sellData);
-    await queueOp('SELL_BIKE', op.payload);
-    await optimisticUpdate({ type: 'SELL_BIKE', payload: op.payload });
-}
-
-async function handleAdjustCapital(adjData) {
-    const op = {
-        type: 'ADJUST_CAPITAL',
-        payload: {
-            ...adjData,
-            id: 'cap_' + Date.now(),
-            txn_id: 'txn_' + Date.now(),
-            date: new Date().toISOString()
-        }
-    };
-    await queueOp('ADJUST_CAPITAL', op.payload);
-    await optimisticUpdate(op);
-}
-
-async function handleUpdateSettings(newSettings) {
-    const op = {
-        type: 'UPDATE_SETTINGS',
-        payload: newSettings
-    };
-    await queueOp('UPDATE_SETTINGS', op.payload);
-    await optimisticUpdate(op);
-}
-
-function handleSelectionChange() {
-    const $actionBar = $('#bulk-action-bar');
-    const $count = $('#selection-count');
-    const $sellBtn = $actionBar.querySelector('[data-action="show-bulk-sell-form"]');
-
-    const selectedBikes = getSelectedBikes();
-    const count = selectedBikes.length;
-
-    if (count > 0) {
-        $actionBar.classList.remove('hidden');
-        $count.textContent = count;
-        // Enable/disable bulk sell button
-        const canBulkSell = selectedBikes.every(b => b.status === 'available');
-        if (canBulkSell) {
-            $sellBtn.removeAttribute('disabled');
-        } else {
-            $sellBtn.setAttribute('disabled', 'true');
-        }
+function renderList(){
+  const list = $("#bikeList"); list.textContent='';
+  const bikes = applyFiltersTo(allBikes());
+  if(!bikes.length){
+    const div=document.createElement('div'); div.className='card'; div.textContent='No bikes match your filters.';
+    list.appendChild(div); return;
+  }
+  for(const b of bikes){
+    const row=document.createElement('div'); row.className='item'; row.role='listitem';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.setAttribute('aria-label','Select '+b.plateNo);
+    cb.checked = state.selection.has(b.id);
+    cb.addEventListener('change',()=>{ if(cb.checked) state.selection.add(b.id); else state.selection.delete(b.id); updateBulkBar();});
+    const info=document.createElement('div');
+    const title=document.createElement('div'); title.className='title';
+    title.textContent = `${b.plateNo} — ${b.model}`;
+    const meta=document.createElement('div'); meta.className='meta';
+    const profitText = (b.status==='sold') ? `Profit: ${fmt(b.profit)}` : `Unrealized: ${fmt((b.sellPrice??0)-(b.totalCost||0))}`;
+    meta.textContent = `Owner: ${b.ownerName} • Bought: ${new Date(b.purchaseDate).toLocaleDateString()} • ${profitText}`;
+    info.appendChild(title); info.appendChild(meta);
+    const actions=document.createElement('div'); actions.style.display='grid'; actions.style.gap='6px';
+    if(b.status!=='sold'){
+      const sellBtn=document.createElement('button'); sellBtn.className='btn'; sellBtn.textContent='Sell';
+      sellBtn.addEventListener('click',()=>openQuickSell(b));
+      actions.appendChild(sellBtn);
     } else {
-        $actionBar.classList.add('hidden');
+      const badge=document.createElement('span'); badge.className='badge'; badge.textContent='Sold';
+      actions.appendChild(badge);
     }
+    row.appendChild(cb); row.appendChild(info); row.appendChild(actions);
+    list.appendChild(row);
+  }
+  updateBulkBar();
+}
+function renderTopBlocks(){
+  const container = $("#anaTop"); container.textContent = '';
+  const bikes = allBikes().filter(b=>b.status==='sold');
+  const modelProfit = new Map(); const ownerCount = new Map();
+  for(const b of bikes){ modelProfit.set(b.model,(modelProfit.get(b.model)||0)+(b.profit||0)); ownerCount.set(b.ownerName,(ownerCount.get(b.ownerName)||0)+1); }
+  const topModels = [...modelProfit.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topOwners = [...ownerCount.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const mCard = document.createElement('div'); mCard.className='card';
+  mCard.appendChild(Object.assign(document.createElement('strong'),{textContent:'Top Models (by profit)'}));
+  const ul1=document.createElement('ul'); ul1.className='small';
+  topModels.forEach(([m,p])=>{ const li=document.createElement('li'); li.textContent=`${m}: ${fmt(p)}`; ul1.appendChild(li); });
+  if(ul1.children.length===0){ const li=document.createElement('div'); li.textContent='No data'; ul1.appendChild(li); }
+  mCard.appendChild(ul1);
+
+  const oCard = document.createElement('div'); oCard.className='card';
+  oCard.appendChild(Object.assign(document.createElement('strong'),{textContent:'Top Owners (by sold count)'}));
+  const ul2=document.createElement('ul'); ul2.className='small';
+  topOwners.forEach(([o,c])=>{ const li=document.createElement('li'); li.textContent=`${o}: ${c}`; ul2.appendChild(li); });
+  if(ul2.children.length===0){ const li=document.createElement('div'); li.textContent='No data'; ul2.appendChild(li); }
+  oCard.appendChild(ul2);
+
+  container.appendChild(mCard); container.appendChild(oCard);
+}
+function renderAnalytics(){
+  const currency = state.settings.currency||'₹';
+  const from = $("#anaFrom").value? new Date($("#anaFrom").value): null;
+  const to = $("#anaTo").value? new Date($("#anaTo").value): null;
+  const bikes = allBikes().filter(b=>{
+    if(from && new Date(b.purchaseDate) < from) return false;
+    if(to && new Date(b.purchaseDate) > to) return false;
+    return true;
+  });
+  const invest = bikes.reduce((s,b)=>s+(b.totalCost||0),0);
+  const returns = bikes.filter(b=>b.status==='sold').reduce((s,b)=>s+(b.sellPrice||0),0);
+  const net = returns - invest;
+  const repair = bikes.reduce((s,b)=>s+(b.repairCost||0),0);
+  const sold = bikes.filter(b=>b.status==='sold');
+  const avgROI = sold.length ? (sold.reduce((s,b)=>s+((b.profit||0)/(b.totalCost||1)),0)/sold.length*100) : 0;
+  const avgDays = sold.length ? Math.round(sold.reduce((s,b)=>s+((new Date(b.sellDate)-new Date(b.purchaseDate))/(1000*60*60*24)),0)/sold.length) : 0;
+
+  $("#anaInvest").textContent = fmt(invest,currency);
+  $("#anaReturns").textContent = fmt(returns,currency);
+  $("#anaNet").textContent = fmt(net,currency);
+  $("#anaRepair").textContent = fmt(repair,currency);
+  $("#anaROI").textContent = `${avgROI.toFixed(1)}%`;
+  $("#anaDays").textContent = String(avgDays);
+
+  // Cash flow last 30 days
+  const now = new Date();
+  const past = new Date(now.getTime()-30*24*3600*1000);
+  const cap = allCap().filter(c=>new Date(c.date)>=past);
+  const inflow = cap.filter(c=>c.change>0).reduce((s,c)=>s+c.change,0);
+  const outflow = cap.filter(c=>c.change<0).reduce((s,c)=>s+Math.abs(c.change),0);
+  $("#anaInflow").textContent = fmt(inflow,currency);
+  $("#anaOutflow").textContent = fmt(outflow,currency);
+  $("#anaNetFlow").textContent = fmt(inflow-outflow,currency);
+  $("#anaCash").textContent = fmt(lastBalance(),currency);
+  $("#anaLargestIn").textContent = fmt(Math.max(0,...cap.filter(c=>c.change>0).map(c=>c.change)),currency);
+  $("#anaLargestOut").textContent = fmt(Math.max(0,...cap.filter(c=>c.change<0).map(c=>Math.abs(c.change))),currency);
+
+  renderTopBlocks();
+
+  // Monthly summaries
+  const container = $("#anaMonthly"); container.textContent='';
+  const grouped = {};
+  for(const b of bikes){
+    grouped[b._month] ||= {invest:0, returns:0, repair:0, sold:0, bought:0};
+    grouped[b._month].invest += (b.totalCost||0);
+    grouped[b._month].repair += (b.repairCost||0);
+    if(b.status==='sold'){ grouped[b._month].returns += (b.sellPrice||0); grouped[b._month].sold++; }
+    grouped[b._month].bought++;
+  }
+  const months = Object.keys(grouped).sort();
+  for(const m of months){
+    const g = grouped[m];
+    const div=document.createElement('div'); div.className='card';
+    const strong=document.createElement('strong'); strong.textContent=m;
+    const p=document.createElement('div');
+    p.innerText = `Investment: ${fmt(g.invest,currency)} | Returns: ${fmt(g.returns,currency)} | Repair: ${fmt(g.repair,currency)} • Bought: ${g.bought} • Sold: ${g.sold}`;
+    div.appendChild(strong); div.appendChild(p);
+    container.appendChild(div);
+  }
 }
 
-function handleBulkExport() {
-    const selectedBikes = getSelectedBikes();
-    if (selectedBikes.length === 0) {
-        showToast('No bikes selected.', 'error');
-        return;
-    }
-    const csv = generateCSV(selectedBikes, 'BIKES');
-    downloadFile(csv, `bike_export_${Date.now()}.csv`, 'text/csv');
+/* ---------- Rendering entry ---------- */
+function renderAll(){
+  renderStats();
+  renderList();
+  renderAnalytics();
+  updateSyncPill();
 }
 
-function handleBulkDelete() {
-    const selectedBikes = getSelectedBikes();
-    if (selectedBikes.length === 0) {
-        showToast('No bikes selected.', 'error');
-        return;
-    }
-
-    showModal(
-        'Delete Bikes',
-        `Are you sure you want to delete ${selectedBikes.length} bike(s)? This will also reverse any associated financial transactions (buy/sell). This action cannot be easily undone.`,
-        async () => {
-            const ops = selectedBikes.map(bike => {
-                return {
-                    bikeId: bike.id,
-                    yyyymm: getYearMonth(bike.purchaseDate),
-                    bike: bike // Pass full bike for ledger reversal
-                };
-            });
-
-            await queueOp('BULK_DELETE', ops);
-            await optimisticUpdate({ type: 'BULK_DELETE', payload: ops });
-            
-            showToast(`${selectedBikes.length} bikes deleted.`, 'success', 5000, true, async () => {
-                // UNDO logic
-                showToast('Undo is not supported for bulk delete yet.', 'info');
-                // This is complex, would require another op 'UNDO_BULK_DELETE'
-                // For now, we just show a message.
-            });
-        },
-        () => {},
-        'Delete',
-        'Cancel'
-    );
+/* ---------- Quick Sell ---------- */
+function openQuickSell(b){
+  state.selection = new Set([b.id]); buildMassSellList();
+  $("#msDefaultPrice").value = b.totalCost || '';
+  $("#msDefaultDate").value = todayISODate();
+  $("#msBuyer").value = '';
+  openDialog('dlgMassSell');
 }
 
-async function handleValidateAndCreateGist() {
-    const { pat } = appState.settings;
-    if (!pat) {
-        showToast('Please enter a Personal Access Token (PAT) first.', 'error');
-        return;
-    }
-
-    setSyncState('syncing', 'Validating PAT...');
-    try {
-        const headers = getHeaders(pat);
-        const res = await fetch('https://api.github.com/user', { headers });
-
-        if (!res.ok) {
-            throw new Error(`Invalid PAT or network issue. Status: ${res.status}`);
-        }
-
-        const user = await res.json();
-        showToast(`PAT valid for user: ${user.login}`, 'success');
-        setSyncState('syncing', 'Creating Gist...');
-
-        const defaultData = getInitialData();
-        const content = JSON.stringify(defaultData, null, 2);
-        
-        const createRes = await fetch('https://api.github.com/gists', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                description: 'Bike Resell Manager Database',
-                public: false,
-                files: {
-                    [GIST_FILENAME]: {
-                        content: content
-                    }
-                }
-            })
-        });
-
-        if (!createRes.ok) {
-            throw new Error('Failed to create Gist.');
-        }
-
-        const gist = await createRes.json();
-        const newGistId = gist.id;
-
-        showToast(`New Gist created successfully: ${newGistId}`, 'success');
-        
-        // Save new Gist ID to settings
-        await handleUpdateSettings({ gistId: newGistId });
-        // Set local data to this new Gist's data
-        await setData('data', defaultData);
-        await loadStateIntoApp(defaultData);
-        setSyncState('synced');
-
-    } catch (err) {
-        console.error('Validate/Create Gist Error:', err);
-        setSyncState('error', err.message);
-        showToast(err.message, 'error');
-    }
+/* ---------- CSV Builders ---------- */
+function download(filename, content, mime='text/plain'){
+  const a=document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
+function csvEscape(s){ if(s==null) return ''; s=String(s); return /[",\n]/.test(s)?('"'+s.replace(/"/g,'""')+'"'):s; }
+function bikesCSV(rows){
+  const cols=['month','id','plateNo','model','ownerName','purchasePrice','repairCost','totalCost','purchaseDate','sellPrice','sellDate','profit','status','notes'];
+  const head=cols.join(','); const lines=[head];
+  for(const b of rows){ const r=cols.map(k=>csvEscape(k==='month'?b._month:b[k])); lines.push(r.join(',')); }
+  return lines.join('\n');
+}
+function txCSV(rows){
+  const cols=['month','id','type','bikeId','amount','date','buyer','seller','reason'];
+  const lines=[cols.join(',')];
+  for(const t of rows){
+    const buyer=t.meta?.buyer||''; const seller=t.meta?.seller||''; const reason=t.meta?.reason||'';
+    const arr=[t._month,t.id,t.type,t.bikeId||'',t.amount,t.date,buyer,seller,reason].map(csvEscape);
+    lines.push(arr.join(','));
+  }
+  return lines.join('\n');
+}
+function capCSV(rows){
+  const cols=['month','id','change','balanceAfter','type','reason','date'];
+  const lines=[cols.join(',')];
+  for(const c of rows){ const arr=[c._month,c.id,c.change,c.balanceAfter,c.type,c.reason,c.date].map(csvEscape); lines.push(arr.join(',')); }
+  return lines.join('\n');
+}
+function allDataCSV(){
+  const lines=[];
+  lines.push('# Bikes'); lines.push(bikesCSV(allBikes())); lines.push('');
+  lines.push('# Transactions'); lines.push(txCSV(allTx())); lines.push('');
+  lines.push('# Capital'); lines.push(capCSV(allCap()));
+  return lines.join('\n');
 }
 
-function handleResetLocalCache() {
-    showModal(
-        'Reset Local Cache',
-        'Are you sure? This will delete all your local data and pending changes, and pull the latest data from your GitHub Gist. This is irreversible.',
-        async () => {
-            const { gistId, pat } = appState.settings;
-            if (!gistId || !pat) {
-                showToast('Cannot reset: Gist ID or PAT not set.', 'error');
-                return;
-            }
+/* ---------- Minimal PDF (text-only) ---------- */
+function simplePDF(title, sections){
+  const objects=[]; const xref=[];
+  function addObject(str){ const off = objects.join('').length; xref.push(off); objects.push(str); }
+  const header = '%PDF-1.4\n'; const pages=[];
+  function makePage(textLines){
+    const content = [];
+    content.push('BT\n/F1 12 Tf\n0 g\n');
+    let y = 780;
+    for(const line of textLines){
+      content.push(`72 ${y} Td (${line.replace(/([()\\])/g,'\\$1')}) Tj\n`);
+      y -= 14;
+      if(y<72){ content.push('ET\n'); break; }
+    }
+    if(!content[content.length-1].endsWith('ET\n')) content.push('ET\n');
+    const stream = content.join(''); const len = stream.length;
+    const n = xref.length+1;
+    addObject(`${n} 0 obj\n<< /Length ${len} >>\nstream\n${stream}endstream\nendobj\n`);
+    const contentRef = n;
+    const m = xref.length+1;
+    addObject(`${m} 0 obj\n<< /Type /Page /Parent 1 0 R /MediaBox [0 0 612 792] /Contents ${contentRef} 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >> >>\nendobj\n`);
+    pages.push(m);
+    return m;
+  }
+  const lines = [];
+  lines.push(title);
+  lines.push(new Date().toLocaleString());
+  lines.push('');
+  for(const s of sections){
+    lines.push(`== ${s.heading} ==`);
+    for(const l of s.lines){ lines.push(l); }
+    lines.push('');
+  }
+  const chunkSize = 52;
+  for(let i=0;i<lines.length;i+=chunkSize){
+    makePage(lines.slice(i,i+chunkSize));
+  }
+  addObject(`1 0 obj\n<< /Type /Pages /Kids ${pages.map(p=>p+' 0 R').join(' ')} /Count ${pages.length} >>\nendobj\n`);
+  addObject(`2 0 obj\n<< /Type /Catalog /Pages 1 0 R >>\nendobj\n`);
+  addObject(`3 0 obj\n<< /Producer (BRM) /Title (${title.replace(/([()\\])/g,'\\$1')}) >>\nendobj\n`);
+  const xoff = header.length;
+  let body = objects.join('');
+  const xrefPos = xoff + body.length;
+  let xrefTbl = `xref\n0 ${xref.length+1}\n0000000000 65535 f \n`;
+  for(const off of xref){ xrefTbl += String(off + xoff).padStart(10,'0') + ' 00000 n \n'; }
+  const trailer = `trailer\n<< /Size ${xref.length+1} /Root 2 0 R /Info 3 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
+  return header + body + xrefTbl + trailer;
+}
+function buildFullReportSections(){
+  const currency = state.settings.currency||'₹';
+  const bikes = allBikes();
+  const sold = bikes.filter(b=>b.status==='sold');
+  const unsold = bikes.filter(b=>b.status!=='sold');
+  const invest = bikes.reduce((s,b)=>s+(b.totalCost||0),0);
+  const returns = sold.reduce((s,b)=>s+(b.sellPrice||0),0);
+  const net = returns - invest;
+  const repair = bikes.reduce((s,b)=>s+(b.repairCost||0),0);
+  const cash = lastBalance();
 
-            try {
-                showToast('Resetting... Fetching remote data...', 'info');
-                setSyncState('syncing', 'Resetting...');
+  const modelMap = new Map(), ownerMap = new Map();
+  for(const b of sold){ modelMap.set(b.model,(modelMap.get(b.model)||0)+ (b.profit||0)); ownerMap.set(b.ownerName,(ownerMap.get(b.ownerName)||0)+1); }
+  const topModels = [...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([m,p])=>`${m}: ${fmt(p,currency)}`);
+  const topOwners = [...ownerMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([o,c])=>`${o}: ${c}`);
+  const best = sold.slice().sort((a,b)=>(b.profit||-1)-(a.profit||-1))[0];
+  const worst = sold.slice().sort((a,b)=>(a.profit||Infinity)-(b.profit||Infinity))[0];
+  const avgROI = sold.length ? (sold.reduce((s,b)=>s+((b.profit||0)/(b.totalCost||1)),0)/sold.length*100) : 0;
+  const avgDays = sold.length ? Math.round(sold.reduce((s,b)=>s+((new Date(b.sellDate)-new Date(b.purchaseDate))/(1000*60*60*24)),0)/sold.length) : 0;
 
-                const remoteData = await fetchGist(gistId, pat);
-                if (remoteData) {
-                    await setData('data', remoteData); // Overwrite local data
-                    await clearOpQueue(); // Delete all pending ops
-                    await loadStateIntoApp(remoteData); // Reload app
-                    setSyncState('synced');
-                    showToast('Local cache reset and synced with remote.', 'success');
-                } else {
-                    throw new Error('Failed to fetch remote data.');
-                }
-            } catch (err) {
-                console.error('Reset Cache Error:', err);
-                setSyncState('error', err.message);
-                showToast(`Reset failed: ${err.message}`, 'error');
-            }
-        },
-        () => {},
-        'Reset',
-        'Cancel'
-    );
+  const grouped = {};
+  for(const b of bikes){
+    grouped[b._month] ||= {invest:0, returns:0, repair:0, sold:0, bought:0};
+    grouped[b._month].invest += (b.totalCost||0);
+    grouped[b._month].repair += (b.repairCost||0);
+    if(b.status==='sold'){ grouped[b._month].returns += (b.sellPrice||0); grouped[b._month].sold++; }
+    grouped[b._month].bought++;
+  }
+  const linesMonthly = Object.keys(grouped).sort().map(m=>{
+    const g=grouped[m];
+    return `${m} :: Invest ${fmt(g.invest,currency)} | Returns ${fmt(g.returns,currency)} | Repair ${fmt(g.repair,currency)} | Bought ${g.bought} | Sold ${g.sold}`;
+  });
+
+  const soldLines = sold.map(b=> `Plate ${b.plateNo} | ${b.model} | Cost ${fmt(b.totalCost,currency)} | Sold ${fmt(b.sellPrice,currency)} | Profit ${fmt(b.profit,currency)}`);
+
+  return [
+    {heading: `${state.settings.businessName||'Bike Resell Manager'} — Summary`,
+     lines:[
+       `Currency: ${state.settings.currency||'₹'}`,
+       `Investment: ${fmt(invest,currency)} | Returns: ${fmt(returns,currency)} | Net: ${fmt(net,currency)}`,
+       `Repair Cost Total: ${fmt(repair,currency)} | Current Cash: ${fmt(cash,currency)}`,
+       `Avg ROI: ${avgROI.toFixed(1)}% | Avg Days to Sell: ${avgDays}`,
+       `Best: ${best?best.plateNo+' ('+fmt(best.profit,currency)+')':'-'} | Worst: ${worst?worst.plateNo+' ('+fmt(worst.profit,currency)+')':'-'}`
+     ]},
+    {heading:'Top Models (by profit)', lines: topModels.length?topModels:['No data']},
+    {heading:'Top Owners (by sold count)', lines: topOwners.length?topOwners:['No data']},
+    {heading:'Monthly Summaries', lines: linesMonthly.length?linesMonthly:['No data']},
+    {heading:'Sold Bikes', lines: soldLines.length?soldLines:['No sold bikes yet']},
+    {heading:'Cash Flow Snapshot (30d)',
+     lines: (()=>{
+       const now=new Date(), past=new Date(now.getTime()-30*24*3600*1000);
+       const cap=allCap().filter(c=>new Date(c.date)>=past);
+       const inflow = cap.filter(c=>c.change>0).reduce((s,c)=>s+c.change,0);
+       const outflow = cap.filter(c=>c.change<0).reduce((s,c)=>s+Math.abs(c.change),0);
+       const largestIn = Math.max(0,...cap.filter(c=>c.change>0).map(c=>c.change));
+       const largestOut = Math.max(0,...cap.filter(c=>c.change<0).map(c=>Math.abs(c.change)));
+       return [
+         `Inflow: ${fmt(inflow)} | Outflow: ${fmt(outflow)} | Net: ${fmt(inflow-outflow)}`,
+         `Largest Inflow: ${fmt(largestIn)} | Largest Outflow: ${fmt(largestOut)}`
+       ];
+     })()
+    }
+  ];
 }
 
-// --- GitHub API Client ---
-
-function getHeaders(pat) {
-    return {
-        'Authorization': `token ${pat}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
+/* ---------- GitHub Gist sync ---------- */
+const GH = {
+  base: 'https://api.github.com',
+  headers(){ const h={'Accept':'application/vnd.github+json'}; const token=pat.get(); if(token) h['Authorization']='token '+token; return h; },
+  async validate(){
+    if(!state.settings.gistId) throw new Error('No Gist ID');
+    const r = await fetch(`${this.base}/gists/${state.settings.gistId}`, {headers:this.headers()});
+    if(!r.ok) throw new Error('Gist not accessible ('+r.status+')');
+    return await r.json();
+  },
+  async create(initial){
+    const body = {description:'Bike Resell Manager DB', public:false, files:{'db.json':{content: JSON.stringify(initial,null,2)}}};
+    const r = await fetch(`${this.base}/gists`, {method:'POST', headers:{...this.headers(),'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    if(!r.ok) throw new Error('Create failed ('+r.status+')');
+    return await r.json();
+  },
+  async pull(){
+    if(!state.settings.gistId) throw new Error('No Gist ID');
+    const r = await fetch(`${this.base}/gists/${state.settings.gistId}`, {headers:this.headers()});
+    if(!r.ok) throw new Error('Pull failed ('+r.status+')');
+    const j = await r.json();
+    const file = j.files?.['db.json'];
+    if(!file?.content) throw new Error('db.json missing in Gist');
+    return JSON.parse(file.content);
+  },
+  async push(fullDB){
+    if(!state.settings.gistId) throw new Error('No Gist ID');
+    const body = { files: { 'db.json': { content: JSON.stringify(fullDB,null,2) } } };
+    const r = await fetch(`${this.base}/gists/${state.settings.gistId}`, {method:'PATCH', headers:{...this.headers(),'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    if(!r.ok) throw new Error('Push failed ('+r.status+')');
+    return await r.json();
+  }
+};
+function updateSyncPill(){
+  const pill = $("#syncPill");
+  if(state.syncing){ pill.textContent='Syncing…'; pill.dataset.state='syncing'; return; }
+  if(!navigator.onLine){ pill.textContent='Offline'; pill.dataset.state='offline'; return; }
+  if(state.lastSync){ pill.textContent='Last synced '+ new Date(state.lastSync).toLocaleString(); pill.dataset.state='ok'; }
+  else { pill.textContent='Online'; pill.dataset.state='ok'; }
+}
+async function syncNow({pullFirst=true}={}){
+  try{
+    state.syncing=true; updateSyncPill();
+    if(!state.settings.gistId){ toast('Set Gist ID in Settings and enter your PAT for this session'); return; }
+    if(pullFirst){
+      const remote = await GH.pull();
+      mergeRemote(remote);
+    }
+    await GH.push(state.db);
+    state.lastSync = new Date().toISOString();
+    await idb.set('kv','lastSync', state.lastSync);
+    toast('Synced successfully');
+  }catch(e){
+    console.warn(e); toast('Sync error: '+ e.message);
+  }finally{
+    state.syncing=false; updateSyncPill();
+  }
+}
+/* Merge with deterministic capital recompute and last-write-wins via updatedAt */
+function mergeRemote(remote){
+  const local = state.db;
+  const merged = defaultDB();
+  merged.settings = {...local.settings}; // local settings win
+  function mergeArray(localArr=[], remoteArr=[], key='id'){
+    const map = new Map();
+    for(const r of remoteArr){ map.set(r[key], r); }
+    for(const l of localArr){
+      const r = map.get(l[key]);
+      if(!r){ map.set(l[key], l); }
+      else {
+        const lt = new Date(l.updatedAt||l.sellDate||l.purchaseDate||l.date||0).getTime();
+        const rt = new Date(r.updatedAt||r.sellDate||r.purchaseDate||r.date||0).getTime();
+        map.set(l[key], lt>=rt? l : r);
+      }
+    }
+    return [...map.values()];
+  }
+  const months = new Set([...Object.keys(remote.months||{}), ...Object.keys(local.months||{})]);
+  for(const m of months){
+    const L = local.months[m]||{bikes:[],transactions:[],capitalLedger:[]};
+    const R = remote.months[m]||{bikes:[],transactions:[],capitalLedger:[]};
+    merged.months[m] = {
+      bikes: mergeArray(L.bikes, R.bikes, 'id'),
+      transactions: mergeArray(L.transactions, R.transactions, 'id'),
+      capitalLedger: mergeArray(L.capitalLedger, R.capitalLedger, 'id')
     };
+  }
+  merged.meta = { ...local.meta, updatedAt: new Date().toISOString() };
+  state.db = merged;
+  recomputeBalances();
+  saveDB();
+  renderAll();
 }
 
-async function fetchGist(gistId, pat) {
-    if (!gistId || !pat) {
-        console.warn('fetchGist: gistId or pat is missing.');
-        return null;
-    }
-    
-    try {
-        const headers = getHeaders(pat);
-        const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers });
-
-        if (!res.ok) {
-            if (res.status === 404) throw new Error('Gist not found.');
-            if (res.status === 403 || res.status === 401) throw new Error('Invalid PAT or insufficient permissions.');
-            throw new Error(`GitHub API error: ${res.status}`);
-        }
-
-        const gist = await res.json();
-        if (!gist.files || !gist.files[GIST_FILENAME]) {
-            throw new Error(`Gist found, but file '${GIST_FILENAME}' is missing.`);
-        }
-
-        const content = gist.files[GIST_FILENAME].content;
-        return JSON.parse(content);
-    } catch (err) {
-        console.error('fetchGist Error:', err);
-        setSyncState('error', err.message);
-        return null;
-    }
+/* ---------- Operation queue (lightweight) ---------- */
+async function queueAndSave(op){
+  await idb.putOp({id: uuid('op_'), ts: Date.now(), op});
+  await saveDB();
+  triggerBackgroundSync();
+}
+async function flushOps(){
+  const ops = await idb.allOps();
+  if(ops.length===0) return;
+  try{
+    await GH.push(state.db);
+    await idb.clearOps();
+    state.lastSync = new Date().toISOString();
+    await idb.set('kv','lastSync', state.lastSync);
+    toast('Background sync complete');
+  }catch(e){
+    console.warn('Background sync failed', e.message);
+  }
+}
+function triggerBackgroundSync(){
+  if(navigator.onLine) flushOps();
 }
 
-async function updateGist(gistId, pat, data) {
-    if (!gistId || !pat) {
-        throw new Error('updateGist: gistId or pat is missing.');
-    }
-
-    try {
-        const headers = getHeaders(pat);
-        const content = JSON.stringify(data, null, 2);
-
-        const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({
-                files: {
-                    [GIST_FILENAME]: {
-                        content: content
-                    }
-                }
-            })
-        });
-
-        if (!res.ok) {
-            throw new Error(`GitHub API error: ${res.status}`);
-        }
-        
-        const gist = await res.json();
-        return JSON.parse(gist.files[GIST_FILENAME].content);
-    } catch (err) {
-        console.error('updateGist Error:', err);
-        setSyncState('error', err.message);
-        throw err;
-    }
-}
-
-// --- Sync Engine ---
-
-async function syncNow() {
-    if (syncState === 'syncing') {
-        showToast('Sync already in progress.', 'info');
-        return;
-    }
-    setSyncState('syncing', 'Starting sync...');
-
-    const { gistId, pat } = appState.settings;
-    if (!gistId || !pat) {
-        setSyncState('error', 'Missing Gist ID or PAT');
-        showToast('Gist ID or PAT not set in Settings.', 'error');
-        return;
-    }
-
-    try {
-        // 1. Get local base data and ops
-        const localBaseData = await getData('data') || getInitialData();
-        const ops = await getOpQueue();
-
-        // 2. Fetch remote data
-        setSyncState('syncing', 'Fetching remote data...');
-        const remoteData = await fetchGist(gistId, pat);
-        if (!remoteData) {
-            // fetchGist already set error state
-            return;
-        }
-
-        const remoteTs = new Date(remoteData.meta.updatedAt).getTime();
-        const localBaseTs = new Date(localBaseData.meta.updatedAt).getTime();
-
-        // 3. Decide sync strategy
-        if (ops.length > 0) {
-            // User has local changes
-            if (remoteTs > localBaseTs) {
-                // *** CONFLICT ***
-                // Remote has changed since our last pull, AND we have local changes.
-                setSyncState('error', 'Conflict: Remote data changed.');
-                showToast('CONFLICT: Remote data has changed. Sync aborted. Please reset local cache or manually resolve.', 'error', 10000);
-            } else {
-                // *** PUSH ***
-                // Safe to push local changes
-                setSyncState('syncing', 'Pushing local changes...');
-                const dataToPush = applyOpsToData(localBaseData, ops);
-                dataToPush.meta.updatedAt = new Date().toISOString();
-
-                const pushedData = await updateGist(gistId, pat, dataToPush);
-
-                // 5. Post-push cleanup
-                await setData('data', pushedData); // Save the confirmed new state
-                await clearOpQueue();
-                await loadStateIntoApp(pushedData);
-                setSyncState('synced');
-                showToast('Local changes pushed successfully!', 'success');
-            }
-        } else {
-            // No local changes
-            if (remoteTs > localBaseTs) {
-                // *** PULL ***
-                setSyncState('syncing', 'Pulling remote updates...');
-                await setData('data', remoteData);
-                await loadStateIntoApp(remoteData);
-                setSyncState('synced');
-                showToast('Remote data pulled successfully.', 'success');
-            } else {
-                // *** IN SYNC ***
-                setSyncState('synced');
-                showToast('Data is already up to date.', 'info');
-            }
-        }
-    } catch (err) {
-        console.error('syncNow Error:', err);
-        setSyncState('error', err.message);
-        showToast(`Sync failed: ${err.message}`, 'error');
-    }
-}
-
-// --- Operation Queue & Logic ---
-
-function createAddBikeOp(bikeData) {
-    const totalCost = bikeData.purchasePrice + bikeData.repairCost;
-    const id = 'bike_' + Date.now();
-    const yyyymm = getYearMonth(bikeData.purchaseDate);
-    
-    return {
-        ...bikeData,
-        id,
-        yyyymm,
-        totalCost,
-        status: 'available',
-        sellPrice: null,
-        sellDate: null,
-        profit: null
-    };
-}
-
-function createSellBikeOp(bike, sellData) {
-    const profit = sellData.sellPrice - bike.totalCost;
-    const sell_yyyymm = getYearMonth(sellData.sellDate);
-
-    return {
-        payload: {
-            bikeId: bike.id,
-            purchase_yyyymm: getYearMonth(bike.purchaseDate),
-            sell_yyyymm,
-            sellPrice: sellData.sellPrice,
-            sellDate: sellData.sellDate,
-            buyerName: sellData.buyerName,
-            notes: sellData.notes,
-            profit: profit
-        },
-        bike: bike // Pass bike for ledger
-    };
-}
-
-async function optimisticUpdate(op) {
-    // Apply op to in-memory state
-    appState.data = applyOpsToData(appState.data, [op]);
-    // Re-render UI
-    renderApp();
-    // Set sync state to pending
-    setSyncState('pending');
-}
-
-/**
- * Applies a list of operations to a data object.
- * This is a PURE function. It returns a new data object.
- */
-function applyOpsToData(data, ops) {
-    // Deep clone data to ensure purity
-    let newData = JSON.parse(JSON.stringify(data));
-
-    try {
-        for (const op of ops) {
-            const payload = op.payload;
-            
-            switch (op.type) {
-                case 'ADD_BIKE':
-                    newData = addBikeOp(newData, payload);
-                    break;
-                case 'EDIT_BIKE':
-                    newData = editBikeOp(newData, payload);
-                    break;
-                case 'SELL_BIKE':
-                    newData = sellBikeOp(newData, payload.bike, payload);
-                    break;
-                case 'BULK_SELL':
-                    // payload is an array of sell ops
-                    for (const sellOp of payload) {
-                        newData = sellBikeOp(newData, sellOp.bike, sellOp.payload);
-                    }
-                    break;
-                case 'ADJUST_CAPITAL':
-                    newData = adjustCapitalOp(newData, payload);
-                    break;
-                case 'BULK_DELETE':
-                    // payload is an array of { bikeId, yyyymm, bike }
-                    for (const deleteOp of payload) {
-                        newData = deleteBikeOp(newData, deleteOp);
-                    }
-                    break;
-                case 'UPDATE_SETTINGS':
-                    newData.settings = { ...newData.settings, ...payload };
-                    break;
-            }
-        }
-    } catch (err) {
-        console.error('Error applying op:', op, err);
-        // If an op fails, return the original data to prevent corruption
-        return data; 
-    }
-    return newData;
-}
-
-// --- Atomic Operation Handlers (mutate and return data object) ---
-
-function addBikeOp(data, payload) {
-    const yyyymm = payload.yyyymm;
-    ensureMonthExists(data, yyyymm);
-    data.months[yyyymm].bikes.push(payload);
-
-    // Add transaction and ledger entries
-    const currentCapital = getCurrentCapital(data);
-    const balanceAfter = currentCapital - payload.totalCost;
-
-    const txn = {
-        id: 'txn_' + Date.now(),
-        type: 'buy',
-        bikeId: payload.id,
-        amount: payload.totalCost,
-        date: payload.purchaseDate,
-        meta: { seller: payload.ownerName }
-    };
-    const ledger = {
-        id: 'cap_' + Date.now(),
-        change: -payload.totalCost,
-        balanceAfter: balanceAfter,
-        type: 'buy',
-        reason: `Bought ${payload.plateNo}`,
-        date: payload.purchaseDate
-    };
-    
-    data.months[yyyymm].transactions.push(txn);
-    data.months[yyyymm].capitalLedger.push(ledger);
-    return data;
-}
-
-function editBikeOp(data, payload) {
-    const { bikeId, yyyymm, newData } = payload;
-    const month = data.months[yyyymm];
-    if (!month) return data;
-
-    const bikeIndex = month.bikes.findIndex(b => b.id === bikeId);
-    if (bikeIndex === -1) return data;
-
-    const originalBike = month.bikes[bikeIndex];
-    
-    // Calculate financial difference
-    const newTotalCost = newData.purchasePrice + newData.repairCost;
-    const costDifference = newTotalCost - originalBike.totalCost; // e.g., new 520, old 500. diff = +20
-
-    // Update bike object
-    const updatedBike = {
-        ...originalBike,
-        ...newData,
-        totalCost: newTotalCost
-    };
-    month.bikes[bikeIndex] = updatedBike;
-
-    // If cost changed, add adjusting transaction
-    if (costDifference !== 0) {
-        const currentCapital = getCurrentCapital(data);
-        const balanceAfter = currentCapital - costDifference; // e.g., capital - 20
-
-        const reason = `Cost adjustment for ${updatedBike.plateNo} (Old: ${originalBike.totalCost}, New: ${newTotalCost})`;
-        const ledger = {
-            id: 'cap_' + Date.now(),
-            change: -costDifference, // Negative diff means more cost, so negative change
-            balanceAfter: balanceAfter,
-            type: 'manual_adjust',
-            reason: reason,
-            date: new Date().toISOString()
-        };
-        const adj_yyyymm = getYearMonth(ledger.date);
-        ensureMonthExists(data, adj_yyyymm);
-        data.months[adj_yyyymm].capitalLedger.push(ledger);
-    }
-    return data;
-}
-
-function sellBikeOp(data, bike, payload) {
-    // Find the bike in its purchase month
-    const purchaseMonth = data.months[payload.purchase_yyyymm];
-    if (!purchaseMonth) return data;
-    
-    const bikeToSell = purchaseMonth.bikes.find(b => b.id === payload.bikeId);
-    if (!bikeToSell) return data;
-
-    // Update bike status
-    bikeToSell.status = 'sold';
-    bikeToSell.sellPrice = payload.sellPrice;
-    bikeToSell.sellDate = payload.sellDate;
-    bikeToSell.profit = payload.profit;
-    bikeToSell.notes = (bikeToSell.notes || '') + `\nSold to: ${payload.buyerName}. ${payload.notes}`;
-
-    // Add transaction and ledger entries to the *sell* month
-    const sell_yyyymm = payload.sell_yyyymm;
-    ensureMonthExists(data, sell_yyyymm);
-
-    const currentCapital = getCurrentCapital(data);
-    const balanceAfter = currentCapital + payload.sellPrice;
-
-    const txn = {
-        id: 'txn_' + Date.now(),
-        type: 'sell',
-        bikeId: payload.bikeId,
-        amount: payload.sellPrice,
-        date: payload.sellDate,
-        meta: { buyer: payload.buyerName }
-    };
-    const ledger = {
-        id: 'cap_' + Date.now(),
-        change: payload.sellPrice,
-        balanceAfter: balanceAfter,
-        type: 'sell',
-        reason: `Sold ${bikeToSell.plateNo}`,
-        date: payload.sellDate
-    };
-
-    data.months[sell_yyyymm].transactions.push(txn);
-    data.months[sell_yyyymm].capitalLedger.push(ledger);
-    return data;
-}
-
-function adjustCapitalOp(data, payload) {
-    const yyyymm = getYearMonth(payload.date);
-    ensureMonthExists(data, yyyymm);
-
-    const currentCapital = getCurrentCapital(data);
-    const balanceAfter = currentCapital + payload.amount;
-
-    const txn = {
-        id: payload.txn_id,
-        type: 'adjust',
-        bikeId: null,
-        amount: payload.amount,
-        date: payload.date,
-        meta: { reason: payload.reason }
-    };
-    const ledger = {
-        id: payload.id,
-        change: payload.amount,
-        balanceAfter: balanceAfter,
-        type: 'manual_adjust',
-        reason: payload.reason,
-        date: payload.date
-    };
-
-    data.months[yyyymm].transactions.push(txn);
-    data.months[yyyymm].capitalLedger.push(ledger);
-    return data;
-}
-
-function deleteBikeOp(data, payload) {
-    const { bikeId, yyyymm, bike } = payload;
-    const month = data.months[yyyymm];
-    if (!month) return data;
-
-    // Remove bike
-    month.bikes = month.bikes.filter(b => b.id !== bikeId);
-
-    // Create reversing ledger entry
-    let capitalChange = 0;
-    let reason = `Reversal for deleted bike ${bike.plateNo}.`;
-
-    if (bike.status === 'available') {
-        capitalChange = bike.totalCost; // Give back the money spent
-        reason += ` (Purchase cost ${bike.totalCost} reversed).`;
-    } else if (bike.status === 'sold') {
-        // Net profit/loss was (sellPrice - totalCost)
-        // We reversed the 'buy' (-totalCost) and 'sell' (+sellPrice)
-        // Reversal is (-sellPrice + totalCost)
-        capitalChange = bike.totalCost - bike.sellPrice;
-        reason += ` (Net sale ${bike.sellPrice - bike.totalCost} reversed).`;
-    }
-
-    const currentCapital = getCurrentCapital(data);
-    const balanceAfter = currentCapital + capitalChange;
-    const today = new Date().toISOString();
-    const adj_yyyymm = getYearMonth(today);
-    ensureMonthExists(data, adj_yyyymm);
-
-    const ledger = {
-        id: 'cap_' + Date.now(),
-        change: capitalChange,
-        balanceAfter: balanceAfter,
-        type: 'manual_adjust',
-        reason: reason,
-        date: today
-    };
-    data.months[adj_yyyymm].capitalLedger.push(ledger);
-    
-    // We could also remove associated txns and ledger entries, but that's
-    // much harder. A reversing entry is safer.
-    return data;
-}
-
-// --- Analytics Engine ---
-
-function calculateAnalytics(data) {
-    const allBikes = getAllBikes(data);
-    const allLedger = getAllLedgerEntries(data);
-    const { currency } = data.settings;
-
-    const soldBikes = allBikes.filter(b => b.status === 'sold');
-    const availableBikes = allBikes.filter(b => b.status === 'available');
-
-    const totalCostOfSoldBikes = soldBikes.reduce((sum, b) => sum + b.totalCost, 0);
-    const totalReturns = soldBikes.reduce((sum, b) => sum + b.sellPrice, 0);
-    const totalProfit = totalReturns - totalCostOfSoldBikes;
-    const totalUnsoldInvestment = availableBikes.reduce((sum, b) => sum + b.totalCost, 0);
-    const totalRepairCost = allBikes.reduce((sum, b) => sum + b.repairCost, 0);
-    const currentCash = getCurrentCapital(data);
-
-    let totalDaysToSell = 0;
-    let validROIs = [];
-    let bestPerformer = null;
-    let worstPerformer = null;
-
-    soldBikes.forEach(b => {
-        if (b.sellDate && b.purchaseDate) {
-            const sellDate = new Date(b.sellDate);
-            const purchaseDate = new Date(b.purchaseDate);
-            const daysToSell = (sellDate.getTime() - purchaseDate.getTime()) / (1000 * 3600 * 24);
-            totalDaysToSell += daysToSell;
-        }
-        if (b.totalCost > 0) {
-            validROIs.push(b.profit / b.totalCost);
-        }
-        if (!bestPerformer || b.profit > bestPerformer.profit) {
-            bestPerformer = b;
-        }
-        if (!worstPerformer || b.profit < worstPerformer.profit) {
-            worstPerformer = b;
-        }
+/* ---------- Event bindings ---------- */
+function setupUI(){
+  // Tabs
+  const tabs=[{btn:'#nav-bikes', tab:'#tab-bikes'},{btn:'#nav-analytics', tab:'#tab-analytics'},{btn:'#nav-settings', tab:'#tab-settings'}];
+  tabs.forEach(({btn,tab})=>{
+    $(btn).addEventListener('click',()=>{
+      tabs.forEach(t=>{ $(t.btn).dataset.active=''; $(t.btn).setAttribute('aria-selected','false'); $(t.tab).dataset.active=''; });
+      $(btn).dataset.active='true'; $(btn).setAttribute('aria-selected','true'); $(tab).dataset.active='true';
+      if(tab==='#tab-analytics') renderAnalytics();
     });
+  });
 
-    const averageDaysToSell = soldBikes.length > 0 ? totalDaysToSell / soldBikes.length : 0;
-    const averageROI = validROIs.length > 0 ? (validROIs.reduce((s, r) => s + r, 0) / validROIs.length) * 100 : 0;
-
-    // Cash Flow
-    let inflow = 0;
-    let outflow = 0;
-    allLedger.forEach(entry => {
-        if (entry.change > 0) inflow += entry.change;
-        if (entry.change < 0) outflow += Math.abs(entry.change);
+  // Chips
+  $$('.chip').forEach(ch=>{
+    ch.addEventListener('click',()=>{
+      $$('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
+      ch.setAttribute('aria-pressed','true');
+      state.filters.status = ch.dataset.status;
+      renderList();
     });
+  });
 
-    // Monthly Summaries
-    const monthlySummaries = {};
-    Object.keys(data.months).forEach(yyyymm => {
-        const month = data.months[yyyymm];
-        let monthProfit = 0;
-        let monthCashFlow = 0;
-        let monthBikesSold = 0;
+  // Search
+  $("#searchInput").addEventListener('input', e=>{ state.filters.search = e.target.value.trim(); renderList(); });
+  $("#sortSelect").addEventListener('change', e=>{ state.filters.sort = e.target.value; renderList(); });
 
-        month.bikes.forEach(b => {
-            if (b.status === 'sold' && getYearMonth(b.sellDate) === yyyymm) {
-                monthProfit += b.profit;
-                monthBikesSold++;
-            }
-        });
-
-        month.capitalLedger.forEach(entry => {
-            monthCashFlow += entry.change;
-        });
-
-        if (monthBikesSold > 0 || monthCashFlow !== 0) {
-            monthlySummaries[yyyymm] = {
-                bikesSold: monthBikesSold,
-                netProfit: monthProfit,
-                cashFlow: monthCashFlow
-            };
-        }
-    });
-
-    return {
-        totalCostOfSoldBikes,
-        totalReturns,
-        totalProfit,
-        totalUnsoldInvestment,
-        totalRepairCost,
-        currentCash,
-        inventoryCount: {
-            sold: soldBikes.length,
-            available: availableBikes.length
-        },
-        averageDaysToSell,
-        averageROI,
-        bestPerformer,
-        worstPerformer,
-        cashFlow: {
-            inflow,
-            outflow,
-            net: inflow - outflow
-        },
-        monthlySummaries
+  // Filters dialog
+  $("#btnFilters").addEventListener('click',()=>{ openDialog('dlgFilters'); });
+  $("#applyFilters").addEventListener('click',()=>{
+    state.filters.adv = {
+      from: $("#fFrom").value || null,
+      to: $("#fTo").value || null,
+      priceMin: $("#fPriceMin").value || null,
+      priceMax: $("#fPriceMax").value || null,
+      profitMin: $("#fProfitMin").value || null,
+      profitMax: $("#fProfitMax").value || null
     };
-}
+    closeDialog('dlgFilters'); renderList();
+  });
 
-// --- Export Engine ---
+  // Buy
+  $("#btnBuy").addEventListener('click',()=>{ $("#buyForm").reset(); $("#buyDate").value=todayISODate(); openDialog('dlgBuy'); });
+  $("#buySubmit").addEventListener('click', async ()=>{
+    const plate=$("#buyPlate").value.trim(), model=$("#buyModel").value.trim(), owner=$("#buyOwner").value.trim(),
+      price=Number($("#buyPrice").value), date=$("#buyDate").value, repair=Number($("#buyRepair").value||0);
+    if(!plate||!model||!owner||!price||!date){ toast('Please fill all required fields'); return; }
+    const bike = addBike({plateNo:plate, model, ownerName:owner, purchasePrice:price, repairCost:repair, purchaseDate:date, notes:$("#buyNotes").value});
+    await queueAndSave({type:'buy', id: bike.id});
+    closeDialog('dlgBuy'); renderAll(); toast('Bike added');
+  });
 
-async function exportCSV(type = 'ALL_DATA') {
-    // Attempt quick sync first
-    if (navigator.onLine) {
-        showToast('Syncing before export...', 'info');
-        await syncNow();
-    }
-    
-    let csv = '';
-    let filename = `export_${type.toLowerCase()}_${Date.now()}.csv`;
-    let data;
+  // Adjust (toolbar + settings)
+  const openAdjust = ()=>{ $("#adjustForm").reset(); $("#adjDate").value=todayISODate(); openDialog('dlgAdjust'); };
+  $("#btnAdjust").addEventListener('click', openAdjust);
+  $("#btnAdjustSettings").addEventListener('click', openAdjust);
+  $("#adjustSubmit").addEventListener('click', async ()=>{
+    const amount = Number($("#adjAmount").value); const reason = $("#adjReason").value.trim(); const date = $("#adjDate").value || todayISODate();
+    if(!reason){ toast('Reason is required'); return; }
+    if(!amount || amount===0){ toast('Amount must be non-zero'); return; }
+    addTransaction(ym(date),'adjust', null, Number(amount), toISO(date), {reason});
+    setBalanceEntry(ym(date), Number(amount), 'manual_adjust', reason, toISO(date));
+    recomputeBalances();
+    await queueAndSave({type:'adjust', amt: amount});
+    closeDialog('dlgAdjust'); renderAll(); toast('Capital adjusted');
+  });
 
-    switch (type) {
-        case 'ALL_DATA':
-        case 'BIKES':
-            data = getFilteredBikes(); // Use filtered bikes for main export
-            if (type === 'ALL_DATA') data = getAllBikes(appState.data); // Use all bikes for "All Data"
-            csv = generateCSV(data, 'BIKES');
-            filename = `export_bikes_${Date.now()}.csv`;
-            break;
-        case 'TRANSACTIONS':
-            data = getAllTransactions(appState.data);
-            csv = generateCSV(data, 'TRANSACTIONS');
-            break;
-        case 'CAPITAL_LOG':
-            data = getAllLedgerEntries(appState.data);
-            csv = generateCSV(data, 'CAPITAL_LOG');
-            break;
-    }
-
-    downloadFile(csv, filename, 'text/csv;charset=utf-8;');
-    showToast(`Exported ${type} to ${filename}`, 'success');
-}
-
-function generateCSV(data, type) {
-    if (!data || data.length === 0) return '';
-
-    const headers = Object.keys(data[0]);
-    let csv = headers.join(',') + '\n';
-
-    data.forEach(row => {
-        const values = headers.map(header => {
-            let val = row[header];
-            if (val === null || val === undefined) {
-                val = '';
-            }
-            if (typeof val === 'string') {
-                // Escape quotes and wrap in quotes if it contains comma or newline
-                if (val.includes(',') || val.includes('\n') || val.includes('"')) {
-                    val = `"${val.replace(/"/g, '""')}"`;
-                }
-            }
-            return val;
-        });
-        csv += values.join(',') + '\n';
-    });
-    return csv;
-}
-
-async function exportPDF() {
-    // Attempt quick sync first
-    if (navigator.onLine) {
-        showToast('Syncing before export...', 'info');
-        await syncNow();
-    }
-
-    showToast('Generating PDF report...', 'info');
-    
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        const data = appState.data;
-        const analytics = calculateAnalytics(data);
-        const { currency, businessName } = data.settings;
-
-        let y = 15;
-        const x = 14;
-        const line = () => { y += 5; doc.line(x, y, 200, y); y += 5; };
-        const h1 = (text) => { doc.setFontSize(18); doc.text(text, x, y); y += 8; };
-        const h2 = (text) => { doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text(text, x, y); y += 6; };
-        const p = (text) => { doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text(text, x, y); y += 5; };
-        const pair = (label, value) => {
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text(label, x, y);
-            doc.setFont('helvetica', 'normal');
-            doc.text(value.toString(), x + 60, y);
-            y += 6;
-        };
-
-        // Header
-        h1(businessName || 'Bike Resell Report');
-        p(`Report Generated: ${new Date().toLocaleString()}`);
-        p(`Currency: ${currency}`);
-        y += 5;
-
-        // Capital Summary
-        h2('Capital Summary');
-        pair('Current Cash in Hand:', formatCurrency(analytics.currentCash, currency));
-        pair('Total Net Profit (Sold):', formatCurrency(analytics.totalProfit, currency));
-        pair('Total Unsold Investment:', formatCurrency(analytics.totalUnsoldInvestment, currency));
-        y += 5;
-
-        // Performance
-        h2('Performance Metrics');
-        pair('Average ROI:', `${analytics.averageROI.toFixed(2)}%`);
-        pair('Average Days to Sell:', `${analytics.averageDaysToSell.toFixed(1)} days`);
-        pair('Total Repair Costs:', formatCurrency(analytics.totalRepairCost, currency));
-        pair('Inventory (Sold/Available):', `${analytics.inventoryCount.sold} / ${analytics.inventoryCount.available}`);
-        y += 5;
-
-        // Cash Flow
-        h2('Cash Flow');
-        pair('Total Inflow:', formatCurrency(analytics.cashFlow.inflow, currency));
-        pair('Total Outflow:', formatCurrency(analytics.cashFlow.outflow, currency));
-        pair('Net Flow:', formatCurrency(analytics.cashFlow.net, currency));
-        y += 5;
-
-        // Sold Bikes Table
-        h2('Sold Bike Summary');
-        const soldBikes = getAllBikes(data).filter(b => b.status === 'sold');
-        if (soldBikes.length > 0) {
-            const tableData = soldBikes.map(b => [
-                b.plateNo,
-                formatCurrency(b.totalCost, currency),
-                formatCurrency(b.sellPrice, currency),
-                formatCurrency(b.profit, currency),
-                (b.profit / b.totalCost * 100).toFixed(1) + '%'
-            ]);
-            doc.autoTable({
-                startY: y,
-                head: [['Plate No', 'Total Cost', 'Sell Price', 'Profit', 'ROI']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [41, 128, 185] }
-            });
-            y = doc.autoTable.previous.finalY + 10;
-        } else {
-            p('No bikes sold yet.');
-        }
-
-        doc.save(`BikeReport_${businessName.replace(' ', '_') || ''}_${Date.now()}.pdf`);
-        showToast('PDF report downloaded.', 'success');
-    } catch (err) {
-        console.error('PDF Export Error:', err);
-        showToast('Failed to generate PDF. Is jsPDF loaded?', 'error');
-    }
-}
-
-// --- Utils ---
-
-function $(selector) {
-    return document.querySelector(selector);
-}
-
-function $$(selector) {
-    return Array.from(document.querySelectorAll(selector));
-}
-
-function formatCurrency(amount, currency = '₹') {
-    try {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR' // Default, 'currency' param is just for the symbol
-        }).format(amount).replace('₹', currency);
-    } catch (e) {
-        // Fallback for invalid currency codes
-        return `${currency} ${amount.toFixed(2)}`;
-    }
-}
-
-function escapeHTML(str) {
-    if (str === null || str === undefined) return '';
-    return str.toString()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function getYearMonth(dateStr) {
-    const date = new Date(dateStr);
-    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-}
-
-function ensureMonthExists(data, yyyymm) {
-    if (!data.months[yyyymm]) {
-        data.months[yyyymm] = {
-            bikes: [],
-            transactions: [],
-            capitalLedger: []
-        };
-    }
-}
-
-function getAllBikes(data) {
-    return Object.values(data.months).flatMap(month => month.bikes);
-}
-
-function getAllTransactions(data) {
-    return Object.values(data.months).flatMap(month => month.transactions);
-}
-
-function getAllLedgerEntries(data) {
-    return Object.values(data.months).flatMap(month => month.capitalLedger);
-}
-
-function getCurrentCapital(data) {
-    const allLedger = getAllLedgerEntries(data);
-    if (allLedger.length === 0) return 0;
-    
-    // Find the latest entry
-    allLedger.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    return allLedger[0].balanceAfter;
-}
-
-function findBikeById(bikeId) {
-    const allBikes = getAllBikes(appState.data);
-    return allBikes.find(b => b.id === bikeId);
-}
-
-function getFilteredBikes() {
-    let bikes = getAllBikes(appState.data);
-    const { search, status, sort, dateFrom, dateTo, costMin, costMax, profitMin, profitMax } = appState.ui.filters;
-
-    // Search
-    if (search) {
-        const s = search.toLowerCase();
-        bikes = bikes.filter(b => 
-            b.plateNo.toLowerCase().includes(s) ||
-            b.model.toLowerCase().includes(s) ||
-            b.ownerName.toLowerCase().includes(s)
-        );
-    }
-
-    // Status Filter
-    if (status && status !== 'all') {
-        bikes = bikes.filter(b => b.status === status);
-    }
-
-    // Advanced Filters
-    if (dateFrom) bikes = bikes.filter(b => new Date(b.purchaseDate) >= new Date(dateFrom));
-    if (dateTo) bikes = bikes.filter(b => new Date(b.purchaseDate) <= new Date(dateTo));
-    if (costMin) bikes = bikes.filter(b => b.totalCost >= costMin);
-    if (costMax) bikes = bikes.filter(b => b.totalCost <= costMax);
-    if (profitMin) bikes = bikes.filter(b => b.status === 'sold' && b.profit >= profitMin);
-    if (profitMax) bikes = bikes.filter(b => b.status === 'sold' && b.profit <= profitMax);
-
-    // Sort
-    const [sortKey, sortDir] = sort.split('-');
-    const dir = sortDir === 'asc' ? 1 : -1;
-    
-    bikes.sort((a, b) => {
-        let valA, valB;
-        switch (sortKey) {
-            case 'purchaseDate':
-                valA = new Date(a.purchaseDate).getTime();
-                valB = new Date(b.purchaseDate).getTime();
-                break;
-            case 'profit':
-                valA = a.profit !== null ? a.profit : -Infinity;
-                valB = b.profit !== null ? b.profit : -Infinity;
-                break;
-            case 'totalCost':
-                valA = a.totalCost;
-                valB = b.totalCost;
-                break;
-            default:
-                valA = 0;
-                valB = 0;
-        }
-        return (valA - valB) * dir;
-    });
-
-    return bikes;
-}
-
-function getSelectedBikes() {
-    const selectedIds = $$('.bike-select-checkbox:checked').map(cb => cb.dataset.bikeId);
-    return getAllBikes(appState.data).filter(b => selectedIds.includes(b.id));
-}
-
-function downloadFile(content, fileName, mimeType) {
-    const a = document.createElement('a');
-    const blob = new Blob([content], { type: mimeType });
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-}
-
-// --- PWA & Init ---
-
-function registerManifest() {
-    const manifest = {
-      name: "Bike Resell Manager",
-      short_name: "BikeResell",
-      description: "Manage your bike reselling business, offline-first.",
-      start_url: ".",
-      display: "standalone",
-      background_color: "#f4f4f5", // zinc-100
-      theme_color: "#2563eb", // blue-600
-      icons: [
-        {
-          "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiMyNTYzZWIiIHN0cm9rZS13aWR0aD0iOCI+PGNpcmNsZSBjeD0iMzUiIGN5PSI2NSIgcj0iMjUiLz48Y2lyY2xlIGN4PSI2NSIgY3k9IjY1IiByPSIyNSIvPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZD0iTTY1IDY1IDg1IDM1IE0zNSA2NSA1NSAzNSIvPjxwYXRoIGQ9Ik01NSAzNWgzMCIvPjwvZz48L3N2Zz4=",
-          "sizes": "192x192",
-          "type": "image/svg+xml"
-        },
-        {
-          "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiMyNTYzZWIiIHN0cm9rZS13aWR0aD0iOCI+PGNpcmNsZSBjeD0iMzUiIGN5PSI2NSIgcj0iMjUiLz48Y2lyY2xlIGN4PSI2NSIgY3k9IjY1IiByPSIyNSIvPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZD0iTTY1IDY1IDg1IDM1IE0zNSA2NSA1NSAzNSIvPjxwYXRoIGQ9Ik01NSAzNWgzMCIvPjwvZz48L3N2Zz4=",
-          "sizes": "512x512",
-          "type": "image/svg+xml"
-        }
-      ]
+  // Bulk actions
+  $("#bulkWriteoff").addEventListener('click',()=>{
+    const count = state.selection.size;
+    if(count===0){ toast('Select bikes to write-off'); return; }
+    $("#dlgConfirmBody").textContent = `Write-off ${count} selected bikes? This will restore cash and archive the bikes.`;
+    openDialog('dlgConfirm');
+    $("#confirmYes").onclick = async ()=>{
+      const ids = new Set(state.selection);
+      const res = writeOffBikes(ids);
+      await queueAndSave({type:'writeoff', ids:[...ids]});
+      state.lastUndo = {kind:'writeoff', ids:[...ids]};
+      closeDialog('dlgConfirm');
+      state.selection.clear();
+      renderAll();
+      toast(`Written off ${res.count} bikes`);
+      showUndoSticky();
     };
-    const manifestString = JSON.stringify(manifest);
-    // Use unencoded string for data URL as per some specs
-    const manifestUrl = 'data:application/manifest+json,' + encodeURIComponent(manifestString);
-    const link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = manifestUrl;
-    document.head.appendChild(link);
-}
-
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        const swCode = `
-          const CACHE_NAME = 'bike-resell-cache-v1';
-          const APP_SHELL_URL = '/'; // Cache the root URL
-
-          self.addEventListener('install', (event) => {
-            event.waitUntil(
-              caches.open(CACHE_NAME)
-                .then((cache) => cache.add(APP_SHELL_URL))
-                .then(() => self.skipWaiting())
-            );
-          });
-
-          self.addEventListener('activate', (event) => {
-            event.waitUntil(
-              caches.keys().then((cacheNames) => {
-                return Promise.all(
-                  cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                      return caches.delete(cacheName);
-                    }
-                  })
-                );
-              }).then(() => self.clients.claim())
-            );
-          });
-
-          self.addEventListener('fetch', (event) => {
-            const requestUrl = new URL(event.request.url);
-
-            // Only handle navigation requests for the app shell
-            if (event.request.mode === 'navigate' && requestUrl.origin === self.location.origin && requestUrl.pathname === '/') {
-              event.respondWith(
-                caches.match(APP_SHELL_URL)
-                  .then((response) => {
-                    // Return from cache, or fetch if not cached
-                    return response || fetch(APP_SHELL_URL).then((fetchResponse) => {
-                      // Cache the new response
-                      return caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(APP_SHELL_URL, fetchResponse.clone());
-                        return fetchResponse;
-                      });
-                    });
-                  })
-              );
-            }
-            // For other requests (e.g., GitHub API), let them pass through
-            // return;
-          });
-        `;
-        
-        try {
-            const swBlob = new Blob([swCode], { type: 'application/javascript' });
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob))
-                .then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                })
-                .catch(err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-        } catch (e) {
-            console.error('Error creating ServiceWorker blob: ', e);
-        }
+  });
+  $("#bulkExport").addEventListener('click',()=>{
+    const rows = allBikes().filter(b=>state.selection.has(b.id));
+    const csv = bikesCSV(rows);
+    download('bikes_selected.csv', csv, 'text/csv');
+  });
+  $("#bulkSell").addEventListener('click',()=>{ buildMassSellList(); $("#msDefaultDate").value=todayISODate(); openDialog('dlgMassSell'); });
+  $("#msSubmit").addEventListener('click', async ()=>{
+    const defPrice = Number($("#msDefaultPrice").value||0);
+    const defDate = $("#msDefaultDate").value? toISO($("#msDefaultDate").value) : new Date().toISOString();
+    const buyer = $("#msBuyer").value;
+    const rows = $$('#msList .msrow');
+    let count=0;
+    for(const r of rows){
+      const id = r.dataset.id;
+      const priceInput = r.querySelector('input[data-field="price"]');
+      const dateInput = r.querySelector('input[data-field="date"]');
+      const price = Number(priceInput.value || defPrice);
+      const dateStr = dateInput.value;
+      const dateISO = dateStr ? toISO(dateStr) : defDate;
+      if(price>0){ sellBike(id, price, buyer, dateISO); count++; }
     }
+    await queueAndSave({type:'mass-sell', n: count});
+    closeDialog('dlgMassSell'); state.selection.clear(); renderAll(); toast(`Sold ${count} bikes`);
+  });
+
+  // Analytics
+  $("#btnApplyAnalytics").addEventListener('click',()=>renderAnalytics());
+  $("#btnDownloadCSV").addEventListener('click', async ()=>{ attemptQuickSync(); download('all_data.csv', allDataCSV(), 'text/csv'); });
+  $("#btnDownloadPDF").addEventListener('click', async ()=>{
+    attemptQuickSync();
+    const pdf = simplePDF(`${state.settings.businessName||'Bike Resell Manager'} — Full Report`, buildFullReportSections());
+    download('full_report.pdf', pdf, 'application/pdf');
+  });
+
+  // Settings
+  $("#saveAppearance").addEventListener('click', async ()=>{
+    state.settings.businessName = $("#setBiz").value.trim();
+    state.settings.currency = $("#setCurrency").value.trim() || '₹';
+    await saveSettings(); renderAll(); toast('Saved');
+  });
+  $("#btnValidateGist").addEventListener('click', async ()=>{
+    state.settings.gistId = $("#setGist").value.trim();
+    await saveSettings();
+    try{ const j = await GH.validate(); toast('Gist OK: '+(j.description||j.id)); }
+    catch(e){ toast('Validation failed: '+e.message); }
+  });
+  $("#btnCreateGist").addEventListener('click', async ()=>{
+    try{
+      const j = await GH.create(state.db);
+      state.settings.gistId = j.id; await saveSettings();
+      $("#setGist").value = j.id;
+      toast('Gist created');
+    }catch(e){ toast('Create failed: '+e.message); }
+  });
+  $("#btnSyncNow").addEventListener('click', ()=>syncNow({pullFirst:true}));
+
+  // Data management exports
+  $("#dmFullPDF").addEventListener('click', ()=>{ const pdf = simplePDF(`${state.settings.businessName||'Bike Resell Manager'} — Full Report`, buildFullReportSections()); download('full_report.pdf', pdf, 'application/pdf'); });
+  $("#dmAllCSV").addEventListener('click', ()=> download('all_data.csv', allDataCSV(), 'text/csv'));
+  $("#dmBikesCSV").addEventListener('click', ()=> download('bikes.csv', bikesCSV(allBikes()), 'text/csv'));
+  $("#dmTxCSV").addEventListener('click', ()=> download('transactions.csv', txCSV(allTx()), 'text/csv'));
+  $("#dmCapCSV").addEventListener('click', ()=> download('capital.csv', capCSV(allCap()), 'text/csv'));
+
+  $("#btnReset").addEventListener('click', async ()=>{
+    $("#dlgConfirmBody").textContent = 'This will clear all local cache and settings. You will need to re-sync from Gist or start fresh. Continue?';
+    openDialog('dlgConfirm');
+    $("#confirmYes").onclick = async ()=>{
+      await idb.del('kv','db'); await idb.del('kv','lastSync'); await idb.clearOps(); pat.clear();
+      closeDialog('dlgConfirm'); toast('Local cache cleared'); await load();
+    };
+  });
+
+  // Session PAT dialog
+  $("#patSubmit").addEventListener('click', ()=>{
+    const v = $("#patInput").value.trim();
+    if(v){ pat.set(v); $("#setPAT").value = v; closeDialog('dlgPAT'); toast('PAT saved for this session'); }
+    else { toast('Enter a token or click Skip'); }
+  });
+  $("#setPAT").addEventListener('change', ()=>{ const v=$("#setPAT").value.trim(); pat.set(v); toast('Session PAT updated'); });
+
+  // Connectivity
+  window.addEventListener('online',()=>{ updateSyncPill(); triggerBackgroundSync(); });
+  window.addEventListener('offline',()=>{ updateSyncPill(); });
+
+  // Keyboard: ESC closes topmost dialog
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ const open = $$('dialog').find(d=>d.open); if(open) open.close(); }});
+
+  // Undo button
+  $("#undoSticky").addEventListener('click', doUndo);
 }
-
-
-/**
- * Main application initialization
- */
-async function initApp() {
-    console.log('Initializing Bike Resell Manager...');
-    registerManifest();
-    registerServiceWorker();
-
-    try {
-        db = await initDB();
-        console.log('Database initialized.');
-
-        let baseData = await getData('data');
-        if (!baseData) {
-            console.log('No local data found, initializing default structure.');
-            baseData = getInitialData();
-            await setData('data', baseData);
-        } else {
-            console.log('Loaded local data.');
-        }
-
-        await loadStateIntoApp(baseData); // This also renders the app
-        attachEventListeners();
-        
-        // Trigger initial sync
-        if (navigator.onLine) {
-            await syncNow();
-        } else {
-            setSyncState('offline');
-        }
-
-    } catch (err) {
-        console.error('Failed to initialize app:', err);
-        document.body.innerHTML = `<div style="padding: 20px; text-align: center; color: red;">
-            <h2>Fatal Error</h2>
-            <p>Could not initialize the application database. Please try clearing your cache or using a different browser.</p>
-            <pre>${err.message}</pre>
-        </div>`;
+function showUndoSticky(){
+  const b = $("#undoSticky"); b.classList.remove('hidden');
+  // auto-hide after 60s to avoid clutter
+  setTimeout(()=>b.classList.add('hidden'), 60000);
+}
+async function doUndo(){
+  const undo = state.lastUndo;
+  if(!undo) return;
+  if(undo.kind==='writeoff'){
+    // unmark deleted and remove the last writeoff reverse entry
+    const ids = new Set(undo.ids);
+    const months = getAllMonths();
+    for(const m in months){
+      for(const b of months[m].bikes){ if(ids.has(b.id)){ b.deleted=false; b.updatedAt=new Date().toISOString(); } }
     }
+    // remove most recent writeoff_reverse entry
+    const all = allCap().sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const tgt = all.find(c=>c.type==='writeoff_reverse');
+    if(tgt){
+      const mm = monthEnsure(tgt._month);
+      const ix = mm.capitalLedger.findIndex(x=>x.id===tgt.id);
+      if(ix>=0) mm.capitalLedger.splice(ix,1);
+    }
+    recomputeBalances();
+    await saveDB();
+    state.lastUndo = null;
+    $("#undoSticky").classList.add('hidden');
+    renderAll();
+    toast('Undo complete');
+  }
 }
 
-// Start the app
-document.addEventListener('DOMContentLoaded', initApp);
+/* ---------- Safe DOM builder for Mass Sell (no innerHTML) ---------- */
+function buildMassSellList(){
+  const list = $("#msList"); list.textContent='';
+  const sel = allBikes().filter(b=>state.selection.has(b.id) && b.status!=='sold');
+  sel.forEach(b=>{
+    const wrap=document.createElement('div'); wrap.className='msrow card'; wrap.dataset.id=b.id;
+    const title=document.createElement('strong'); title.textContent=b.plateNo;
+    const subtitle=document.createElement('div'); subtitle.className='small'; subtitle.textContent='— '+b.model;
+    const grid=document.createElement('div'); grid.className='grid'; grid.style.gridTemplateColumns='1fr 1fr';
+    const f1=document.createElement('div'); const l1=document.createElement('label'); l1.textContent='Sell Price'; const i1=document.createElement('input'); i1.type='number'; i1.min='0'; i1.placeholder=String(b.totalCost||''); i1.setAttribute('data-field','price'); f1.appendChild(l1); f1.appendChild(i1);
+    const f2=document.createElement('div'); const l2=document.createElement('label'); l2.textContent='Sell Date'; const i2=document.createElement('input'); i2.type='date'; i2.value=todayISODate(); i2.setAttribute('data-field','date'); f2.appendChild(l2); f2.appendChild(i2);
+    grid.appendChild(f1); grid.appendChild(f2);
+    wrap.appendChild(title); wrap.appendChild(subtitle); wrap.appendChild(grid);
+    list.appendChild(wrap);
+  });
+}
 
+/* ---------- Quick Sync attempt before exports (non-blocking) ---------- */
+async function attemptQuickSync(){
+  if(navigator.onLine && state.settings.gistId && pat.get()){
+    try{ await syncNow({pullFirst:true}); }catch(e){}
+  }
+}
 
+/* ---------- Service Worker (Blob) ---------- */
+(function registerSW(){
+  if(!('serviceWorker' in navigator)) return;
+  const swCode = `
+    const CACHE='brm-cache-v2';
+    const APP_SHELL = ['.'];
+    self.addEventListener('install', e=>{
+      e.waitUntil((async()=>{ const c=await caches.open(CACHE); await c.addAll(APP_SHELL); })());
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e=>{
+      e.waitUntil((async()=>{
+        const keys=await caches.keys();
+        await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+      })());
+      self.clients.claim();
+    });
+    self.addEventListener('fetch', e=>{
+      const url = new URL(e.request.url);
+      if(url.origin===location.origin){
+        e.respondWith((async()=>{
+          const cached = await caches.match(e.request);
+          return cached || fetch(e.request).then(async resp=>{
+            const c = await caches.open(CACHE);
+            try{ c.put(e.request, resp.clone()); }catch(e){}
+            return resp;
+          }).catch(()=>cached);
+        })());
+        return;
+      }
+      if(url.hostname==='api.github.com'){
+        e.respondWith(fetch(e.request).catch(()=>new Response(JSON.stringify({message:'offline'}),{status:503,headers:{'Content-Type':'application/json'}})));
+      }
+    });
+  `;
+  const blob = new Blob([swCode], {type:'text/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob));
+})();
+
+/* ---------- Accessibility tweaks ---------- */
+document.addEventListener('focusin', (e)=>{ if(e.target.matches('input,select,textarea,button')) e.target.classList.add('focus'); });
+document.addEventListener('focusout', (e)=>{ if(e.target.matches('input,select,textarea,button')) e.target.classList.remove('focus'); });
+
+/* ---------- Boot ---------- */
+setupUI();
+load();
 </script>
-
 </body>
 </html>
-
