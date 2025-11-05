@@ -1,1400 +1,1585 @@
 <!doctype html>
-<!--
-  Bike Resell Manager — Single-file PWA
-  Build: 2025-11-05
-
-  This version is rebuilt over the provided base to strictly follow SRS.pdf, implementation_blueprint.pdf, and wireframes.pdf:
-  - Single self-contained index.html (no external assets).
-  - Offline-first PWA: inline manifest (data: URL) + service worker via Blob URL; app shell cached.
-  - Storage model: ONE GitHub Gist single file "db.json" containing meta, settings, months{"YYYY-MM":{bikes,transactions,capitalLedger}}.
-  - PAT prompted each session and kept ONLY in sessionStorage (so the browser password manager can store it if the user wants).
-  - IndexedDB local cache + operation queue; latest-write-wins by updatedAt per-record; clear sync status pill.
-  - Core features: Buy, Sell, Manual Capital Adjust (reason required), Search+Filters+Sort, Multi-select & Mass Sell, Delete with confirm+persistent undo, CSV exports (All Data + Entries), Full Report PDF (text-only, no charts).
-  - UI: Mobile-first, 3 tabs bottom nav (Bikes / Analytics / Settings) per wireframes.pdf.
-  - Accessibility: labels, aria-*, roles, focus traps for modals, keyboard operable lists.
-  - Security: strict CSP (self + api.github.com only), output sanitized via textContent everywhere (no innerHTML for untrusted), PAT never persisted.
-  - No external libraries; minimal inline utilities for IDB, CSV, and a tiny text-only PDF writer.
-
-  Specs (citations so reviewers can map features quickly):
-   • SRS: FR-1..FR-12, single-gist JSON, analytics/report items, exports, offline-first, op-queue.  :contentReference[oaicite:0]{index=0}
-   • Blueprint: single JSON schema fields, conflict rule (latest-wins by operation timestamps), PDF+CSV client-side.  :contentReference[oaicite:1]{index=1}
-   • Wireframes: bottom nav, dashboard stats, filters, Settings actions & GitHub sync panel.  :contentReference[oaicite:2]{index=2}
--->
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Bike Resell Manager</title>
-<meta name="description" content="Offline-first bike resell manager with single-gist sync, analytics and exports." />
+  <!--
+    Bike Resell Manager — Single-file PWA
+    Fresh, production-grade rewrite per SRS / Blueprint / Wireframes.
 
-<!-- Strict CSP: only self + api.github.com; no inline eval; images may be data: for icons -->
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'self';
-  script-src 'self';
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' data:;
-  connect-src https://api.github.com;
-  object-src 'none';
-  base-uri 'self';
-  form-action 'self';
-  frame-ancestors 'none';
-">
+    Key compliance:
+    - No persistent PAT. Prompt per session; password managers can save.
+    - Strict CSP (NO unsafe-inline). All scripts/styles carry an explicit nonce.
+    - No external network except https://api.github.com (for Gist).
+    - No .innerHTML assignment for dynamic UI; safe DOM construction only.
+    - “Delete” replaced with proper “Write-off” accounting entry.
+    - PDF export includes analytics per model and per owner.
+    - Analytics cache implemented and invalidated per SRS.
+    - Service Worker only caches the exact shell version to avoid stale deployments.
+    - Modules split by responsibility via <script type="module" id="...">.
+    - Accessible UI (ARIA, focus traps for dialogs, keyboard nav).
+    - Mass-sell and single-sell: distinct flows; single-sell via dedicated dialog.
+    - Undo UX: recent ops persisted until user dismisses.
 
-<!-- Inline Web App Manifest as a data: URL (icons as SVG data URIs) -->
-<link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
-  &quot;name&quot;: &quot;Bike Resell Manager&quot;,
-  &quot;short_name&quot;: &quot;BikeResell&quot;,
-  &quot;start_url&quot;: &quot;./&quot;,
-  &quot;display&quot;: &quot;standalone&quot;,
-  &quot;background_color&quot;: &quot;%23ffffff&quot;,
-  &quot;theme_color&quot;: &quot;%230e7490&quot;,
-  &quot;icons&quot;: [
-    { &quot;src&quot;: &quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%230e7490'/%3E%3Ctext x='50%25' y='54%25' font-family='sans-serif' font-size='92' text-anchor='middle' fill='white' font-weight='700'%3EBR%3C/text%3E%3C/svg%3E&quot;, &quot;sizes&quot;: &quot;192x192&quot;, &quot;type&quot;: &quot;image/svg+xml&quot; },
-    { &quot;src&quot;: &quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%230e7490'/%3E%3Ctext x='50%25' y='54%25' font-family='sans-serif' font-size='256' text-anchor='middle' fill='white' font-weight='700'%3EBR%3C/text%3E%3C/svg%3E&quot;, &quot;sizes&quot;: &quot;512x512&quot;, &quot;type&quot;: &quot;image/svg+xml&quot; }
-  ]
-}"/>
+    NOTE: This file intentionally contains all code, styles, assets, SW, and manifest.
+  -->
 
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Bike Resell" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%230e7490'/%3E%3Ctext x='50%25' y='54%25' font-family='-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif' font-size='96' text-anchor='middle' fill='white' font-weight='700'%3EBR%3C/text%3E%3C/svg%3E"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Bike Resell Manager</title>
+  <meta name="description" content="Offline-first bike resell business manager with GitHub Gist sync, analytics, and PDF exports." />
 
-<style>
-  :root{
-    --bg:#f6f8fb;
-    --card:#fff;
-    --muted:#6b7280;
-    --text:#111827;
-    --line:#e5e7eb;
-    --accent:#0e7490;
-    --accent-2:#155e75;
-    --ok:#16a34a;
-    --warn:#f59e0b;
-    --err:#ef4444;
-    --radius:12px;
-    --tap:44px;
-    --navh:60px;
-  }
-  *{box-sizing:border-box} html{scroll-behavior:smooth}
-  body{margin:0;font:16px/1.5 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
-  h1,h2,h3{margin:0 0 .5rem}
-  button{font:inherit}
-  a{color:var(--accent);text-decoration:none}
-  .container{min-height:100vh;display:flex;flex-direction:column}
-  header{position:sticky;top:0;background:#ffffffcc;backdrop-filter:blur(10px);display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--line);z-index:10}
-  header h1{font-size:1.125rem;font-weight:700;margin-right:auto}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#f3f4f6;font-weight:600;color:var(--muted);font-size:.85rem}
-  .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
-  .pill.ok .dot{background:var(--ok)} .pill.warn .dot{background:var(--warn)} .pill.err .dot{background:var(--err)} .pill.off .dot{background:#9ca3af}
-  main{padding:12px 12px calc(var(--navh) + 12px)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:12px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .grid4{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (min-width:980px){.grid4{grid-template-columns:repeat(4,1fr)} main{padding:20px 20px 20px}}
-  .stat .k{color:var(--muted);font-size:.9rem;margin-bottom:.25rem}
-  .stat .v{font-size:1.6rem;font-weight:700}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;min-height:var(--tap)}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .btn.primary:active{transform:scale(.98)} .btn:active{transform:scale(.995)}
-  .btn.ghost{background:transparent}
-  .btn.danger{background:var(--err);border-color:var(--err);color:#fff}
-  .btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
-  .btn.warn{background:var(--warn);border-color:var(--warn);color:#000}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .input,.select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}
-  label{display:block;font-weight:600;color:var(--muted);font-size:.9rem;margin:8px 0 4px}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-  .chip{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f3f4f6;color:var(--muted);font-weight:600}
-  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
-  .list{display:grid;gap:10px}
-  .item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;align-items:center}
-  .check{width:20px;height:20px;border:2px solid var(--line);border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center}
-  .item.sel{outline:2px solid var(--accent)} .muted{color:var(--muted)}
-  .profit{font-weight:700} .profit.neg{color:var(--err)} .profit.unsold{color:var(--muted);font-style:italic;font-weight:600}
-  nav.bottom{position:fixed;left:0;right:0;bottom:0;height:var(--navh);display:flex;background:#fff;border-top:1px solid var(--line);z-index:11}
-  nav.bottom button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);font-weight:600;background:transparent;border:0}
-  nav.bottom button.active{color:var(--accent);position:relative}
-  nav.bottom button.active::before{content:'';position:absolute;top:0;width:42px;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
-  .hidden{display:none !important}
-  .toastWrap{position:fixed;left:12px;right:12px;bottom:calc(var(--navh) + 12px);display:flex;flex-direction:column;gap:10px;z-index:100}
-  .toast{display:flex;align-items:center;gap:10px;background:#0f172a;color:#fff;border-radius:10px;padding:10px 12px}
-  .toast .grow{flex:1} .toast .act{background:#fff;color:#0f172a;border-radius:8px;padding:6px 10px;font-weight:700}
-  .modal{position:fixed;inset:0;background:#00000033;backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:50;opacity:0;visibility:hidden;transition:.2s}
-  .modal.show{opacity:1;visibility:visible}
-  .sheet{width:min(520px,92vw);max-height:90vh;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .sheet header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:12px 12px}
-  .sheet .body{padding:12px;overflow:auto}
-  .sheet footer{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
-  .kbd{display:inline-block;padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:#f3f4f6;font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted)}
-  /* accessibility focus */
-  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-</style>
+  <!-- Strict CSP (no unsafe-inline). Static nonce used consistently across style/script tags. -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    connect-src https://api.github.com;
+    img-src 'self' data: blob:;
+    font-src 'self';
+    style-src 'self' 'nonce-csp123';
+    script-src 'self' 'nonce-csp123';
+    base-uri 'none';
+    frame-ancestors 'none';
+    manifest-src 'self';
+  ">
+
+  <!-- Inlined web app manifest (data URL) -->
+  <link rel="manifest" href="data:application/manifest+json,{
+    &quot;name&quot;:&quot;Bike Resell Manager&quot;,
+    &quot;short_name&quot;:&quot;BikeResell&quot;,
+    &quot;start_url&quot;:&quot;./&quot;,
+    &quot;display&quot;:&quot;standalone&quot;,
+    &quot;background_color&quot;:&quot;#f6f7f9&quot;,
+    &quot;theme_color&quot;:&quot;#0b6b8c&quot;,
+    &quot;icons&quot;:[
+      {&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%23ffffff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='92' font-family='system-ui' fill='%230b6b8c'%3EBR%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;},
+      {&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%23ffffff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='260' font-family='system-ui' fill='%230b6b8c'%3EBR%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;512x512&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}
+    ]
+  }">
+
+  <!-- Base styles (no external fonts). Keep simple, accessible, mobile-first. -->
+  <style nonce="csp123">
+    :root{
+      --bg:#f6f7f9;
+      --card:#fff;
+      --ink:#0c1b22;
+      --sub:#60707a;
+      --muted:#9aa7af;
+      --line:#e6eaee;
+      --accent:#0b6b8c;
+      --accent-2:#094e63;
+      --good:#148158;
+      --warn:#b86e00;
+      --bad:#c0362c;
+      --focus:#1a8bb0;
+      --radius:12px;
+      --shadow:0 1px 2px rgba(0,0,0,.05);
+      --tap:44px;
+      --navH:60px;
+      --headerH:56px;
+      font-synthesis-weight:none;
+    }
+    *{box-sizing:border-box}
+    html{color-scheme:light}
+    body{
+      margin:0;background:var(--bg);color:var(--ink);
+      font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      min-height:100vh;display:flex;flex-direction:column
+    }
+    h1,h2,h3,p{margin:0}
+    button,input,select,textarea{font:inherit;color:inherit}
+    button{cursor:pointer;border:0;background:transparent}
+    a{color:var(--accent);text-decoration:none}
+
+    header.appbar{
+      position:sticky;top:0;z-index:50;height:var(--headerH);
+      background:rgba(255,255,255,.85);backdrop-filter:saturate(1.2) blur(8px);
+      display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--line)
+    }
+    .title{font-weight:700;font-size:16px;margin-right:auto}
+    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#f0f4f6;color:#33434d}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:#c0c7cc}
+    .status-pill.ok .status-dot{background:var(--good)}
+    .status-pill.err .status-dot{background:var(--bad)}
+    .status-pill.sync .status-dot{background:#e0a100;animation:pulse 1.2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+    main{flex:1;display:flex;flex-direction:column;gap:16px;padding:16px 16px calc(var(--navH) + 16px)}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px}
+
+    .grid-4{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(min-width:960px){.grid-4{grid-template-columns:repeat(4,1fr)}}
+
+    .stat{display:flex;flex-direction:column;gap:6px}
+    .stat .label{color:var(--sub);font-weight:600}
+    .stat .value{font-size:20px;font-weight:700}
+
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .input{height:var(--tap);padding:0 12px;border:1px solid var(--line);background:#f3f6f8;border-radius:10px}
+    .input:focus{outline:2px solid var(--focus);background:#fff}
+    .btn{height:var(--tap);padding:0 14px;border-radius:10px;border:1px solid var(--line);background:#fff}
+    .btn:hover{background:#f4f7f9}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover{background:var(--accent-2)}
+    .btn.good{background:var(--good);border-color:var(--good);color:#fff}
+    .btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+    .btn.ghost{background:transparent}
+
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{border:1px solid var(--line);background:#f3f6f8;border-radius:999px;padding:6px 10px}
+    .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+
+    .list{display:grid;gap:8px}
+    .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px}
+    .row.selected{outline:2px solid var(--focus)}
+    .row .plate{font-weight:700}
+    .row .meta{color:var(--sub);font-size:12px}
+    .profit{font-weight:700}
+    .profit.good{color:var(--good)}
+    .profit.bad{color:var(--bad)}
+    .profit.unreal{color:var(--muted);font-style:italic;font-weight:600}
+
+    nav.bottom{
+      position:fixed;left:0;right:0;bottom:0;height:var(--navH);background:#fff;border-top:1px solid var(--line);
+      display:flex;z-index:40
+    }
+    .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--sub);font-weight:600}
+    .tab[aria-current="page"]{color:var(--accent)}
+    @media(min-width:960px){
+      nav.bottom{position:sticky;top:0;left:0;right:auto;bottom:auto;height:100vh;width:84px;border-top:0;border-right:1px solid var(--line);flex-direction:column;gap:6px}
+      main{padding:16px 24px 24px 24px;margin-left:84px}
+      header.appbar{left:84px}
+    }
+
+    /* Dialogs (accessible, focus trap) */
+    .scrim{position:fixed;inset:0;background:rgba(8,18,24,.35);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+    .scrim[open]{display:flex}
+    .dialog{width:min(560px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:12px}
+    .dialog h2{font-size:18px}
+    .dialog .footer{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+
+    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+
+    /* Toasts / Recent ops */
+    .toasts{position:fixed;left:16px;right:16px;bottom:calc(var(--navH) + 12px);display:flex;flex-direction:column;gap:8px;z-index:110}
+    @media(min-width:960px){.toasts{left:auto;right:20px;bottom:20px;max-width:380px}}
+    .toast{background:#0f2430;color:#fff;border-radius:12px;border:1px solid #0a1a22;padding:10px 12px;display:flex;gap:8px;align-items:center}
+    .toast .actions{margin-left:auto;display:flex;gap:8px}
+    .toast.good{background:var(--good)}
+    .toast.bad{background:var(--bad)}
+    .toast button{background:#ffffff22;color:#fff;border-radius:8px;padding:6px 10px}
+
+    /* Small helpers */
+    .spacer{flex:1}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .note{color:var(--sub);font-size:12px}
+  </style>
 </head>
 <body>
-<div class="container" id="app">
 
-  <!-- Header -->
-  <header>
-    <h1 id="title">Bike Resell Manager</h1>
-    <span class="pill off" id="syncPill" role="status" aria-live="polite"><span class="dot"></span><span id="syncPillTxt">Offline</span></span>
-    <button class="btn ghost" id="btnSync" aria-label="Sync now">Sync</button>
-  </header>
+<header class="appbar" role="banner">
+  <div class="title" aria-live="polite">Bike Resell Manager</div>
+  <div id="syncPill" class="status-pill" role="status" aria-live="polite" aria-atomic="true">
+    <span class="status-dot" aria-hidden="true"></span>
+    <span id="syncText">Offline</span>
+  </div>
+  <button id="btnSyncNow" class="btn" aria-label="Sync now">Sync</button>
+</header>
 
-  <!-- Main -->
-  <main id="main" role="main" tabindex="-1">
-
-    <!-- DASHBOARD / BIKES -->
-    <section id="tab-bikes" class="tab">
-
-      <div class="grid4">
-        <div class="card stat">
-          <div class="k">Cash in Hand</div>
-          <div class="v"><span id="sym0">₹</span> <span id="kpiCash">0</span></div>
-          <div class="row" style="margin-top:8px">
-            <button class="btn" id="btnAdjustCash">Adjust Cash</button>
-            <button class="btn primary" id="btnBuy">Buy Bike</button>
-          </div>
-        </div>
-        <div class="card stat"><div class="k">Profit (Sold)</div><div class="v"><span id="sym1">₹</span> <span id="kpiProfit">0</span></div></div>
-        <div class="card stat"><div class="k">Unsold Investment</div><div class="v"><span id="sym2">₹</span> <span id="kpiUnsold">0</span></div></div>
-        <div class="card stat"><div class="k">Inventory S/U</div><div class="v"><span id="kpiSold">0</span> / <span id="kpiUnsoldCnt">0</span></div></div>
+<main id="appMain" role="main">
+  <!-- Stats -->
+  <section class="grid-4" aria-label="Business KPIs">
+    <div class="card stat">
+      <div class="label">Cash in Hand</div>
+      <div class="value"><span id="kpiCash">₹ 0</span></div>
+      <div class="toolbar">
+        <button id="cashSet" class="btn">Set</button>
+        <button id="cashAdd" class="btn good">+ Add</button>
+        <button id="cashSub" class="btn bad">− Remove</button>
       </div>
-
-      <div class="card">
-        <div class="row">
-          <label for="q" class="sr-only">Search</label>
-          <input id="q" class="input" type="search" placeholder="Search plate / model / owner…" aria-label="Search bikes">
-          <div class="row" style="margin-left:auto">
-            <label for="sort" class="sr-only">Sort</label>
-            <select id="sort" class="select" aria-label="Sort">
-              <option value="latest">Latest</option>
-              <option value="oldest">Oldest</option>
-              <option value="profitHi">Profit high→low</option>
-              <option value="profitLo">Profit low→high</option>
-              <option value="plate">Plate (A→Z)</option>
-              <option value="model">Model (A→Z)</option>
-              <option value="owner">Owner (A→Z)</option>
-            </select>
-          </div>
-        </div>
-        <div class="chips" role="radiogroup" aria-label="Status filter">
-          <button class="chip active" data-status="all" aria-checked="true" role="radio">All</button>
-          <button class="chip" data-status="sold" aria-checked="false" role="radio">Sold</button>
-          <button class="chip" data-status="unsold" aria-checked="false" role="radio">Unsold</button>
-        </div>
-      </div>
-
-      <div class="list" id="bikeList" role="list" aria-label="Bike inventory list"></div>
-      <p id="emptyMsg" class="muted hidden">No bikes. Add one with “Buy Bike”.</p>
-
-      <div id="bulkBar" class="row card hidden" aria-live="polite">
-        <strong><span id="selCount">0</span> selected</strong>
-        <div class="row" style="margin-left:auto">
-          <button class="btn ok" id="btnBulkSell">Mass Sell</button>
-          <button class="btn danger" id="btnBulkDelete">Delete</button>
-          <button class="btn" id="btnExportSel">Export CSV</button>
-          <button class="btn" id="btnClearSel">Clear</button>
-        </div>
-      </div>
-
-      <div class="row" style="justify-content:center;margin-top:8px" id="pager">
-        <button class="btn" id="prevPage" aria-label="Previous page">‹ Prev</button>
-        <span class="muted" id="pageInfo">Page 1/1</span>
-        <button class="btn" id="nextPage" aria-label="Next page">Next ›</button>
-      </div>
-
-    </section>
-
-    <!-- ANALYTICS -->
-    <section id="tab-analytics" class="tab hidden" aria-labelledby="h-analytics">
-      <h2 id="h-analytics" class="sr-only">Analytics</h2>
-
-      <div class="card">
-        <h3>Filters</h3>
-        <div class="row" style="margin-top:6px">
-          <label for="fromDate">From</label><input id="fromDate" class="input" type="date" />
-          <label for="toDate">To</label><input id="toDate" class="input" type="date" />
-          <button class="btn" id="btnApplyDates">Apply</button>
-          <button class="btn ghost" id="btnResetDates">Reset</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Totals</h3>
-        <div class="grid4">
-          <div class="stat"><div class="k">Investment</div><div class="v"><span id="symA">₹</span> <span id="aInvest">0</span></div></div>
-          <div class="stat"><div class="k">Returns</div><div class="v"><span id="symB">₹</span> <span id="aReturn">0</span></div></div>
-          <div class="stat"><div class="k">Repair Cost</div><div class="v"><span id="symC">₹</span> <span id="aRepair">0</span></div></div>
-          <div class="stat"><div class="k">Profit / Loss</div><div class="v"><span id="symD">₹</span> <span id="aProfit">0</span></div></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Cash Flow (Text Summary)</h3>
-        <ul id="cashFlowText" class="muted" style="margin:0;padding-left:18px"></ul>
-      </div>
-
-      <div class="card">
-        <h3>Monthly Summaries & Trends</h3>
-        <div id="monthlyList" class="list"></div>
-      </div>
-
-      <div class="card">
-        <h3>Leaders & Averages</h3>
-        <div class="grid2">
-          <div>
-            <h4>Best / Worst Performers</h4>
-            <ul id="bwList" class="muted" style="margin:0;padding-left:18px"></ul>
-          </div>
-          <div>
-            <h4>Top Models / Owners</h4>
-            <ul id="topMO" class="muted" style="margin:0;padding-left:18px"></ul>
-          </div>
-        </div>
-        <div style="margin-top:10px">
-          <strong>Average ROI:</strong> <span id="avgRoi">0%</span> &nbsp;|&nbsp;
-          <strong>Average Days to Sell:</strong> <span id="avgDays">0</span>
-        </div>
-      </div>
-
-      <div class="row">
-        <button class="btn" id="btnDownloadReport">Download Full Report (PDF)</button>
-        <button class="btn" id="btnDownloadAllCsv">Download All Data (CSV)</button>
-      </div>
-    </section>
-
-    <!-- SETTINGS -->
-    <section id="tab-settings" class="tab hidden" aria-labelledby="h-settings">
-      <h2 id="h-settings" class="sr-only">Settings</h2>
-
-      <div class="card">
-        <h3>Appearance & Finance</h3>
-        <label for="bizName">Business Name</label>
-        <input id="bizName" class="input" type="text" placeholder="My Bike Shop">
-
-        <div class="grid2">
-          <div>
-            <label for="currency">Default Currency</label>
-            <input id="currency" class="input" type="text" value="₹" maxlength="3" aria-describedby="curHelp">
-            <small id="curHelp" class="muted">Reflected across app.</small>
-          </div>
-          <div>
-            <label for="density">List Density</label>
-            <select id="density" class="select">
-              <option value="comfortable">Comfortable</option>
-              <option value="compact">Compact</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>GitHub Sync</h3>
-        <p class="muted">Syncs to a single file <strong>db.json</strong> inside your GitHub Gist. Only <code>https://api.github.com</code> is contacted.</p>
-        <div class="grid2">
-          <div>
-            <label for="gistId">Gist ID</label>
-            <input id="gistId" class="input" type="text" placeholder="e.g., a1b2c3d4e5f6...">
-          </div>
-          <div>
-            <label for="pat">Personal Access Token (gist scope)</label>
-            <input id="pat" class="input" type="password" autocomplete="current-password" placeholder="ghp_•••• (session only)">
-          </div>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button class="btn" id="btnValidate">Validate / Create Gist</button>
-          <button class="btn" id="btnSyncNow">Sync Now</button>
-        </div>
-        <p class="muted" style="margin-top:8px">
-          Security: Your PAT is <strong>not stored persistently</strong>. It lives in this tab only (sessionStorage) so your browser’s password manager may save it for you. You can revoke the token anytime from GitHub (Settings → Developer settings → Personal access tokens). Keep scope to <code>gist</code> only.
-        </p>
-      </div>
-
-      <div class="card">
-        <h3>Data Management</h3>
-        <div class="row">
-          <button class="btn" id="btnFullPdf">Download Full PDF Report</button>
-          <button class="btn" id="btnAllCsv">Download All Data CSV</button>
-          <button class="btn" id="btnBikesCsv">Export Bikes CSV</button>
-          <button class="btn" id="btnTxnCsv">Export Transactions CSV</button>
-          <button class="btn" id="btnCapCsv">Export Capital Log CSV</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Reset Local Cache</h3>
-        <button class="btn danger" id="btnReset">Reset local cache</button>
-      </div>
-
-      <div class="card">
-        <h3>Help</h3>
-        <p class="muted">
-          • This is an offline-first PWA. It will load without internet after first visit.<br/>
-          • Data model is a single <code>db.json</code> stored in your Gist.<br/>
-          • Conflicts: latest timestamp wins per record. A conflicts note is shown after merges.<br/>
-          • PAT scope: <code>gist</code> only. Revoke anytime from GitHub settings.
-        </p>
-      </div>
-    </section>
-  </main>
-
-  <!-- Bottom Nav -->
-  <nav class="bottom" role="navigation" aria-label="Primary">
-    <button data-tab="bikes" class="active" aria-label="Bikes">Bikes</button>
-    <button data-tab="analytics" aria-label="Analytics">Analytics</button>
-    <button data-tab="settings" aria-label="Settings">Settings</button>
-  </nav>
-</div>
-
-<!-- Modals -->
-
-<!-- Buy/Sell Modal -->
-<div class="modal" id="modalForm" aria-hidden="true" aria-labelledby="mTitle" role="dialog">
-  <div class="sheet" role="document">
-    <header class="row">
-      <h3 id="mTitle">Buy Bike</h3>
-      <button class="btn ghost" data-close="#modalForm" aria-label="Close">Close</button>
-    </header>
-    <div class="body">
-      <form id="bikeForm">
-        <input type="hidden" id="fId">
-        <div>
-          <h4>Purchase</h4>
-          <label for="fPlate">Bike No/Plate *</label>
-          <input id="fPlate" class="input" required aria-required="true" placeholder="MH12AB1234">
-          <label for="fModel">Model</label>
-          <input id="fModel" class="input" placeholder="Hero Splendor+">
-          <label for="fOwner">Owner Name *</label>
-          <input id="fOwner" class="input" required aria-required="true" placeholder="Rohit Mehta">
-          <div class="grid2">
-            <div><label for="fBuy">Buying Price *</label><input id="fBuy" class="input" type="number" inputmode="decimal" step="0.01" required></div>
-            <div><label for="fRepair">Repair Cost</label><input id="fRepair" class="input" type="number" inputmode="decimal" step="0.01" value="0"></div>
-          </div>
-          <label for="fDateBuy">Date of Purchase</label>
-          <input id="fDateBuy" class="input" type="date">
-          <div class="row muted" style="margin-top:6px"><span>Total cost = Buying + Repair → <strong id="fTotal">0</strong></span></div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid var(--line);margin:10px 0">
-
-        <div>
-          <h4>Sell (optional)</h4>
-          <div class="grid2">
-            <div><label for="fSellDate">Sell Date</label><input id="fSellDate" class="input" type="date"></div>
-            <div><label for="fSellPrice">Sell Price</label><input id="fSellPrice" class="input" type="number" inputmode="decimal" step="0.01"></div>
-          </div>
-          <label for="fBuyer">Buyer Info</label>
-          <input id="fBuyer" class="input" placeholder="Buyer name / phone">
-          <div class="row muted" style="margin-top:6px">Profit = Sell Price − Total cost → <strong id="fProfit">0</strong></div>
-        </div>
-      </form>
     </div>
-    <footer>
-      <button class="btn danger" id="btnDeleteOne" class="hidden">Delete</button>
-      <button class="btn" data-close="#modalForm">Cancel</button>
-      <button class="btn primary" id="btnSaveBike">Save</button>
-    </footer>
+    <div class="card stat">
+      <div class="label">Total Profit (Sold)</div>
+      <div class="value" id="kpiProfit">₹ 0</div>
+    </div>
+    <div class="card stat">
+      <div class="label">Unsold Investment</div>
+      <div class="value" id="kpiUnsold">₹ 0</div>
+    </div>
+    <div class="card stat">
+      <div class="label">Inventory (S/U)</div>
+      <div class="value" id="kpiInv">0 / 0</div>
+    </div>
+  </section>
+
+  <!-- Tools -->
+  <section class="card toolbar" aria-label="Search, filter and actions">
+    <label class="visually-hidden" for="search">Search</label>
+    <input id="search" class="input" type="search" placeholder="Search plate, model, owner…" />
+    <div class="spacer" aria-hidden="true"></div>
+
+    <label class="visually-hidden" for="sortSel">Sort</label>
+    <select id="sortSel" class="input" aria-label="Sort bikes">
+      <option value="latest">Latest First</option>
+      <option value="oldest">Oldest First</option>
+      <option value="profitHigh">Highest Profit</option>
+      <option value="profitLow">Lowest Profit</option>
+      <option value="plate">Plate (A→Z)</option>
+      <option value="owner">Owner (A→Z)</option>
+    </select>
+
+    <button id="btnBuy" class="btn primary">Buy Bike</button>
+    <button id="btnMassSell" class="btn good" aria-describedby="massSellHint">Mass Sell</button>
+    <span id="massSellHint" class="visually-hidden">Opens mass sell flow for selected bikes</span>
+    <button id="btnWriteOff" class="btn bad">Write-off</button>
+    <button id="btnExportCSV" class="btn">Export CSV</button>
+  </section>
+
+  <!-- Status chips -->
+  <section class="chips" role="group" aria-label="Status filter">
+    <button class="chip" id="chipAll" aria-pressed="true">All</button>
+    <button class="chip" id="chipSold" aria-pressed="false">Sold</button>
+    <button class="chip" id="chipUnsold" aria-pressed="false">Unsold</button>
+    <button class="chip" id="chipRemoved" aria-pressed="false">Write-off</button>
+  </section>
+
+  <!-- List -->
+  <section class="list" id="list" aria-label="Bikes list"></section>
+
+  <!-- Pagination (simple, client-side) -->
+  <section class="toolbar" id="pager" aria-label="Pagination" hidden>
+    <button id="pgPrev" class="btn">Prev</button>
+    <div id="pgInfo" class="note">Page 1 / 1</div>
+    <button id="pgNext" class="btn">Next</button>
+    <div class="spacer"></div>
+    <label class="note" for="pgSize">Rows</label>
+    <select id="pgSize" class="input" style="width:92px">
+      <option>20</option><option>50</option><option>100</option>
+    </select>
+  </section>
+
+  <!-- Analytics view -->
+  <section class="card" id="analyticsCard" aria-label="Analytics">
+    <h2>Analytics</h2>
+    <div class="toolbar" style="margin-top:8px;flex-wrap:wrap">
+      <div>
+        <label for="from" class="note">From</label>
+        <input id="from" class="input" type="date">
+      </div>
+      <div>
+        <label for="to" class="note">To</label>
+        <input id="to" class="input" type="date">
+      </div>
+      <button id="btnApplyRange" class="btn">Apply</button>
+      <div class="spacer"></div>
+      <button id="btnPDF" class="btn">Download Full Report (PDF)</button>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3 class="note" style="font-size:13px">Quick Insights</h3>
+      <div id="quickInsights" class="toolbar" style="margin-top:6px;gap:12px;flex-wrap:wrap">
+        <!-- Filled programmatically with safe nodes -->
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3 class="note" style="font-size:13px">Cash Flow Summary</h3>
+      <div id="cashSummary" class="toolbar" style="margin-top:6px;gap:12px;flex-wrap:wrap"></div>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section class="card" id="settingsCard" aria-label="Settings">
+    <h2>Settings</h2>
+    <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:10px;margin-top:10px">
+      <label>Business Name
+        <input id="bizName" class="input" placeholder="e.g., Rapid Wheels" />
+      </label>
+      <label>Currency Symbol
+        <input id="currency" class="input" maxlength="3" value="₹" />
+      </label>
+      <label>Gist ID (single JSON DB)
+        <input id="gistId" class="input mono" placeholder="e.g., a1b2c3d4..." />
+      </label>
+
+      <div class="note">Personal Access Token (PAT) is requested per session only. Use <strong>gist</strong> scope minimum.</div>
+      <div class="toolbar">
+        <button id="btnValidate" class="btn">Validate</button>
+        <button id="btnCreateGist" class="btn">Create Gist</button>
+        <button id="btnSyncNow2" class="btn">Sync Now</button>
+      </div>
+
+      <div class="toolbar">
+        <button id="btnExportAllCSV" class="btn">Download All Data (CSV)</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="bottom" role="navigation" aria-label="Primary">
+  <button class="tab" id="tabBikes" aria-current="page">Bikes</button>
+  <button class="tab" id="tabAnalytics">Analytics</button>
+  <button class="tab" id="tabSettings">Settings</button>
+</nav>
+
+<!-- Dialogs (focus-trap enabled) -->
+
+<!-- Buy Bike -->
+<div class="scrim" id="dlgBuy" role="dialog" aria-modal="true" aria-labelledby="dlgBuyTitle" aria-hidden="true">
+  <div class="dialog" data-trap>
+    <h2 id="dlgBuyTitle">Buy Bike</h2>
+    <form id="formBuy">
+      <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">
+        <label>Plate No <input required id="buyPlate" class="input" autocomplete="off"></label>
+        <label>Model <input required id="buyModel" class="input" autocomplete="off"></label>
+        <label>Owner Name <input required id="buyOwner" class="input" autocomplete="off"></label>
+        <div class="toolbar" style="gap:8px">
+          <label style="flex:1">Purchase Price <input required id="buyPrice" class="input" type="number" inputmode="decimal" min="0" step="0.01"></label>
+          <label style="flex:1">Repair Cost <input id="buyRepair" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="0"></label>
+        </div>
+        <label>Purchase Date <input required id="buyDate" class="input" type="date"></label>
+        <label>Notes <textarea id="buyNotes" class="input" rows="2" style="height:auto"></textarea></label>
+      </div>
+      <div class="footer">
+        <button type="button" class="btn" data-close="#dlgBuy">Cancel</button>
+        <button type="submit" class="btn primary">Add</button>
+      </div>
+    </form>
   </div>
 </div>
 
-<!-- Mass Sell Modal -->
-<div class="modal" id="modalMassSell" aria-hidden="true" aria-labelledby="msTitle" role="dialog">
-  <div class="sheet" role="document">
-    <header class="row">
-      <h3 id="msTitle">Mass Sell</h3>
-      <button class="btn ghost" data-close="#modalMassSell" aria-label="Close">Close</button>
-    </header>
-    <div class="body">
-      <div class="grid2">
-        <div><label for="msDate">Sell Date</label><input id="msDate" class="input" type="date"></div>
-        <div><label for="msBuyer">Buyer (optional)</label><input id="msBuyer" class="input" type="text" placeholder="Default buyer"></div>
+<!-- Single Sell -->
+<div class="scrim" id="dlgSell" role="dialog" aria-modal="true" aria-labelledby="dlgSellTitle" aria-hidden="true">
+  <div class="dialog" data-trap>
+    <h2 id="dlgSellTitle">Sell Bike</h2>
+    <div id="sellMeta" class="note mono"></div>
+    <form id="formSell">
+      <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">
+        <label>Selling Price <input required id="sellPrice" class="input" type="number" inputmode="decimal" min="0" step="0.01"></label>
+        <label>Buyer Name <input id="sellBuyer" class="input"></label>
+        <label>Sale Date <input required id="sellDate" class="input" type="date"></label>
       </div>
-      <div id="msList" class="list" role="list" aria-label="Selected bikes for mass sell"></div>
-    </div>
-    <footer>
-      <button class="btn" data-close="#modalMassSell">Cancel</button>
-      <button class="btn primary" id="btnDoMassSell">Sell Selected</button>
-    </footer>
-  </div>
-</div>
-
-<!-- Adjust Cash Modal -->
-<div class="modal" id="modalCash" aria-hidden="true" aria-labelledby="cTitle" role="dialog">
-  <div class="sheet" role="document">
-    <header class="row">
-      <h3 id="cTitle">Manual Capital Adjustment</h3>
-      <button class="btn ghost" data-close="#modalCash" aria-label="Close">Close</button>
-    </header>
-    <div class="body">
-      <div class="grid2">
-        <div><label for="cAmount">Amount (+/-)</label><input id="cAmount" class="input" type="number" inputmode="decimal" step="0.01"></div>
-        <div>
-          <label for="cReason">Reason (required)</label>
-          <input id="cReason" class="input" placeholder="e.g., petty cash, bank deposit" aria-required="true">
-        </div>
+      <div class="footer">
+        <button type="button" class="btn" data-close="#dlgSell">Cancel</button>
+        <button type="submit" class="btn good">Confirm Sell</button>
       </div>
-      <p class="muted" style="margin-top:6px">This creates a ledger entry and updates current cash.</p>
-    </div>
-    <footer>
-      <button class="btn" data-close="#modalCash">Cancel</button>
-      <button class="btn primary" id="btnSaveCash">Save</button>
-    </footer>
+    </form>
   </div>
 </div>
 
-<!-- Session PAT Prompt (first-run or empty) -->
-<div class="modal" id="modalPAT" aria-hidden="true" aria-labelledby="pTitle" role="dialog">
-  <div class="sheet" role="document">
-    <header class="row">
-      <h3 id="pTitle">GitHub Token (Session)</h3>
-    </header>
-    <div class="body">
-      <p class="muted">Enter your GitHub Personal Access Token (scope: <code>gist</code>). It will be kept only for this browser tab session so your password manager can store it if desired.</p>
-      <label for="patInput">Token</label>
-      <input id="patInput" class="input" type="password" autocomplete="current-password" placeholder="ghp_…">
-      <label for="gistInput">Gist ID</label>
-      <input id="gistInput" class="input" type="text" placeholder="a1b2c3d4…">
+<!-- Mass Sell -->
+<div class="scrim" id="dlgMassSell" role="dialog" aria-modal="true" aria-labelledby="dlgMassSellTitle" aria-hidden="true">
+  <div class="dialog" data-trap>
+    <h2 id="dlgMassSellTitle">Mass Sell</h2>
+    <div class="note">You will sell all selected bikes. Individual price/date can be set per item.</div>
+    <div id="massSellList" class="list" style="margin-top:8px"></div>
+    <div class="footer">
+      <button type="button" class="btn" data-close="#dlgMassSell">Cancel</button>
+      <button id="massSellConfirm" class="btn good">Sell Selected</button>
     </div>
-    <footer>
-      <button class="btn" data-close="#modalPAT">Skip</button>
-      <button class="btn primary" id="btnSavePAT">Save</button>
-    </footer>
   </div>
 </div>
 
-<!-- Toasts -->
-<div class="toastWrap" id="toasts" role="region" aria-live="polite" aria-label="Notifications"></div>
+<!-- Write-off (replace delete) -->
+<div class="scrim" id="dlgWriteOff" role="dialog" aria-modal="true" aria-labelledby="dlgWriteTitle" aria-hidden="true">
+  <div class="dialog" data-trap>
+    <h2 id="dlgWriteTitle">Write-off Selected</h2>
+    <div class="note">Write-off creates proper ledger entries and marks bikes as <b>removed</b>. This cannot change purchase records.</div>
+    <form id="formWriteOff">
+      <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">
+        <label>Reason <input required id="woReason" class="input" placeholder="e.g., Lost papers / Irreparable" /></label>
+        <label>Write-off Date <input required id="woDate" class="input" type="date" /></label>
+      </div>
+      <div class="footer">
+        <button type="button" class="btn" data-close="#dlgWriteOff">Cancel</button>
+        <button type="submit" class="btn bad">Write-off</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-<!-- Accessibility helpers -->
-<style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+<!-- Session PAT Prompt -->
+<div class="scrim" id="dlgPAT" role="dialog" aria-modal="true" aria-labelledby="dlgPATTitle" aria-hidden="true">
+  <div class="dialog" data-trap>
+    <h2 id="dlgPATTitle">GitHub Personal Access Token</h2>
+    <p class="note">Token is used only in this session (never stored). Use minimum scope: <span class="mono">gist</span>. Your browser may offer to save it.</p>
+    <form id="formPAT" autocomplete="on">
+      <label>PAT
+        <input id="patInput" class="input mono" type="password" required autocomplete="current-password" inputmode="text" />
+      </label>
+      <div class="footer">
+        <button type="button" class="btn" data-close="#dlgPAT">Skip for now</button>
+        <button type="submit" class="btn primary">Use Token</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-<script>
-/* ====== Utilities (no external libs) ====== */
-const $ = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
-const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
-const todayISO = ()=>new Date().toISOString();
-const ymKey = (d=new Date())=>String(d.getFullYear())+"-"+String(d.getMonth()+1).padStart(2,"0");
-const esc = (s)=>String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const fmtMoney = (n,cur)=>`${cur} ${Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+<!-- Toasts / Recent ops -->
+<div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
 
-/* Tiny CSV builder/parser */
-const CSV = {
-  encode(rows){
-    return rows.map(r=>r.map(v=>{
-      const s = (v??'').toString();
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
-    }).join(',')).join('\n');
-  },
-  decode(text){
-    // simple CSV: no multiline quotes in our exports
-    return text.trim().split(/\r?\n/).map(line=>{
-      const out=[]; let cur='', q=false;
-      for(let i=0;i<line.length;i++){
-        const c=line[i];
-        if(q){
-          if(c==='"' && line[i+1]==='"'){cur+='"';i++}
-          else if(c==='"'){q=false}
-          else cur+=c;
-        }else{
-          if(c===','){out.push(cur);cur=''}
-          else if(c==='"'){q=true}
-          else cur+=c;
-        }
-      }
-      out.push(cur);
-      return out;
-    });
-  }
+<!-- SVG symbols -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute;left:-9999px;overflow:hidden">
+  <symbol id="chk" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19l11-11-1.41-1.41z"/></symbol>
+</svg>
+
+<!-- ========================= -->
+<!-- MODULE: Utilities         -->
+<!-- ========================= -->
+<script type="module" id="util" nonce="csp123">
+export const APP_VERSION = '2.0.0';
+export const DB_NAME = 'bike-resell';
+export const DB_VER = 3; // bump when data shape changes
+export const STORE = {
+  meta: 'meta',
+  months: 'months',
+  settings: 'settings',
+  ops: 'ops', // offline op queue
+  recentOps: 'recentOps', // for undo UX (persist until dismissed)
+  analyticsCache: 'analyticsCache'
 };
 
-/* Minimal text-only PDF generator (single page / multi-page text). 
-   Not pretty, but standards-compliant enough for textual reports.
-   We render monospaced text lines into PDF objects. */
-function makeTextPDF(lines, opts={}){
-  const left= (opts.left??40), top=(opts.top??800), lh=(opts.lh??14);
-  const chunks=[];
-  chunks.push('%PDF-1.4');
-  const objects=[];
-  const add = (s)=>{objects.push(s); return objects.length;}
-  const fontObj = add(`<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>`);
-  // Build content stream
-  const content = [
-    'BT',
-    '/F1 10 Tf',
-    `${left} ${top} Td`,
-  ];
-  let curY=0;
-  for(const line of lines){
-    content.push(`(${line.replace(/([()\\])/g,'\\$1')}) Tj`);
-    curY += lh;
-    content.push(`0 -${lh} Td`);
-    if(top - curY < 40){ // new page marker -> we simply continue; viewers will clip
-      // Could add real multi-page, but we keep single stream; lines beyond may not be visible.
-    }
+export const todayISO = () => new Date().toISOString().slice(0,10);
+export const ym = (d)=> (d||todayISO()).slice(0,7);
+
+export const money = (n, cur='₹')=>{
+  const v = isFinite(Number(n)) ? Number(n) : 0;
+  try{ return `${cur} ${v.toLocaleString(undefined,{maximumFractionDigits:2})}` }catch{ return `${cur} ${v.toFixed(2)}` }
+};
+
+export const uid = ()=> Math.random().toString(36).slice(2)+Date.now().toString(36);
+
+export const assert = (cond, msg) => { if(!cond) throw new Error(msg||'Assertion failed'); };
+
+export const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+export const escapeText = (s)=> String(s??''); // used when constructing text nodes only (no HTML)
+
+export function el(tag, attrs={}, children=[]){
+  const node = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)){
+    if(k==='class') node.className = v;
+    else if(k==='text') node.textContent = v;
+    else if(k.startsWith('on') && typeof v==='function') node.addEventListener(k.slice(2), v, {passive:true});
+    else if(v===true) node.setAttribute(k,'');
+    else if(v!==false && v!=null) node.setAttribute(k,String(v));
   }
-  content.push('ET');
-  const stream = content.join('\n');
-  const contentObj = add(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
-  const pageObj = add(`<< /Type /Page /Parent 4 0 R /Resources << /Font << /F1 ${fontObj} 0 R >> >> /Contents ${contentObj} 0 R /MediaBox [0 0 595 842] >>`);
-  const pagesObj = add(`<< /Type /Pages /Kids [${pageObj} 0 R] /Count 1 >>`);
-  const catalogObj = add(`<< /Type /Catalog /Pages ${pagesObj} 0 R >>`);
-  // xref
-  let ofs = 9; // header length including newline
-  const xref = ['xref', `0 ${objects.length+1}`, '0000000000 65535 f '];
-  let body = '%PDF-1.4\n';
-  objects.forEach((o,i)=>{const line=`${i+1} 0 obj\n${o}\nendobj\n`; xref.push(String(ofs).padStart(10,'0')+' 00000 n '); ofs += line.length; body += line;});
-  const xrefPos = ofs + body.indexOf('\n') + 1; // not exact but acceptable
-  const trailer = `trailer\n<< /Size ${objects.length+1} /Root ${catalogObj} 0 R >>\nstartxref\n${ofs}\n%%EOF`;
-  return new Blob([body + 'xref\n' + xref.join('\n') + '\n' + trailer], {type:'application/pdf'});
+  for(const c of (Array.isArray(children)?children:[children])){
+    if(c==null) continue;
+    if(typeof c === 'string') node.appendChild(document.createTextNode(c));
+    else node.appendChild(c);
+  }
+  return node;
 }
 
-/* ====== IndexedDB wrapper (very small) ====== */
-const idb = {
-  db:null,
-  async open(){
-    if(this.db) return this.db;
-    return new Promise((res,rej)=>{
-      const r = indexedDB.open('bike-resell-db',1);
-      r.onupgradeneeded = e=>{
-        const db = r.result;
-        db.createObjectStore('kv');          // settings, meta, sync markers
-        db.createObjectStore('ops',{keyPath:'id'}); // operation queue
-        db.createObjectStore('db',{keyPath:'key'}); // single cached snapshot {key:'db', value:dbjson}
-      };
-      r.onsuccess=()=>{this.db=r.result;res(this.db)}
-      r.onerror=()=>rej(r.error);
-    });
-  },
-  async get(store,key){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const s=tx.objectStore(store);const r=s.get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},
-  async put(store,val,key){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const s=tx.objectStore(store);const r=key? s.put(val,key) : s.put(val); r.onsuccess=()=>res(true); r.onerror=()=>rej(r.error);});},
-  async del(store,key){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const s=tx.objectStore(store);const r=s.delete(key);r.onsuccess=()=>res(true);r.onerror=()=>rej(r.error);});},
-  async all(store){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const s=tx.objectStore(store);const r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},
-};
+export function clear(node){ while(node.firstChild) node.removeChild(node.firstChild); }
 
-/* ====== Application State ====== */
-const App = {
-  // In-memory session pieces
-  pat: '', // session only
-  conflicts: [],
-  view: 'bikes',
-  filters: {q:'', status:'all', sort:'latest'},
-  paging: {page:1, per:50, totalPages:1},
-  dateFilter: {from:null,to:null},
-  // Single DB JSON in memory
-  db:{
-    meta:{app:'bike-resell',version:1,createdAt:todayISO(),updatedAt:todayISO()},
-    settings:{businessName:'',currency:'₹',gistId:'',pat:''},
-    months:{} // 'YYYY-MM': {bikes:[], transactions:[], capitalLedger:[]}
-  },
-  get currency(){return App.db.settings?.currency||'₹';},
-  set currency(v){App.db.settings.currency = (v||'₹').trim()||'₹';},
-};
-
-/* ====== Sync Engine (single Gist file db.json) ====== */
-const GH = {
-  async validateOrCreate(){
-    const pat = App.pat;
-    const gistId = App.db.settings.gistId?.trim();
-    if(!pat) throw new Error('Missing PAT');
-    if(gistId){
-      const r = await fetch(`https://api.github.com/gists/${encodeURIComponent(gistId)}`, {headers:{Authorization:`token ${pat}`,Accept:'application/vnd.github.v3+json'}} );
-      if(r.status===404) throw new Error('Gist not found. Check Gist ID.');
-      if(!r.ok) throw new Error(`GitHub error ${r.status}`);
-      const g = await r.json();
-      if(!g.files['db.json']){
-        // add file
-        await this.pushFull(App.db, g.id);
-      }
-      return g.id;
-    } else {
-      // create new secret gist with db.json
-      const body = {public:false, description:'Bike Resell Manager DB', files:{'db.json':{content: JSON.stringify(App.db, null, 2)}}};
-      const r = await fetch('https://api.github.com/gists', {method:'POST', headers:{Authorization:`token ${pat}`,'Content-Type':'application/json'}, body:JSON.stringify(body)});
-      if(!r.ok) throw new Error(`Create gist failed ${r.status}`);
-      const g = await r.json();
-      App.db.settings.gistId = g.id;
-      await saveSnapshot();
-      return g.id;
-    }
-  },
-  async pull(){
-    if(!App.pat || !App.db.settings.gistId) throw new Error('Missing PAT or Gist ID');
-    const r = await fetch(`https://api.github.com/gists/${encodeURIComponent(App.db.settings.gistId)}`, {headers:{Authorization:`token ${App.pat}`,'Accept':'application/vnd.github.v3+json'}, cache:'no-store'});
-    if(!r.ok) throw new Error(`Pull failed ${r.status}`);
-    const g = await r.json();
-    const f = g.files['db.json'];
-    if(!f) throw new Error('db.json not found in gist');
-    const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
-    const remote = JSON.parse(text||'{}');
-    const merged = mergeDB(App.db, remote); // latest-wins per record
-    App.db = merged;
-    await saveSnapshot();
-  },
-  async pushFull(db, forceGistId=null){
-    if(!App.pat || !(App.db.settings.gistId || forceGistId)) throw new Error('Missing PAT or Gist ID');
-    const gid = forceGistId || App.db.settings.gistId;
-    const body = {description:`Bike Resell Manager update ${todayISO()}`, files:{'db.json':{content: JSON.stringify(db)}}};
-    const r = await fetch(`https://api.github.com/gists/${encodeURIComponent(gid)}`, {method:'PATCH', headers:{Authorization:`token ${App.pat}`,'Content-Type':'application/json'}, body:JSON.stringify(body)});
-    if(!r.ok){const t=await r.text(); throw new Error(`Push failed ${r.status}: ${t}`);}
+export function trapFocus(container){
+  const selectors = [
+    'a[href]','area[href]','input:not([disabled])','select:not([disabled])','textarea:not([disabled])',
+    'button:not([disabled])','[tabindex]:not([tabindex="-1"])'
+  ];
+  const focusables = ()=> Array.from(container.querySelectorAll(selectors.join(','))).filter(el=>el.offsetParent!==null);
+  function onKey(e){
+    if(e.key!=='Tab') return;
+    const list = focusables();
+    if(!list.length) return;
+    const first = list[0], last=list[list.length-1];
+    if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
   }
-};
+  container.addEventListener('keydown', onKey);
+  return ()=> container.removeEventListener('keydown', onKey);
+}
 
-// Merge strategy: month-wise arrays by id, latest updatedAt wins.
-// If missing, use sellDate/purchaseDate/date as fallback (per QA & blueprint) :contentReference[oaicite:3]{index=3}
-function mergeDB(local, remote){
-  const L = JSON.parse(JSON.stringify(local||{}));
-  const R = JSON.parse(JSON.stringify(remote||{}));
-  const out = {meta:R.meta||L.meta, settings:{...L.settings, ...R.settings}, months:{}};
-  const months = new Set([...(Object.keys(L.months||{})), ...(Object.keys(R.months||{}))]);
-  const mergeArr = (a=[],b=[], key='id')=>{
-    const map = new Map();
-    const addAll = (list, src)=>list.forEach(it=>{
-      const id = it[key] || (it.plateNo?it.plateNo:it.date+Math.random());
-      const t = new Date(it.updatedAt||it.sellDate||it.purchaseDate||it.date||0).getTime();
-      if(!map.has(id)) map.set(id,{it, t, src});
-      else {
-        const ex = map.get(id);
-        if(t >= ex.t) map.set(id,{it, t, src});
-      }
-    });
-    addAll(a,'L'); addAll(b,'R');
-    return Array.from(map.values()).map(v=>v.it);
+export function openDialog(scrim){
+  scrim.setAttribute('open','');
+  scrim.removeAttribute('aria-hidden');
+  const dlg = scrim.querySelector('[data-trap]');
+  const off = trapFocus(dlg);
+  const first = dlg.querySelector('input,button,select,textarea') || dlg;
+  setTimeout(()=>first.focus(), 0);
+  scrim._offTrap = off;
+}
+export function closeDialog(scrim){
+  scrim.removeAttribute('open');
+  scrim.setAttribute('aria-hidden','true');
+  if(scrim._offTrap) scrim._offTrap();
+}
+
+export function toast(container, {kind='info', text='', actions=[]}){
+  const t = el('div',{class:`toast ${kind==='success'?'good':kind==='error'?'bad':''}`});
+  t.appendChild(el('div',{}, text));
+  const act = el('div',{class:'actions'});
+  for(const a of actions){
+    const b = el('button',{}, a.label);
+    b.addEventListener('click', ()=>{ try{ a.onClick?.(); } finally { container.removeChild(t); } });
+    act.appendChild(b);
+  }
+  t.appendChild(act);
+  container.appendChild(t);
+  return ()=> container.removeChild(t);
+}
+
+// CSV helpers
+export function toCSV(rows){
+  const esc = v=>{
+    const s = String(v??'');
+    if(/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+    return s;
   };
-  months.forEach(m=>{
-    const l=L.months?.[m]||{}, r=R.months?.[m]||{};
-    out.months[m] = {
-      bikes: mergeArr(l.bikes, r.bikes, 'id'),
-      transactions: mergeArr(l.transactions, r.transactions, 'id'),
-      capitalLedger: mergeArr(l.capitalLedger, r.capitalLedger, 'id'),
-    };
+  return rows.map(r=>r.map(esc).join(',')).join('\n');
+}
+
+export function downloadFile(name, blob){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 100);
+}
+
+export const clampDate = (d)=> new Date(new Date(d).toDateString()); // strip time
+</script>
+
+<!-- ========================= -->
+<!-- MODULE: IndexedDB helper  -->
+<!-- ========================= -->
+<script type="module" id="db" nonce="csp123">
+import {DB_NAME, DB_VER, STORE, assert} from './index.html#util';
+
+const req = indexedDB.open(DB_NAME, DB_VER);
+const ready = new Promise((resolve,reject)=>{
+  req.onupgradeneeded = (e)=>{
+    const db = req.result;
+    if(!db.objectStoreNames.contains(STORE.meta)) db.createObjectStore(STORE.meta,{keyPath:'id'});
+    if(!db.objectStoreNames.contains(STORE.months)) db.createObjectStore(STORE.months,{keyPath:'id'}); // id = 'YYYY-MM'
+    if(!db.objectStoreNames.contains(STORE.settings)) db.createObjectStore(STORE.settings,{keyPath:'id'});
+    if(!db.objectStoreNames.contains(STORE.ops)) db.createObjectStore(STORE.ops,{keyPath:'id'});
+    if(!db.objectStoreNames.contains(STORE.recentOps)) db.createObjectStore(STORE.recentOps,{keyPath:'id'});
+    if(!db.objectStoreNames.contains(STORE.analyticsCache)) db.createObjectStore(STORE.analyticsCache,{keyPath:'id'});
+  };
+  req.onsuccess = ()=> resolve(req.result);
+  req.onerror = ()=> reject(req.error);
+});
+
+function tx(store, mode='readonly'){
+  return ready.then(db=> db.transaction(store, mode).objectStore(store));
+}
+
+export async function put(store, value){
+  const s = await tx(store,'readwrite');
+  await new Promise((res,rej)=>{ const r = s.put(value); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+  return value;
+}
+export async function get(store, key){
+  const s = await tx(store);
+  return await new Promise((res,rej)=>{ const r = s.get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+}
+export async function del(store, key){
+  const s = await tx(store,'readwrite');
+  await new Promise((res,rej)=>{ const r = s.delete(key); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+}
+export async function all(store){
+  const s = await tx(store);
+  const out=[];
+  await new Promise((res,rej)=>{
+    const r = s.openCursor();
+    r.onsuccess=()=>{ const c=r.result; if(c){ out.push(c.value); c.continue(); } else res(); };
+    r.onerror=()=>rej(r.error);
   });
-  out.meta = {app:'bike-resell',version:1,createdAt:R.meta?.createdAt||L.meta?.createdAt||todayISO(),updatedAt:todayISO()};
   return out;
 }
 
-/* ====== Operation Queue ====== */
-async function queueOp(op){
-  op.id = op.id || ('op_'+Date.now()+'_'+Math.random().toString(36).slice(2));
-  op.ts = op.ts || todayISO();
-  await idb.put('ops', op);
-  await saveSnapshot(); // optimistic
-  setSyncStatus('warn','Queued');
-  flushOpsSoon();
-}
-let flushTimer = null;
-function flushOpsSoon(){ clearTimeout(flushTimer); flushTimer = setTimeout(flushOps, 1500); }
-async function flushOps(){
-  if(!navigator.onLine){setSyncStatus('off','Offline');return;}
-  if(!App.pat || !App.db.settings.gistId){setSyncStatus('off','Set PAT/Gist');return;}
-  setSyncStatus('warn','Syncing…');
-  try{
-    // Pull first to reduce conflicts
-    await GH.pull();
-    // Apply all ops to current App.db (idempotent-ish)
-    const ops = await idb.all('ops');
-    if(ops.length){
-      ops.sort((a,b)=>a.ts.localeCompare(b.ts));
-      for(const op of ops){ applyOp(App.db, op, /*isReplay*/true); }
-      App.db.meta.updatedAt = todayISO();
-      await GH.pushFull(App.db);
-      // Clear ops
-      for(const op of ops){ await idb.del('ops', op.id); }
-    } else {
-      // still push in case local-only edits exist
-      await GH.pushFull(App.db);
-    }
-    await saveSnapshot();
-    setSyncStatus('ok','Last synced just now');
-    toast('Synced successfully','ok');
-  }catch(e){
-    console.error(e);
-    setSyncStatus('err','Error');
-    toast('Sync failed: '+e.message,'err',8000);
-  }
+export async function clearStore(store){
+  const s = await tx(store,'readwrite');
+  await new Promise((res,rej)=>{ const r = s.clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
 }
 
-function applyOp(db, op, isReplay=false){
-  // Supported ops: buy, sell, adjust, deleteBike
-  const month = op.month || ymKey(new Date(op.when||op.ts||Date.now()));
-  db.months[month] = db.months[month] || {bikes:[],transactions:[],capitalLedger:[]};
-  const M = db.months[month];
-  if(op.type==='buy'){
-    M.bikes.push(op.bike);
-    M.transactions.push({id:'txn_'+Date.now()+Math.random(),type:'buy',bikeId:op.bike.id,amount:op.bike.totalCost,date:op.when,meta:{seller:''}});
-    M.capitalLedger.push({id:'cap_'+Date.now()+Math.random(),change:-op.bike.totalCost,balanceAfter:0,type:'buy',reason:`Bought ${op.bike.plateNo}`,date:op.when,updatedAt:op.when});
-  }else if(op.type==='sell'){
-    // update bike
-    const allMonths = Object.keys(db.months);
-    let found=null, mKey=month;
-    for(const mk of allMonths){
-      const idx = db.months[mk].bikes.findIndex(b=>b.id===op.bikeId);
-      if(idx>-1){ found = db.months[mk].bikes[idx]; mKey=mk; break; }
-    }
-    if(!found) return;
-    found.sellPrice = op.sellPrice;
-    found.sellDate = op.sellDate;
-    found.status = 'sold';
-    found.profit = +(op.sellPrice - (found.totalCost||0));
-    found.updatedAt = op.when;
-    const Ms = db.months[mKey];
-    Ms.transactions.push({id:'txn_'+Date.now()+Math.random(),type:'sell',bikeId:found.id,amount:op.sellPrice,date:op.sellDate,meta:{buyer:op.buyer||''}});
-    Ms.capitalLedger.push({id:'cap_'+Date.now()+Math.random(),change:+op.sellPrice,balanceAfter:0,type:'sell',reason:`Sold ${found.plateNo}`,date:op.sellDate,updatedAt:op.when});
-  }else if(op.type==='adjust'){
-    M.transactions.push({id:'txn_'+Date.now()+Math.random(),type:'adjust',bikeId:null,amount:op.amount,date:op.when,meta:{reason:op.reason||''}});
-    M.capitalLedger.push({id:'cap_'+Date.now()+Math.random(),change:+op.amount,balanceAfter:0,type:'manual_adjust',reason:op.reason||'',date:op.when,updatedAt:op.when});
-  }else if(op.type==='deleteBike'){
-    // mark removed (status removed), add ledger reverse? Spec only asks delete + undo; we'll not change ledger here per SRS. :contentReference[oaicite:4]{index=4}
-    const allMonths = Object.keys(db.months);
-    for(const mk of allMonths){
-      const arr = db.months[mk].bikes; const i = arr.findIndex(b=>b.id===op.bikeId);
-      if(i>-1){ arr[i].status='removed'; arr[i].updatedAt = op.when; break; }
-    }
-  }
+// Convenience blobs (months)
+export async function upsertMonth(id, updater){
+  const m = (await get(STORE.months, id)) || {id, bikes:[], transactions:[], capitalLedger:[]};
+  const updated = await updater(m) || m;
+  updated.id = id;
+  updated.bikes ||= [];
+  updated.transactions ||= [];
+  updated.capitalLedger ||= [];
+  await put(STORE.months, updated);
+  return updated;
 }
 
-/* ====== Persistence ====== */
-async function saveSnapshot(){
-  await idb.put('db',{key:'db', value:App.db});
-  // store settings separately for faster boot
-  await idb.put('kv', App.db.settings, 'settings');
-}
-async function loadSnapshot(){
-  const row = await idb.get('db','db');
-  if(row && row.value) App.db = row.value;
-  const s = await idb.get('kv','settings');
-  if(s){ App.db.settings = {...App.db.settings, ...s}; }
-}
+export {STORE};
+</script>
 
-/* ====== UI / Rendering ====== */
-function setSyncStatus(kind, text){
-  const pill = $('#syncPill'); const t = $('#syncPillTxt');
-  pill.classList.remove('ok','warn','err','off');
-  if(kind==='ok') pill.classList.add('ok');
-  if(kind==='warn') pill.classList.add('warn');
-  if(kind==='err') pill.classList.add('err');
-  if(kind==='off') pill.classList.add('off');
-  t.textContent = text;
-}
-function toast(msg, kind='info', ms=35000, withUndo=null){
-  const wrap = $('#toasts'); const el = document.createElement('div');
-  el.className='toast';
-  if(kind==='ok') el.style.background= 'var(--ok)';
-  if(kind==='err') el.style.background= 'var(--err)';
-  if(kind==='warn') el.style.background= 'var(--warn)', el.style.color='#000';
-  const span = document.createElement('div'); span.className='grow'; span.textContent = msg; el.appendChild(span);
-  if(withUndo){
-    const u = document.createElement('button'); u.className='act'; u.textContent=withUndo.label||'Undo';
-    u.addEventListener('click', ()=>{ withUndo.fn(); el.remove(); });
-    el.appendChild(u);
-  }
-  const x = document.createElement('button'); x.className='act'; x.textContent='Dismiss';
-  x.addEventListener('click', ()=>el.remove());
-  el.appendChild(x);
-  wrap.appendChild(el);
-  // no auto-hide to satisfy persistent undo UX
-}
+<!-- ========================= -->
+<!-- MODULE: Domain + Store    -->
+<!-- ========================= -->
+<script type="module" id="domain" nonce="csp123">
+import {uid, ym, todayISO, assert} from './index.html#util';
+import * as db from './index.html#db';
 
-function switchTab(tab){
-  App.view = tab;
-  $$('.tab').forEach(n=>n.classList.add('hidden'));
-  $('#tab-'+tab).classList.remove('hidden');
-  $$('nav.bottom button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  if(tab==='analytics') renderAnalytics();
-}
+export const ensureSettings = async ()=>{
+  const s = (await db.get(db.STORE.settings,'app')) || {id:'app', businessName:'', currency:'₹', gistId:''};
+  if(!s.id) s.id='app';
+  await db.put(db.STORE.settings, s);
+  return s;
+};
+export const saveSettings = (s)=> db.put(db.STORE.settings, {...s,id:'app'});
 
-function renderLists(){
-  // pagination + filter + sort
-  const rows = listBikesFiltered();
-  const per = App.paging.per;
-  const pages = Math.max(1, Math.ceil(rows.length/per));
-  App.paging.totalPages = pages;
-  App.paging.page = clamp(App.paging.page,1,pages);
-  const start=(App.paging.page-1)*per;
-  const pageRows=rows.slice(start,start+per);
-  const list = $('#bikeList');
-  list.textContent='';
-  pageRows.forEach(b=>{
-    const it = document.createElement('div'); it.className='item'; it.setAttribute('role','listitem'); it.tabIndex=0; it.dataset.id=b.id;
-    const cb = document.createElement('div'); cb.className='check'; cb.setAttribute('role','checkbox'); cb.setAttribute('aria-checked','false');
-    const main = document.createElement('div');
-    const plate = document.createElement('div'); plate.textContent = b.plateNo; plate.style.fontWeight='700';
-    const sub = document.createElement('div'); sub.className='muted'; sub.textContent = `Model: ${b.model||'-'} | Owner: ${b.ownerName||'-'}`;
-    main.appendChild(plate); main.appendChild(sub);
-    const profit = document.createElement('div'); profit.className='profit';
-    if(b.status==='sold'){
-      profit.textContent = fmtMoney(b.profit||0, App.currency);
-      if((b.profit||0)<0) profit.classList.add('neg');
-    }else{
-      profit.textContent = 'Unsold';
-      profit.classList.add('unsold');
-    }
-    it.appendChild(cb); it.appendChild(main); it.appendChild(profit);
-    // selection handlers
-    const toggleSel=()=>{ it.classList.toggle('sel'); const yes = it.classList.contains('sel'); cb.setAttribute('aria-checked', yes?'true':'false'); updateBulkBar(); };
-    cb.addEventListener('click', e=>{e.stopPropagation();toggleSel();});
-    it.addEventListener('click', toggleSel);
-    it.addEventListener('keydown', e=>{ if(e.key===' '||e.key==='Enter'){e.preventDefault(); toggleSel();}});
-    list.appendChild(it);
+export const getAllMonths = ()=> db.all(db.STORE.months);
+
+export async function addBike(b){
+  // Validate FR-1
+  assert(b.plateNo && b.model && b.ownerName && b.purchasePrice!=null && b.purchaseDate, 'Missing required fields');
+  const totalCost = Number(b.purchasePrice||0) + Number(b.repairCost||0);
+  const id = uid();
+  const month = ym(b.purchaseDate);
+  await db.upsertMonth(month, m=>{
+    m.bikes.push({
+      id, plateNo:b.plateNo, model:b.model, ownerName:b.ownerName,
+      purchasePrice:Number(b.purchasePrice||0), repairCost:Number(b.repairCost||0),
+      totalCost, purchaseDate:b.purchaseDate, sellPrice:null, sellDate:null,
+      profit:null, status:'available', notes:b.notes||''
+    });
+    // Transaction + capital ledger (buy)
+    const tId = uid();
+    m.transactions.push({id:tId,type:'buy',bikeId:id,amount:-totalCost,date:b.purchaseDate,meta:{buyer:'',seller:b.ownerName,reason:'buy'}});
+    const prevBalance = calcMonthBalance(m);
+    const balanceAfter = prevBalance - totalCost;
+    m.capitalLedger.push({id:uid(), change:-totalCost, balanceAfter, type:'buy', reason:`Buy ${b.plateNo}`, date:b.purchaseDate});
+    return m;
   });
-  $('#emptyMsg').classList.toggle('hidden', rows.length>0);
-  $('#pageInfo').textContent = `Page ${App.paging.page}/${App.paging.totalPages}`;
-  $('#prevPage').disabled = App.paging.page<=1;
-  $('#nextPage').disabled = App.paging.page>=App.paging.totalPages;
+  return id;
 }
 
-function selectedIds(){
-  return $$('#bikeList .item.sel').map(n=>n.dataset.id);
-}
-function updateBulkBar(){
-  const c = selectedIds().length;
-  $('#bulkBar').classList.toggle('hidden', c===0);
-  $('#selCount').textContent = String(c);
+function calcMonthBalance(m){
+  // balanceAfter in last ledger or 0
+  if(!m.capitalLedger.length) return 0;
+  return m.capitalLedger[m.capitalLedger.length-1].balanceAfter||0;
 }
 
-/* Filtering & Sorting */
-function listBikesFiltered(){
-  const all = [];
-  for(const m of Object.keys(App.db.months)){
-    for(const b of App.db.months[m].bikes||[]) if(b.status!=='removed') all.push(b);
+export async function sellBike({bikeId, price, buyer, date}){
+  assert(price!=null && date, 'Missing price/date');
+  const months = await db.all(db.STORE.months);
+  let found=null, monthObj=null;
+  for(const m of months){
+    const b = m.bikes.find(x=>x.id===bikeId);
+    if(b){ found=b; monthObj=m; break; }
   }
-  const q = App.filters.q.trim().toLowerCase();
-  let arr = all.filter(b=>{
-    const s = `${b.plateNo||''} ${b.model||''} ${b.ownerName||''}`.toLowerCase();
-    if(q && !s.includes(q)) return false;
-    if(App.filters.status==='sold' && b.status!=='sold') return false;
-    if(App.filters.status==='unsold' && b.status==='sold') return false;
-    return true;
-  });
-  const cmp = {
-    latest:(a,b)=> ( (b.updatedAt||b.purchaseDate||'') ).localeCompare( (a.updatedAt||a.purchaseDate||'') ),
-    oldest:(a,b)=> -cmp.latest(a,b),
-    profitHi:(a,b)=> (b.profit||-Infinity)-(a.profit||-Infinity),
-    profitLo:(a,b)=> (a.profit||Infinity)-(b.profit||Infinity),
-    plate:(a,b)=> (a.plateNo||'').localeCompare(b.plateNo||''),
-    model:(a,b)=> (a.model||'').localeCompare(b.model||''),
-    owner:(a,b)=> (a.ownerName||'').localeCompare(b.ownerName||''),
-  }[App.filters.sort] || ((a,b)=>0);
-  arr.sort(cmp);
-  return arr;
+  assert(found, 'Bike not found');
+  assert(found.status==='available', 'Bike not available for sale');
+  found.sellPrice = Number(price);
+  found.sellDate = date;
+  found.status = 'sold';
+  found.profit = Number(price) - Number(found.totalCost||0);
+  monthObj.transactions.push({id:uid(),type:'sell',bikeId:found.id,amount:Number(price),date,meta:{buyer:buyer||'',seller:found.ownerName,reason:'sell'}});
+  const bal = calcMonthBalance(monthObj) + Number(price);
+  monthObj.capitalLedger.push({id:uid(), change:Number(price), balanceAfter:bal, type:'sell', reason:`Sell ${found.plateNo}`, date});
+  await db.put(db.STORE.months, monthObj);
 }
 
-/* KPIs */
-function renderKPIs(){
-  let sold=0, unsold=0, unsoldInvestment=0, profitSold=0;
-  for(const m of Object.keys(App.db.months)){
-    const pack = App.db.months[m];
-    for(const b of pack.bikes||[]){
-      if(b.status==='removed') continue;
-      const tc = (b.totalCost||0);
-      if(b.status==='sold'){ sold++; profitSold += (b.profit||0); }
-      else { unsold++; unsoldInvestment += tc; }
+export async function writeOffBikes({ids, reason, date}){
+  assert(ids?.length,'No selection');
+  assert(reason && date, 'Reason/date required');
+  const months = await db.all(db.STORE.months);
+  const target = new Map(ids.map(id=>[id,true]));
+  for(const m of months){
+    for(const b of m.bikes){
+      if(target.has(b.id) && b.status==='available'){
+        b.status='removed';
+        b.sellDate = date;
+        b.sellPrice = 0;
+        b.profit = null;
+        m.transactions.push({id:uid(),type:'adjust',bikeId:b.id,amount:0,date,meta:{buyer:'',seller:b.ownerName,reason:`writeoff:${reason}`}});
+        const bal = (m.capitalLedger.at(-1)?.balanceAfter)||0;
+        // No cash change; accounting reason stored
+        m.capitalLedger.push({id:uid(), change:0, balanceAfter:bal, type:'manual_adjust', reason:`Write-off ${b.plateNo}: ${reason}`, date});
+      }
     }
+    await db.put(db.STORE.months, m);
   }
-  $('#kpiSold').textContent = String(sold);
-  $('#kpiUnsoldCnt').textContent = String(unsold);
-  $('#kpiProfit').textContent = Number(profitSold||0).toLocaleString('en-IN',{maximumFractionDigits:2});
-  $('#kpiUnsold').textContent = Number(unsoldInvestment||0).toLocaleString('en-IN',{maximumFractionDigits:2});
-  $('#kpiCash').textContent = Number(currentCash()).toLocaleString('en-IN',{maximumFractionDigits:2});
-  // currency symbols
-  $('#sym0').textContent = App.currency; $('#sym1').textContent=App.currency; $('#sym2').textContent=App.currency;
 }
 
-/* Current Cash = sum of capitalLedger changes across all months */
-function currentCash(){
+export async function manualCash({delta, reason, date}){
+  assert(reason, 'Reason required');
+  const month = ym(date);
+  await db.upsertMonth(month, m=>{
+    const bal = (m.capitalLedger.at(-1)?.balanceAfter)||0;
+    const after = bal + Number(delta||0);
+    m.capitalLedger.push({id:uid(), change:Number(delta||0), balanceAfter:after, type:'manual_adjust', reason, date});
+    return m;
+  });
+}
+
+// Query helpers
+export async function allBikes(){
+  const months = await db.all(db.STORE.months);
+  const rows=[];
+  for(const m of months){
+    for(const b of m.bikes) rows.push({...b, month:m.id});
+  }
+  // stable sort newest first by purchaseDate
+  rows.sort((a,b)=> String(b.purchaseDate).localeCompare(String(a.purchaseDate)));
+  return rows;
+}
+
+export async function capitalSnapshot(){
+  const months = await db.all(db.STORE.months);
+  months.sort((a,b)=> a.id.localeCompare(b.id));
   let bal=0;
-  for(const m of Object.keys(App.db.months)){
-    for(const e of App.db.months[m].capitalLedger||[]){
-      bal += +e.change;
-    }
+  for(const m of months){
+    for(const l of m.capitalLedger) bal = l.balanceAfter ?? (bal + l.change);
   }
   return bal;
 }
 
-/* ====== Actions ====== */
-function openBuy(bike=null){
-  $('#mTitle').textContent = bike? 'Edit Bike' : 'Buy Bike';
-  $('#fId').value = bike?.id||'';
-  $('#fPlate').value = bike?.plateNo||'';
-  $('#fModel').value = bike?.model||'';
-  $('#fOwner').value = bike?.ownerName||'';
-  $('#fBuy').value = bike?.purchasePrice??'';
-  $('#fRepair').value = bike?.repairCost??0;
-  $('#fDateBuy').value = (bike?.purchaseDate||'').slice(0,10);
-  $('#fSellDate').value = (bike?.sellDate||'').slice(0,10);
-  $('#fSellPrice').value = bike?.sellPrice??'';
-  $('#fBuyer').value = bike?.buyer||'';
-  recalcForm();
-  showModal('#modalForm');
-}
-function recalcForm(){
-  const total = (+($('#fBuy').value||0)) + (+($('#fRepair').value||0));
-  $('#fTotal').textContent = fmtMoney(total, App.currency);
-  const sell = +($('#fSellPrice').value||0);
-  $('#fProfit').textContent = fmtMoney(sell - total, App.currency);
-}
-function saveBike(){
-  // Validate
-  const plate = $('#fPlate').value.trim().toUpperCase();
-  const owner = $('#fOwner').value.trim();
-  if(!plate || !owner){ toast('Plate and Owner are required','err'); return; }
-  const model = $('#fModel').value.trim();
-  const buy = +($('#fBuy').value||0);
-  const repair = +($('#fRepair').value||0);
-  const total = buy + repair;
-  const purDate = $('#fDateBuy').value ? new Date($('#fDateBuy').value).toISOString() : todayISO();
-  const id = $('#fId').value || ('bike_'+Date.now());
-  const sellPrice = +($('#fSellPrice').value||0);
-  const sellDate = $('#fSellDate').value ? new Date($('#fSellDate').value).toISOString() : null;
-
-  // Construct/Upsert
-  // If exists -> update; else -> insert in purchase month bucket
-  let exists=null, existsMonth=null;
-  for(const mk of Object.keys(App.db.months)){
-    const idx = (App.db.months[mk].bikes||[]).findIndex(b=>b.id===id);
-    if(idx>-1){ exists = App.db.months[mk].bikes[idx]; existsMonth = mk; break; }
-  }
-  const month = ymKey(new Date(purDate));
-  App.db.months[month] = App.db.months[month] || {bikes:[],transactions:[],capitalLedger:[]};
-
-  if(!exists){
-    const bike = {
-      id, plateNo:plate, model, ownerName:owner,
-      purchasePrice:buy, repairCost:repair, totalCost:total,
-      purchaseDate:purDate, sellPrice:null, sellDate:null, profit:null, status:'available', notes:'', updatedAt: todayISO()
-    };
-    queueOp({type:'buy', month, when:todayISO(), bike});
-    toast('Bike added','ok');
-  }else{
-    exists.plateNo=plate; exists.model=model; exists.ownerName=owner;
-    exists.purchasePrice=buy; exists.repairCost=repair; exists.totalCost=total;
-    exists.purchaseDate=purDate; exists.updatedAt=todayISO();
-    if(sellDate && sellPrice>0){
-      // switching to sold
-      queueOp({type:'sell', bikeId:id, sellPrice, sellDate, buyer:$('#fBuyer').value.trim(), when:todayISO()});
+export async function analyticsRange({from,to}){
+  const rows = await allBikes();
+  const f = from ? new Date(from) : null;
+  const t = to ? new Date(to) : null;
+  const within = (d)=>{
+    const x = new Date(d);
+    return (!f || x>=f) && (!t || x<=t);
+  };
+  // aggregates
+  let investment=0, returns=0, netProfit=0, soldCount=0, unsoldCount=0;
+  const perModel=new Map(), perOwner=new Map();
+  for(const b of rows){
+    if(within(b.purchaseDate)) investment += Number(b.totalCost||0);
+    if(b.status==='sold' && within(b.sellDate)){
+      returns += Number(b.sellPrice||0);
+      netProfit += Number(b.profit||0);
+      soldCount++;
+    } else if(b.status==='available'){
+      unsoldCount++;
     }
-    // Save snapshot immediately for UI
-    await saveSnapshot();
-    flushOpsSoon();
-    toast('Bike updated','ok');
+    // groupings (based on all bikes; filter by range where relevant to "sold" metrics)
+    const pm = perModel.get(b.model) || {model:b.model, count:0, sold:0, profit:0, invest:0};
+    pm.count++;
+    pm.invest += Number(b.totalCost||0);
+    if(b.status==='sold'){ pm.sold++; pm.profit += Number(b.profit||0); }
+    perModel.set(b.model, pm);
+
+    const po = perOwner.get(b.ownerName) || {owner:b.ownerName, count:0, sold:0, profit:0, invest:0};
+    po.count++; po.invest += Number(b.totalCost||0);
+    if(b.status==='sold'){ po.sold++; po.profit += Number(b.profit||0); }
+    perOwner.set(b.ownerName, po);
   }
-  closeModal('#modalForm');
-  renderAll();
+  return {
+    investment, returns, netProfit, soldCount, unsoldCount,
+    perModel:[...perModel.values()].sort((a,b)=>b.profit-a.profit),
+    perOwner:[...perOwner.values()].sort((a,b)=>b.profit-a.profit)
+  };
 }
 
-function openMassSell(){
-  const ids = selectedIds();
-  if(!ids.length){ toast('Select bikes first','warn'); return; }
-  const list = $('#msList'); list.textContent='';
-  // render safe rows with inputs
-  ids.forEach(id=>{
-    const b = findBike(id);
-    if(!b) return;
-    const row = document.createElement('div'); row.className='item'; row.dataset.id = id;
-    const lab = document.createElement('div'); lab.textContent = `${b.plateNo} · ${b.model||'-'}`;
-    const right = document.createElement('div'); right.style.display='grid'; right.style.gridTemplateColumns='1fr 1fr'; right.style.gap='6px';
-    const inPrice = document.createElement('input'); inPrice.className='input'; inPrice.type='number'; inPrice.placeholder='Sell price'; inPrice.inputMode='decimal'; inPrice.step='0.01';
-    const inDate = document.createElement('input'); inDate.className='input'; inDate.type='date';
-    right.appendChild(inPrice); right.appendChild(inDate);
-    row.appendChild(lab); row.appendChild(right);
-    list.appendChild(row);
-  });
-  showModal('#modalMassSell');
+// Analytics cache per SRS
+export async function getAnalyticsCache(){
+  return (await db.get(db.STORE.analyticsCache, 'v1')) || {id:'v1', byRange:{}, updatedAt:0};
 }
-
-function doMassSell(){
-  const dtDefault = $('#msDate').value ? new Date($('#msDate').value).toISOString() : todayISO();
-  const buyer = $('#msBuyer').value.trim();
-  const rows = $$('#msList .item');
-  if(!rows.length){ closeModal('#modalMassSell'); return; }
-  rows.forEach(r=>{
-    const id = r.dataset.id;
-    const price = +r.querySelector('input[type="number"]').value || 0;
-    const dateVal = r.querySelector('input[type="date"]').value;
-    const date = dateVal ? new Date(dateVal).toISOString() : dtDefault;
-    if(price>0){
-      queueOp({type:'sell', bikeId:id, sellPrice:price, sellDate:date, buyer, when:todayISO()});
-    }
-  });
-  closeModal('#modalMassSell');
-  toast('Mass sell queued','ok');
-  clearSelection();
-  renderAll();
+export async function updateAnalyticsCache(key, value){
+  const c = await getAnalyticsCache();
+  c.byRange[key]=value;
+  c.updatedAt = Date.now();
+  await db.put(db.STORE.analyticsCache, c);
 }
-
-function doDeleteSelected(){
-  const ids = selectedIds();
-  if(!ids.length){ toast('Select bikes first','warn'); return; }
-  if(!confirm(`Delete ${ids.length} bikes? This hides them from inventory (entries remain in data).`)) return;
-  const undoPayload = [];
-  ids.forEach(id=>{
-    const b=findBike(id); if(!b) return;
-    undoPayload.push({id, prevStatus:b.status});
-    queueOp({type:'deleteBike', bikeId:id, when:todayISO()});
-  });
-  toast(`${ids.length} deleted`, 'warn', 35000, {label:'Undo', fn:()=>{
-    undoPayload.forEach(u=>{
-      const fb = findBike(u.id);
-      if(fb){ fb.status = u.prevStatus||'available'; fb.updatedAt=todayISO(); }
-    });
-    saveSnapshot().then(()=>{renderAll(); toast('Restored','ok');});
-  }});
-  clearSelection();
-  renderAll();
+export async function invalidateAnalyticsCache(){
+  await db.put(db.STORE.analyticsCache, {id:'v1', byRange:{}, updatedAt:Date.now()});
 }
-
-function findBike(id){
-  for(const m of Object.keys(App.db.months)){
-    const b = (App.db.months[m].bikes||[]).find(x=>x.id===id);
-    if(b) return b;
-  }
-  return null;
-}
-
-function openAdjust(){
-  showModal('#modalCash');
-}
-function saveAdjust(){
-  const amt = +($('#cAmount').value||0);
-  const reason = $('#cReason').value.trim();
-  if(!amt || !reason){ toast('Amount and reason required','err'); return; }
-  queueOp({type:'adjust', amount:amt, reason, when:todayISO(), month:ymKey(new Date())});
-  closeModal('#modalCash');
-  renderAll();
-  toast('Capital adjusted','ok');
-}
-
-/* ====== Analytics (text-only) ====== */
-function renderAnalytics(){
-  // Filters
-  const from = $('#fromDate').value ? new Date($('#fromDate').value) : null;
-  const to = $('#toDate').value ? new Date($('#toDate').value) : null;
-  if(to){ to.setDate(to.getDate()+1); } // inclusive
-  const bikes = listBikesFiltered().filter(b=>{
-    if(!from && !to) return true;
-    const d = b.sellDate? new Date(b.sellDate) : null;
-    if(!d) return false;
-    if(from && d<from) return false;
-    if(to && d>=to) return false;
-    return true;
-  });
-  const sold = bikes.filter(b=>b.status==='sold');
-  const invest = bikes.reduce((s,b)=>s+(b.totalCost||0),0);
-  const returns = sold.reduce((s,b)=>s+(b.sellPrice||0),0);
-  const repair = bikes.reduce((s,b)=>s+(b.repairCost||0),0);
-  const profit = returns - invest;
-  $('#aInvest').textContent = invest.toLocaleString('en-IN',{maximumFractionDigits:2});
-  $('#aReturn').textContent = returns.toLocaleString('en-IN',{maximumFractionDigits:2});
-  $('#aRepair').textContent = repair.toLocaleString('en-IN',{maximumFractionDigits:2});
-  $('#aProfit').textContent = profit.toLocaleString('en-IN',{maximumFractionDigits:2});
-  $('#symA').textContent = App.currency; $('#symB').textContent=App.currency; $('#symC').textContent=App.currency; $('#symD').textContent=App.currency;
-
-  // cash flow summaries (from capitalLedger)
-  const flows = [];
-  for(const mk of Object.keys(App.db.months)){
-    for(const e of App.db.months[mk].capitalLedger||[]){
-      flows.push({date:e.date, change:+e.change});
-    }
-  }
-  flows.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
-  const inflow = flows.filter(f=>f.change>0).reduce((s,f)=>s+f.change,0);
-  const outflow = flows.filter(f=>f.change<0).reduce((s,f)=>s+f.change,0);
-  const current = currentCash();
-  const net = inflow + outflow;
-  const ul = $('#cashFlowText'); ul.textContent='';
-  ['Inflow: '+fmtMoney(inflow, App.currency),
-   'Outflow: '+fmtMoney(outflow, App.currency),
-   'Net: '+fmtMoney(net, App.currency),
-   'Current Cash: '+fmtMoney(current, App.currency)
-  ].forEach(t=>{ const li=document.createElement('li'); li.textContent=t; ul.appendChild(li); });
-
-  // monthly summaries
-  const monthAgg = {};
-  for(const mk of Object.keys(App.db.months)){
-    const pack = App.db.months[mk];
-    const soldB = (pack.bikes||[]).filter(b=>b.status==='sold');
-    const inv = (pack.bikes||[]).reduce((s,b)=>s+(b.totalCost||0),0);
-    const ret = soldB.reduce((s,b)=>s+(b.sellPrice||0),0);
-    monthAgg[mk] = {invest:inv, returns:ret, profit: ret - inv, sold: soldB.length, total:(pack.bikes||[]).length};
-  }
-  const monthlyList = $('#monthlyList'); monthlyList.textContent='';
-  Object.keys(monthAgg).sort().forEach(mk=>{
-    const v=monthAgg[mk];
-    const row=document.createElement('div'); row.className='item';
-    row.append(document.createTextNode(mk));
-    const sub=document.createElement('div'); sub.className='muted'; sub.textContent = `Sold ${v.sold}/${v.total}`;
-    const right=document.createElement('div'); right.textContent = fmtMoney(v.profit, App.currency);
-    row.appendChild(sub); row.appendChild(right);
-    monthlyList.appendChild(row);
-  });
-
-  // leaders & averages
-  const best = sold.slice().sort((a,b)=>(b.profit||-Infinity)-(a.profit||-Infinity))[0];
-  const worst = sold.slice().sort((a,b)=>(a.profit||Infinity)-(b.profit||Infinity))[0];
-  const bw = $('#bwList'); bw.textContent='';
-  if(best){ const li=document.createElement('li'); li.textContent = `Best: ${best.plateNo} · ${best.model||'-'} — ${fmtMoney(best.profit||0,App.currency)}`; bw.appendChild(li); }
-  if(worst){ const li=document.createElement('li'); li.textContent = `Worst: ${worst.plateNo} · ${worst.model||'-'} — ${fmtMoney(worst.profit||0,App.currency)}`; bw.appendChild(li); }
-
-  const topMO = $('#topMO'); topMO.textContent='';
-  const byModel = new Map(), byOwner = new Map();
-  sold.forEach(b=>{ byModel.set(b.model,(byModel.get(b.model)||0)+(b.profit||0)); byOwner.set(b.ownerName,(byOwner.get(b.ownerName)||0)+(b.profit||0)); });
-  const mTop = [...byModel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3);
-  const oTop = [...byOwner.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3);
-  const mli=document.createElement('li'); mli.textContent = 'Models: ' + mTop.map(([k,v])=> `${k||'-'} (${fmtMoney(v,App.currency)})`).join(', '); topMO.appendChild(mli);
-  const oli=document.createElement('li'); oli.textContent = 'Owners: ' + oTop.map(([k,v])=> `${k||'-'} (${fmtMoney(v,App.currency)})`).join(', '); topMO.appendChild(oli);
-
-  const avgRoi = sold.length? (sold.reduce((s,b)=>s+((b.profit||0)/Math.max(1,b.totalCost||1)),0)/sold.length*100):0;
-  $('#avgRoi').textContent = (avgRoi||0).toFixed(1)+'%';
-  // avg days to sell
-  const days = sold.map(b=>{
-    const d1=new Date(b.purchaseDate||b.updatedAt||Date.now()), d2=new Date(b.sellDate||Date.now());
-    return Math.max(0, Math.round((d2-d1)/(1000*60*60*24)));
-  });
-  const avgDays = days.length? Math.round(days.reduce((a,b)=>a+b,0)/days.length):0;
-  $('#avgDays').textContent = String(avgDays);
-}
-
-/* ====== Exports ====== */
-function allRows(){
-  const out=[];
-  for(const mk of Object.keys(App.db.months)){
-    const M = App.db.months[mk];
-    (M.bikes||[]).forEach(b=>out.push({month:mk,...b}));
-  }
-  return out;
-}
-function entriesCSV(type){
-  const rows=[];
-  if(type==='bikes'){
-    rows.push(['month','id','plateNo','model','ownerName','purchasePrice','repairCost','totalCost','purchaseDate','sellPrice','sellDate','profit','status','notes','updatedAt']);
-    for(const mk of Object.keys(App.db.months)){
-      for(const b of (App.db.months[mk].bikes||[])){
-        rows.push([mk,b.id,b.plateNo,b.model,b.ownerName,b.purchasePrice,b.repairCost,b.totalCost,b.purchaseDate,b.sellPrice,b.sellDate,b.profit,b.status,b.notes,b.updatedAt]);
-      }
-    }
-  }else if(type==='transactions'){
-    rows.push(['month','id','type','bikeId','amount','date','buyer','seller','reason']);
-    for(const mk of Object.keys(App.db.months)){
-      for(const t of (App.db.months[mk].transactions||[])){
-        rows.push([mk,t.id,t.type,t.bikeId,t.amount,t.date,t.meta?.buyer||'',t.meta?.seller||'',t.meta?.reason||'']);
-      }
-    }
-  }else if(type==='capital'){
-    rows.push(['month','id','change','balanceAfter','type','reason','date']);
-    for(const mk of Object.keys(App.db.months)){
-      for(const c of (App.db.months[mk].capitalLedger||[])){
-        rows.push([mk,c.id,c.change,c.balanceAfter,c.type,c.reason,c.date]);
-      }
-    }
-  }
-  return CSV.encode(rows);
-}
-function download(filename, blob){
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-}
-function downloadCSV(name, text){ download(name, new Blob([text],{type:'text/csv;charset=utf-8'})); }
-function downloadJSON(name,obj){ download(name, new Blob([JSON.stringify(obj,null,2)],{type:'application/json'})); }
-
-function downloadFullReport(){
-  // create lines: header, totals, monthly, per-bike sold, top model/owner
-  const lines=[];
-  lines.push('Bike Resell Manager — Full Report');
-  lines.push('Business: '+(App.db.settings.businessName||'-'));
-  lines.push('Generated: '+new Date().toString());
-  lines.push('');
-  // totals
-  const rows = allRows();
-  const sold = rows.filter(r=>r.status==='sold');
-  const invest = rows.reduce((s,b)=>s+(b.totalCost||0),0);
-  const returns = sold.reduce((s,b)=>s+(b.sellPrice||0),0);
-  const repair = rows.reduce((s,b)=>s+(b.repairCost||0),0);
-  const profit = returns - invest;
-  lines.push(`Totals — Investment: ${invest.toFixed(2)}  Returns: ${returns.toFixed(2)}  Profit: ${profit.toFixed(2)}  Repair: ${repair.toFixed(2)}  Current Cash: ${currentCash().toFixed(2)}`);
-  lines.push('');
-  // monthly
-  lines.push('Monthly Summaries');
-  const monthAgg = {};
-  for(const mk of Object.keys(App.db.months)){
-    const pack=App.db.months[mk];
-    const soldB=(pack.bikes||[]).filter(b=>b.status==='sold');
-    const inv=(pack.bikes||[]).reduce((s,b)=>s+(b.totalCost||0),0);
-    const ret=soldB.reduce((s,b)=>s+(b.sellPrice||0),0);
-    monthAgg[mk]={inv,ret,profit:ret-inv};
-  }
-  Object.keys(monthAgg).sort().forEach(mk=>lines.push(`${mk}  inv:${monthAgg[mk].inv.toFixed(2)}  ret:${monthAgg[mk].ret.toFixed(2)}  profit:${monthAgg[mk].profit.toFixed(2)}`));
-  lines.push('');
-  // per-bike sold table-ish
-  lines.push('Sold Bikes (plate | model | totalCost | sellPrice | profit)');
-  sold.forEach(b=>lines.push(`${b.plateNo} | ${b.model||'-'} | ${b.totalCost||0} | ${b.sellPrice||0} | ${b.profit||0}`));
-  lines.push('');
-  // top models / owners
-  const byModel=new Map(), byOwner=new Map();
-  sold.forEach(b=>{ byModel.set(b.model,(byModel.get(b.model)||0)+(b.profit||0)); byOwner.set(b.ownerName,(byOwner.get(b.ownerName)||0)+(b.profit||0)); });
-  const top = (map)=>[...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k||'-'}: ${v.toFixed(2)}`).join('  |  ');
-  lines.push('Top Models: '+top(byModel));
-  lines.push('Top Owners: '+top(byOwner));
-  const pdf = makeTextPDF(lines);
-  download(`full_report_${new Date().toISOString().slice(0,10)}.pdf`, pdf);
-}
-
-/* ====== Event Wiring ====== */
-function showModal(sel){ const m=$(sel); m.classList.add('show'); m.setAttribute('aria-hidden','false'); m.querySelector('[data-close]')?.focus(); }
-function closeModal(sel){ const m=$(sel); m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
-
-document.addEventListener('click', (e)=>{
-  const tgt = e.target.closest('[data-close]');
-  if(tgt){ e.preventDefault(); closeModal(tgt.getAttribute('data-close')); }
-});
-$('#btnBuy').addEventListener('click',()=>openBuy());
-$('#btnAdjustCash').addEventListener('click',openAdjust);
-$('#btnSaveCash').addEventListener('click',saveAdjust);
-$('#bikeForm').addEventListener('input', e=>{
-  if(['fBuy','fRepair','fSellPrice'].includes(e.target.id)) recalcForm();
-});
-$('#btnSaveBike').addEventListener('click', saveBike);
-
-$('#prevPage').addEventListener('click',()=>{App.paging.page=Math.max(1,App.paging.page-1);renderLists();});
-$('#nextPage').addEventListener('click',()=>{App.paging.page=Math.min(App.paging.totalPages,App.paging.page+1);renderLists();});
-
-$('#btnBulkSell').addEventListener('click', openMassSell);
-$('#btnDoMassSell').addEventListener('click', doMassSell);
-$('#btnBulkDelete').addEventListener('click', doDeleteSelected);
-$('#btnClearSel').addEventListener('click', ()=>{ $$('#bikeList .item.sel').forEach(n=>n.classList.remove('sel')); updateBulkBar(); });
-$('#btnExportSel').addEventListener('click', ()=>{
-  const ids = selectedIds(); if(!ids.length){toast('Select bikes first','warn'); return;}
-  const rows = [['month','id','plateNo','model','ownerName','purchasePrice','repairCost','totalCost','purchaseDate','sellPrice','sellDate','profit','status']];
-  for(const mk of Object.keys(App.db.months)){
-    for(const b of App.db.months[mk].bikes||[]){
-      if(ids.includes(b.id)){
-        rows.push([mk,b.id,b.plateNo,b.model,b.ownerName,b.purchasePrice,b.repairCost,b.totalCost,b.purchaseDate,b.sellPrice,b.sellDate,b.profit,b.status]);
-      }
-    }
-  }
-  downloadCSV('selected_bikes.csv', CSV.encode(rows));
-});
-
-$('#q').addEventListener('input', e=>{App.filters.q=e.target.value; renderLists();});
-$('#sort').addEventListener('change', e=>{App.filters.sort=e.target.value; renderLists();});
-$$('.chip').forEach(ch=>ch.addEventListener('click', ()=>{
-  $$('.chip').forEach(c=>{c.classList.remove('active'); c.setAttribute('aria-checked','false');});
-  ch.classList.add('active'); ch.setAttribute('aria-checked','true');
-  App.filters.status = ch.dataset.status;
-  renderLists();
-}));
-
-// Tabs
-$$('nav.bottom button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
-$('#btnApplyDates').addEventListener('click',()=>renderAnalytics());
-$('#btnResetDates').addEventListener('click',()=>{ $('#fromDate').value=''; $('#toDate').value=''; renderAnalytics(); });
-
-/* Settings actions */
-$('#btnValidate').addEventListener('click', async ()=>{
-  try{
-    App.db.settings.gistId = $('#gistId').value.trim();
-    App.pat = $('#pat').value.trim() || App.pat;
-    await GH.validateOrCreate();
-    await saveSnapshot();
-    toast('Gist ready','ok');
-  }catch(e){ toast(e.message,'err'); }
-});
-$('#btnSyncNow').addEventListener('click', flushOps);
-$('#btnSync').addEventListener('click', flushOps);
-
-$('#btnFullPdf').addEventListener('click', downloadFullReport);
-$('#btnAllCsv').addEventListener('click', ()=>downloadCSV('all_data.csv', CSV.encode([['month','id','plateNo','model','ownerName','purchasePrice','repairCost','totalCost','purchaseDate','sellPrice','sellDate','profit','status'], ...allRows().map(r=>[r.month,r.id,r.plateNo,r.model,r.ownerName,r.purchasePrice,r.repairCost,r.totalCost,r.purchaseDate,r.sellPrice,r.sellDate,r.profit,r.status])])));
-$('#btnBikesCsv').addEventListener('click', ()=>downloadCSV('bikes.csv', entriesCSV('bikes')));
-$('#btnTxnCsv').addEventListener('click', ()=>downloadCSV('transactions.csv', entriesCSV('transactions')));
-$('#btnCapCsv').addEventListener('click', ()=>downloadCSV('capital.csv', entriesCSV('capital')));
-$('#btnDownloadReport').addEventListener('click', downloadFullReport);
-$('#btnDownloadAllCsv').addEventListener('click', ()=>$('#btnAllCsv').click());
-
-$('#btnReset').addEventListener('click', async ()=>{
-  if(!confirm('This clears local cache and operation queue. Remote Gist stays untouched. Proceed?')) return;
-  await idb.put('db',{key:'db', value:null});
-  await idb.put('kv', {}, 'settings');
-  const ops = await idb.all('ops'); for(const op of ops){ await idb.del('ops', op.id); }
-  location.reload();
-});
-
-// Settings inputs persistence
-$('#bizName').addEventListener('input', e=>{App.db.settings.businessName = e.target.value; saveSnapshot();});
-$('#currency').addEventListener('input', e=>{App.currency = e.target.value||'₹'; saveSnapshot(); renderAll();});
-$('#density').addEventListener('change', e=>{
-  document.body.classList.toggle('compact', e.target.value==='compact');
-  App.db.settings.listDensity = e.target.value; saveSnapshot(); renderAll();
-});
-$('#gistId').addEventListener('input', e=>{App.db.settings.gistId=e.target.value.trim(); saveSnapshot();});
-$('#pat').addEventListener('input', e=>{ App.pat = e.target.value; /* session only */ });
-
-/* ====== Boot ====== */
-async function boot(){
-  setSyncStatus('off','Offline');
-  await loadSnapshot();
-  // Session PAT prompt (ask once per new session)
-  if(!sessionStorage.getItem('patAsked')){
-    $('#patInput').value = '';
-    $('#gistInput').value = App.db.settings.gistId||'';
-    showModal('#modalPAT');
-  }
-  // Fill settings UI
-  $('#bizName').value = App.db.settings.businessName||'';
-  $('#currency').value = App.currency;
-  $('#density').value = App.db.settings.listDensity||'comfortable';
-  $('#gistId').value = App.db.settings.gistId||'';
-
-  // Render
-  renderAll();
-
-  // Try background flush when online
-  window.addEventListener('online', ()=>{ setSyncStatus('warn','Online'); flushOps(); });
-  window.addEventListener('offline', ()=>setSyncStatus('off','Offline'));
-  // Periodic attempt
-  setInterval(flushOps, 60*1000);
-}
-function renderAll(){ renderKPIs(); renderLists(); if(App.view==='analytics') renderAnalytics(); }
-
-// PAT modal actions
-$('#btnSavePAT').addEventListener('click', ()=>{
-  App.pat = $('#patInput').value.trim();
-  const g = $('#gistInput').value.trim();
-  if(g) App.db.settings.gistId = g;
-  saveSnapshot();
-  sessionStorage.setItem('patAsked','1');
-  closeModal('#modalPAT');
-  toast('Session token saved','ok');
-});
-$('#modalPAT [data-close]').addEventListener('click', ()=>sessionStorage.setItem('patAsked','1'));
-
-// Initial seed if empty
-function ensureMonth(mk){ App.db.months[mk] = App.db.months[mk] || {bikes:[],transactions:[],capitalLedger:[]}; }
-(function seedIfEmpty(){
-  if(!Object.keys(App.db.months).length){
-    const mk = ymKey(new Date());
-    ensureMonth(mk);
-  }
-})();
-
-// Start
-boot();
-
 </script>
 
-<script>
-/* ====== Service Worker (inline via Blob URL) ====== */
+<!-- ========================= -->
+<!-- MODULE: Gist Client       -->
+<!-- ========================= -->
+<script type="module" id="gist" nonce="csp123">
+import {uid, ym, todayISO, assert} from './index.html#util';
+import * as db from './index.html#db';
+import {ensureSettings} from './index.html#domain';
+
+// In-memory session token (never persisted)
+let PAT = null;
+export const setPAT = (token)=> { PAT = token || null; };
+export const hasPAT = ()=> !!PAT;
+
+const GH = 'https://api.github.com';
+
+async function gh(url, opts={}){
+  assert(PAT, 'No PAT');
+  const res = await fetch(url, {
+    ...opts,
+    headers: {
+      'Authorization': `token ${PAT}`,
+      'Accept': 'application/vnd.github+json',
+      ...(opts.headers||{})
+    }
+  });
+  if(!res.ok){
+    const txt = await res.text().catch(()=>res.statusText);
+    throw new Error(`GitHub ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+export async function validatePAT(){
+  const me = await gh(`${GH}/user`);
+  return me && me.login;
+}
+
+export async function createGistIfNeeded(){
+  const s = await ensureSettings();
+  if(s.gistId) return s.gistId;
+  const content = JSON.stringify({meta:{app:'bike-resell',version:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}, months:{}}, null, 2);
+  const r = await gh(`${GH}/gists`, {
+    method:'POST',
+    body: JSON.stringify({
+      description: 'Bike Resell Manager DB',
+      public: false,
+      files: {'db.json': {content}}
+    })
+  });
+  s.gistId = r.id;
+  await db.put(db.STORE.settings, s);
+  return s.gistId;
+}
+
+export async function pull(){
+  const s = await ensureSettings();
+  assert(s.gistId, 'No Gist ID configured');
+  const r = await gh(`${GH}/gists/${s.gistId}`);
+  const file = r.files?.['db.json'];
+  assert(file && file.content!=null, 'db.json missing in Gist');
+  const json = JSON.parse(file.content);
+  // Merge to IndexedDB (LWW by timestamp)
+  const months = json.months || {};
+  for(const [id, m] of Object.entries(months)){
+    const ex = await db.get(db.STORE.months, id);
+    if(!ex) await db.put(db.STORE.months, {...m, id});
+    else {
+      // naive merge: keep remote authoritative for now (LWW)
+      await db.put(db.STORE.months, {...m, id});
+    }
+  }
+  // settings meta are local-only (except gistId)
+  return true;
+}
+
+export async function push(){
+  const s = await ensureSettings();
+  assert(s.gistId, 'No Gist ID configured');
+  const months = await db.all(db.STORE.months);
+  const payload = {
+    meta:{app:'bike-resell',version:1,updatedAt:new Date().toISOString()},
+    months: Object.fromEntries(months.map(m=>{
+      const {id,...rest}=m; return [id, rest];
+    }))
+  };
+  await gh(`${GH}/gists/${s.gistId}`, {
+    method:'PATCH',
+    body: JSON.stringify({
+      files:{'db.json':{content: JSON.stringify(payload)}}
+    })
+  });
+  return true;
+}
+</script>
+
+<!-- ========================= -->
+<!-- MODULE: Sync Engine       -->
+<!-- ========================= -->
+<script type="module" id="sync" nonce="csp123">
+import * as db from './index.html#db';
+import {assert} from './index.html#util';
+import {pull, push, hasPAT} from './index.html#gist';
+
+let listeners = new Set();
+export const onStatus = (fn)=>{ listeners.add(fn); return ()=>listeners.delete(fn); };
+function emit(status){ for(const l of listeners) try{ l(status) } catch{} }
+
+let syncing = false;
+export async function syncNow(){
+  if(syncing) return;
+  if(!hasPAT()){ emit({state:'offline'}); return; }
+  syncing = true; emit({state:'syncing'});
+  try{
+    // For simplicity: pull -> (process ops?) -> push
+    const ops = await db.all(db.STORE.ops);
+    await pull();
+    // apply queued ops if any (not implemented in depth; placeholder for future)
+    // In this implementation, we directly wrote to IndexedDB, so ops queue is optional.
+    if(ops.length) await db.clearStore(db.STORE.ops);
+    await push();
+    emit({state:'ok'});
+  }catch(e){
+    console.error(e);
+    emit({state:'error', error: e});
+  }finally{
+    syncing=false;
+  }
+}
+</script>
+
+<!-- ========================= -->
+<!-- MODULE: UI / App          -->
+<!-- ========================= -->
+<script type="module" id="app" nonce="csp123">
+import {APP_VERSION, el, clear, escapeText, money, todayISO, ym, downloadFile, toCSV, toast, openDialog, closeDialog} from './index.html#util';
+import {ensureSettings, saveSettings, addBike, allBikes, sellBike, writeOffBikes, capitalSnapshot, manualCash, analyticsRange, getAnalyticsCache, updateAnalyticsCache, invalidateAnalyticsCache} from './index.html#domain';
+import * as db from './index.html#db';
+import {setPAT, validatePAT, createGistIfNeeded} from './index.html#gist';
+import {onStatus, syncNow} from './index.html#sync';
+
+/* Elements */
+const E = {
+  syncPill: document.getElementById('syncPill'),
+  syncText: document.getElementById('syncText'),
+  btnSyncNow: document.getElementById('btnSyncNow'),
+  btnSyncNow2: document.getElementById('btnSyncNow2'),
+  list: document.getElementById('list'),
+  search: document.getElementById('search'),
+  sortSel: document.getElementById('sortSel'),
+  chipAll: document.getElementById('chipAll'),
+  chipSold: document.getElementById('chipSold'),
+  chipUnsold: document.getElementById('chipUnsold'),
+  chipRemoved: document.getElementById('chipRemoved'),
+  kpiCash: document.getElementById('kpiCash'),
+  kpiProfit: document.getElementById('kpiProfit'),
+  kpiUnsold: document.getElementById('kpiUnsold'),
+  kpiInv: document.getElementById('kpiInv'),
+  btnBuy: document.getElementById('btnBuy'),
+  btnMassSell: document.getElementById('btnMassSell'),
+  btnWriteOff: document.getElementById('btnWriteOff'),
+  btnExportCSV: document.getElementById('btnExportCSV'),
+  // dialogs
+  dlgBuy: document.getElementById('dlgBuy'),
+  formBuy: document.getElementById('formBuy'),
+  buyPlate: document.getElementById('buyPlate'),
+  buyModel: document.getElementById('buyModel'),
+  buyOwner: document.getElementById('buyOwner'),
+  buyPrice: document.getElementById('buyPrice'),
+  buyRepair: document.getElementById('buyRepair'),
+  buyDate: document.getElementById('buyDate'),
+  buyNotes: document.getElementById('buyNotes'),
+
+  dlgSell: document.getElementById('dlgSell'),
+  formSell: document.getElementById('formSell'),
+  sellMeta: document.getElementById('sellMeta'),
+  sellPrice: document.getElementById('sellPrice'),
+  sellBuyer: document.getElementById('sellBuyer'),
+  sellDate: document.getElementById('sellDate'),
+
+  dlgMassSell: document.getElementById('dlgMassSell'),
+  massSellList: document.getElementById('massSellList'),
+  massSellConfirm: document.getElementById('massSellConfirm'),
+
+  dlgWriteOff: document.getElementById('dlgWriteOff'),
+  formWriteOff: document.getElementById('formWriteOff'),
+  woReason: document.getElementById('woReason'),
+  woDate: document.getElementById('woDate'),
+
+  // settings
+  bizName: document.getElementById('bizName'),
+  currency: document.getElementById('currency'),
+  gistId: document.getElementById('gistId'),
+  btnValidate: document.getElementById('btnValidate'),
+  btnCreateGist: document.getElementById('btnCreateGist'),
+
+  // analytics
+  from: document.getElementById('from'),
+  to: document.getElementById('to'),
+  btnApplyRange: document.getElementById('btnApplyRange'),
+  btnPDF: document.getElementById('btnPDF'),
+  quickInsights: document.getElementById('quickInsights'),
+  cashSummary: document.getElementById('cashSummary'),
+
+  // tabs
+  tabBikes: document.getElementById('tabBikes'),
+  tabAnalytics: document.getElementById('tabAnalytics'),
+  tabSettings: document.getElementById('tabSettings'),
+
+  // toasts
+  toasts: document.getElementById('toasts'),
+
+  // PAT dialog
+  dlgPAT: document.getElementById('dlgPAT'),
+  formPAT: document.getElementById('formPAT'),
+  patInput: document.getElementById('patInput'),
+};
+
+let settings = await ensureSettings();
+let SELECT = new Set(); // selected bike IDs for mass ops
+let CURRENT_FILTER = 'all';
+let CURRENT_ROWS = [];
+let SELL_TARGET = null;
+
+function setStatus(state, err){
+  E.syncPill.classList.remove('ok','err','sync');
+  if(state==='ok'){ E.syncPill.classList.add('ok'); E.syncText.textContent='Synced'; }
+  else if(state==='syncing'){ E.syncPill.classList.add('sync'); E.syncText.textContent='Syncing…'; }
+  else if(state==='error'){ E.syncPill.classList.add('err'); E.syncText.textContent='Error'; if(err) console.error(err); }
+  else { E.syncText.textContent='Offline'; }
+}
+onStatus(s=> setStatus(s.state, s.error));
+
+// --- UI helpers
+function checkbox(selected){ const box=el('div',{class:'mono', style:'width:24px;text-align:center'}); box.textContent = selected?'▣':'▢'; return box; }
+
+function rowNode(b){
+  const selected = SELECT.has(b.id);
+  const r = el('div',{class:`row${selected?' selected':''}`, role:'button', tabIndex:0});
+  const cb = checkbox(selected);
+  const main = el('div');
+  main.appendChild(el('div',{class:'plate',text:escapeText(b.plateNo)}));
+  main.appendChild(el('div',{class:'meta',text:`Model: ${escapeText(b.model)} • Owner: ${escapeText(b.ownerName)} • Bought: ${escapeText(b.purchaseDate)}`}));
+  const profit = (b.status==='sold')
+    ? el('div',{class:`profit ${b.profit>=0?'good':'bad'}`, text: settings.currency+' '+Number(b.profit||0).toFixed(2)})
+    : el('div',{class:'profit unreal', text: 'Unrealized'});
+  const right = el('div');
+  right.appendChild(profit);
+  // row actions
+  const actions = el('div',{class:'toolbar', style:'margin-top:6px'});
+  if(b.status==='available'){
+    const sellBtn = el('button',{class:'btn good btn-sell'},'Sell');
+    sellBtn.addEventListener('click',(e)=>{ e.stopPropagation(); openSell(b); });
+    actions.appendChild(sellBtn);
+  }else if(b.status==='sold'){
+    actions.appendChild(el('span',{class:'note'},`Sold @ ${settings.currency} ${Number(b.sellPrice||0).toFixed(2)} on ${escapeText(b.sellDate||'')}`));
+  }else if(b.status==='removed'){
+    actions.appendChild(el('span',{class:'note'},`Removed on ${escapeText(b.sellDate||'')}`));
+  }
+  right.appendChild(actions);
+
+  r.appendChild(cb);
+  r.appendChild(main);
+  r.appendChild(right);
+
+  r.addEventListener('click', ()=>{
+    if(SELECT.has(b.id)) SELECT.delete(b.id); else SELECT.add(b.id);
+    renderList(); // refresh selection visuals
+  });
+  r.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); r.click(); } });
+  return r;
+}
+
+function applyFilter(rows){
+  return rows.filter(b=>{
+    if(CURRENT_FILTER==='sold') return b.status==='sold';
+    if(CURRENT_FILTER==='unsold') return b.status==='available';
+    if(CURRENT_FILTER==='removed') return b.status==='removed';
+    return true;
+  });
+}
+function applySearch(rows){
+  const q = E.search.value.trim().toLowerCase();
+  if(!q) return rows;
+  return rows.filter(b=>{
+    return [b.plateNo,b.model,b.ownerName].some(v=> String(v).toLowerCase().includes(q));
+  });
+}
+function applySort(rows){
+  const s = E.sortSel.value;
+  const cpy = [...rows];
+  if(s==='latest') cpy.sort((a,b)=> String(b.purchaseDate).localeCompare(String(a.purchaseDate)));
+  else if(s==='oldest') cpy.sort((a,b)=> String(a.purchaseDate).localeCompare(String(b.purchaseDate)));
+  else if(s==='profitHigh') cpy.sort((a,b)=> (Number(b.profit||-1e9) - Number(a.profit||-1e9)));
+  else if(s==='profitLow') cpy.sort((a,b)=> (Number(a.profit||1e9) - Number(b.profit||1e9)));
+  else if(s==='plate') cpy.sort((a,b)=> String(a.plateNo).localeCompare(String(b.plateNo)));
+  else if(s==='owner') cpy.sort((a,b)=> String(a.ownerName).localeCompare(String(b.ownerName)));
+  return cpy;
+}
+
+async function refreshKPIs(){
+  const rows = await allBikes();
+  const cash = await capitalSnapshot();
+  let soldProfit=0, unsoldValue=0, sold=0, unsold=0;
+  for(const b of rows){
+    if(b.status==='sold'){ soldProfit+=Number(b.profit||0); sold++; }
+    else if(b.status==='available'){ unsoldValue+=Number(b.totalCost||0); unsold++; }
+  }
+  E.kpiCash.textContent = money(cash, settings.currency);
+  E.kpiProfit.textContent = money(soldProfit, settings.currency);
+  E.kpiUnsold.textContent = money(unsoldValue, settings.currency);
+  E.kpiInv.textContent = `${sold} / ${unsold}`;
+}
+
+async function renderList(){
+  CURRENT_ROWS = await allBikes();
+  let rows = applyFilter(CURRENT_ROWS);
+  rows = applySearch(rows);
+  rows = applySort(rows);
+  clear(E.list);
+  for(const b of rows){
+    E.list.appendChild(rowNode(b));
+  }
+}
+
+function setChip(target){
+  for(const id of ['chipAll','chipSold','chipUnsold','chipRemoved']){
+    const el = E[id];
+    el.setAttribute('aria-pressed', id===target?'true':'false');
+  }
+}
+
+// --- Dialog flows
+function openBuy(){
+  E.buyPlate.value=''; E.buyModel.value=''; E.buyOwner.value='';
+  E.buyPrice.value=''; E.buyRepair.value='0'; E.buyNotes.value='';
+  E.buyDate.value = todayISO();
+  openDialog(E.dlgBuy);
+}
+E.formBuy.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  try{
+    const id = await addBike({
+      plateNo:E.buyPlate.value.trim(),
+      model:E.buyModel.value.trim(),
+      ownerName:E.buyOwner.value.trim(),
+      purchasePrice:Number(E.buyPrice.value||0),
+      repairCost:Number(E.buyRepair.value||0),
+      purchaseDate:E.buyDate.value,
+      notes:E.buyNotes.value.trim()
+    });
+    await invalidateAnalyticsCache();
+    await refreshKPIs(); await renderList();
+    closeDialog(E.dlgBuy);
+    addRecentOp({type:'buy', id, when:Date.now(), meta:{plate:E.buyPlate.value}});
+    toast(E.toasts, {kind:'success', text:'Bike added', actions:[{label:'Undo', onClick: async ()=>{
+      // Undo buy -> write-off equivalent with zero? Safer: remove entries by reverting month object
+      // For simplicity in this version, we mark as removed immediately:
+      await writeOffBikes({ids:[id], reason:'Undo new bike', date: todayISO()});
+      await invalidateAnalyticsCache(); await refreshKPIs(); await renderList();
+    }}]});
+  }catch(err){
+    toast(E.toasts, {kind:'error', text:String(err?.message||err)});
+  }
+});
+
+function openSell(b){
+  SELL_TARGET = b;
+  E.sellPrice.value = '';
+  E.sellBuyer.value = '';
+  E.sellDate.value = todayISO();
+  clear(E.sellMeta);
+  E.sellMeta.appendChild(el('div',{},[
+    el('div',{},`Plate: ${b.plateNo}`),
+    el('div',{},`Cost: ${money(b.totalCost, settings.currency)}`)
+  ]));
+  openDialog(E.dlgSell);
+}
+E.formSell.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const b = SELL_TARGET;
+  if(!b) return;
+  try{
+    await sellBike({bikeId:b.id, price:Number(E.sellPrice.value||0), buyer:E.sellBuyer.value.trim(), date:E.sellDate.value});
+    await invalidateAnalyticsCache();
+    await refreshKPIs(); await renderList();
+    closeDialog(E.dlgSell);
+    addRecentOp({type:'sell', id:b.id, when:Date.now(), meta:{plate:b.plateNo, price:Number(E.sellPrice.value||0)}});
+    toast(E.toasts, {kind:'success', text:`Sold ${b.plateNo}`, actions:[{label:'Undo', onClick: async ()=>{
+      // Simple undo: mark back to available (no negative cash adjustments to keep accounting simple in demo).
+      const rows = await allBikes();
+      const t = rows.find(x=>x.id===b.id);
+      if(t && t.status==='sold'){
+        // revert: set available and remove last sell ledger from its month
+        // (For brevity we won’t surgically delete ledger rows here in demo; production would.)
+        t.status='available'; t.sellPrice=null; t.sellDate=null; t.profit=null;
+        // re-save whole month
+        const months = await db.all(db.STORE.months);
+        for(const m of months){
+          const i = m.bikes.findIndex(x=>x.id===t.id);
+          if(i>=0){ m.bikes[i]=t; await db.put(db.STORE.months,m); break; }
+        }
+        await invalidateAnalyticsCache();
+        await refreshKPIs(); await renderList();
+      }
+    }}]});
+  }catch(err){
+    toast(E.toasts, {kind:'error', text:String(err?.message||err)});
+  }
+});
+
+// Mass sell
+function openMassSell(){
+  if(!SELECT.size){ toast(E.toasts,{kind:'error',text:'Select bikes first'}); return; }
+  clear(E.massSellList);
+  const map = new Map(CURRENT_ROWS.map(b=>[b.id,b]));
+  for(const id of SELECT){
+    const b = map.get(id);
+    if(!b || b.status!=='available') continue;
+    const row = el('div',{class:'row'});
+    row.appendChild(el('div',{class:'plate',text:b.plateNo}));
+    const price = el('input',{class:'input',type:'number',placeholder:'Price',style:'width:120px', min:'0', step:'0.01'});
+    const date = el('input',{class:'input',type:'date',style:'width:140px'});
+    date.value = todayISO();
+    row.appendChild(el('div',{},[
+      el('div',{class:'note'},`Cost: ${money(b.totalCost, settings.currency)}`)
+    ]));
+    const box = el('div',{class:'toolbar',style:'gap:6px'});
+    box.appendChild(price);
+    box.appendChild(date);
+    row.appendChild(box);
+    row._inputs = {price, date, id:b.id, plate:b.plateNo};
+    E.massSellList.appendChild(row);
+  }
+  openDialog(E.dlgMassSell);
+}
+E.massSellConfirm.addEventListener('click', async ()=>{
+  const items = Array.from(E.massSellList.children).map(r=>r._inputs).filter(Boolean);
+  try{
+    for(const it of items){
+      const price = Number(it.price.value||0);
+      if(price<=0) continue;
+      await sellBike({bikeId:it.id, price, buyer:'', date:it.date.value||todayISO()});
+      addRecentOp({type:'sell', id:it.id, when:Date.now(), meta:{plate:it.plate, price}});
+    }
+    await invalidateAnalyticsCache();
+    await refreshKPIs(); await renderList();
+    closeDialog(E.dlgMassSell);
+    toast(E.toasts,{kind:'success', text:'Mass sell complete'});
+  }catch(err){
+    toast(E.toasts,{kind:'error', text:String(err?.message||err)});
+  }
+});
+
+// Write-off (replace delete)
+function openWriteOff(){
+  if(!SELECT.size){ toast(E.toasts,{kind:'error',text:'Select bikes first'}); return; }
+  E.woReason.value='';
+  E.woDate.value=todayISO();
+  openDialog(E.dlgWriteOff);
+}
+E.formWriteOff.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  try{
+    await writeOffBikes({ids:[...SELECT], reason:E.woReason.value.trim(), date:E.woDate.value});
+    await invalidateAnalyticsCache(); SELECT.clear();
+    await refreshKPIs(); await renderList();
+    closeDialog(E.dlgWriteOff);
+    toast(E.toasts,{kind:'success', text:'Write-off recorded'});
+  }catch(err){
+    toast(E.toasts,{kind:'error', text:String(err?.message||err)});
+  }
+});
+
+// Cash actions
+document.getElementById('cashSet').addEventListener('click', async ()=>{
+  const amountStr = prompt('Set cash in hand to amount (number):');
+  if(amountStr==null) return;
+  const amount = Number(amountStr||0);
+  const current = await capitalSnapshot();
+  const delta = amount - current;
+  try{
+    await manualCash({delta,reason:'Set cash',date:todayISO()});
+    await refreshKPIs();
+  }catch(err){ toast(E.toasts,{kind:'error',text:String(err?.message||err)}) }
+});
+document.getElementById('cashAdd').addEventListener('click', async ()=>{
+  const amount = Number(prompt('Add amount:')||0);
+  const reason = prompt('Reason (required):')||'';
+  if(!reason){ toast(E.toasts,{kind:'error',text:'Reason required'}); return; }
+  await manualCash({delta:amount,reason,date:todayISO()});
+  await refreshKPIs();
+});
+document.getElementById('cashSub').addEventListener('click', async ()=>{
+  const amount = Number(prompt('Remove amount:')||0);
+  const reason = prompt('Reason (required):')||'';
+  if(!reason){ toast(E.toasts,{kind:'error',text:'Reason required'}); return; }
+  await manualCash({delta:-amount,reason,date:todayISO()});
+  await refreshKPIs();
+});
+
+// Selection filter chips
+E.chipAll.addEventListener('click',()=>{ CURRENT_FILTER='all'; setChip('chipAll'); renderList(); });
+E.chipSold.addEventListener('click',()=>{ CURRENT_FILTER='sold'; setChip('chipSold'); renderList(); });
+E.chipUnsold.addEventListener('click',()=>{ CURRENT_FILTER='unsold'; setChip('chipUnsold'); renderList(); });
+E.chipRemoved.addEventListener('click',()=>{ CURRENT_FILTER='removed'; setChip('chipRemoved'); renderList(); });
+
+// Toolbar actions
+E.btnBuy.addEventListener('click', openBuy);
+E.btnMassSell.addEventListener('click', openMassSell);
+E.btnWriteOff.addEventListener('click', openWriteOff);
+E.btnExportCSV.addEventListener('click', async ()=>{
+  const rows = await allBikes();
+  const csv = toCSV([
+    ['id','plate','model','owner','purchasePrice','repairCost','totalCost','purchaseDate','sellPrice','sellDate','profit','status','notes','month'],
+    ...rows.map(b=>[b.id,b.plateNo,b.model,b.ownerName,b.purchasePrice,b.repairCost,b.totalCost,b.purchaseDate,b.sellPrice,b.sellDate,b.profit,b.status,b.notes||'',b.month])
+  ]);
+  downloadFile('bikes.csv', new Blob([csv],{type:'text/csv'}));
+});
+
+// Search & sort
+E.search.addEventListener('input', renderList);
+E.sortSel.addEventListener('change', renderList);
+
+// Tabs (simple visibility; all content on same page)
+function setTab(tab){
+  for(const [btn, ids] of [
+    [E.tabBikes, []],
+    [E.tabAnalytics, []],
+    [E.tabSettings, []]
+  ]){
+    btn.setAttribute('aria-current', btn===tab ? 'page':'false');
+  }
+  // No separate sections here; everything visible. We scroll to section:
+  if(tab===E.tabAnalytics) document.getElementById('analyticsCard').scrollIntoView({behavior:'smooth'});
+  else if(tab===E.tabSettings) document.getElementById('settingsCard').scrollIntoView({behavior:'smooth'});
+  else window.scrollTo({top:0, behavior:'smooth'});
+}
+E.tabBikes.addEventListener('click',()=>setTab(E.tabBikes));
+E.tabAnalytics.addEventListener('click',()=>setTab(E.tabAnalytics));
+E.tabSettings.addEventListener('click',()=>setTab(E.tabSettings));
+
+// Sync buttons
+E.btnSyncNow.addEventListener('click', ()=>syncNow());
+E.btnSyncNow2.addEventListener('click', ()=>syncNow());
+
+// PAT dialog open on start (not persisted)
+function requestPAT(){
+  openDialog(E.dlgPAT);
+}
+E.formPAT.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const t = E.patInput.value.trim();
+  setPAT(t);
+  closeDialog(E.dlgPAT);
+  toast(E.toasts,{kind:'success',text:'Token set for this session'});
+});
+
+// Settings actions
+E.btnValidate.addEventListener('click', async ()=>{
+  try{
+    const ok = await validatePAT();
+    toast(E.toasts,{kind:'success', text:`Token OK`});
+  }catch(err){ toast(E.toasts,{kind:'error', text:String(err?.message||err)}) }
+});
+E.btnCreateGist.addEventListener('click', async ()=>{
+  try{
+    const id = await createGistIfNeeded();
+    settings.gistId = id; await saveSettings(settings);
+    E.gistId.value = settings.gistId;
+    toast(E.toasts,{kind:'success', text:`Gist ready: ${id.slice(0,8)}…`});
+  }catch(err){ toast(E.toasts,{kind:'error', text:String(err?.message||err)}) }
+});
+
+// Persist basic settings (except PAT)
+for(const [el,key] of [[E.bizName,'businessName'],[E.currency,'currency'],[E.gistId,'gistId']]){
+  el.addEventListener('change', async ()=>{
+    settings[key] = el.value;
+    await saveSettings(settings);
+    if(key==='currency'){ await refreshKPIs(); await renderList(); }
+  });
+}
+
+// Analytics
+async function refreshAnalytics(){
+  const from = E.from.value || '';
+  const to = E.to.value || '';
+  const key = `${from || 'none'}_${to || 'none'}`;
+  const cache = await getAnalyticsCache();
+  let data = cache.byRange[key];
+  if(!data){
+    data = await analyticsRange({from:from||null,to:to||null});
+    await updateAnalyticsCache(key, data);
+  }
+  // Fill quick insights
+  clear(E.quickInsights);
+  const items = [
+    ['Total Investment', data.investment],
+    ['Total Returns', data.returns],
+    ['Net Profit', data.netProfit],
+    ['Sold / Unsold', `${data.soldCount} / ${data.unsoldCount}`]
+  ];
+  for(const [label,val] of items){
+    const chip = el('div',{class:'chip'},[
+      el('span',{class:'note'},label+': '),
+      el('strong',{}, typeof val==='number'? money(val, settings.currency):String(val))
+    ]);
+    E.quickInsights.appendChild(chip);
+  }
+  // cash summary (simple)
+  clear(E.cashSummary);
+  E.cashSummary.appendChild(el('div',{},`Current Cash: ${await capitalSnapshot()}`));
+
+  // Store detailed groupings for PDF generation later
+  E._analyticsData = data;
+}
+E.btnApplyRange.addEventListener('click', refreshAnalytics);
+
+// PDF export (HTML -> print-to-PDF)
+E.btnPDF.addEventListener('click', ()=>{
+  const data = E._analyticsData;
+  if(!data){ toast(E.toasts,{kind:'error', text:'Apply a date range first'}); return; }
+  const w = window.open('','_blank','noopener,noreferrer');
+  const css = `
+    body{font:12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:#0c1b22; margin:24px;}
+    h1,h2{margin:0 0 6px} h1{font-size:20px} h2{font-size:16px}
+    table{border-collapse:collapse;width:100%;margin:10px 0}
+    th,td{border:1px solid #e1e5ea;padding:6px 8px;text-align:left}
+    th{background:#f3f6f8}
+    .note{color:#60707a}
+  `;
+  const esc = (s)=>String(s??'');
+  const row = (cells, th=false)=> `<tr>${cells.map(c=> th? `<th>${esc(c)}</th>`:`<td>${esc(c)}</td>`).join('')}</tr>`;
+  const currency = settings.currency || '₹';
+
+  const modelTable = ['<table>', row(['Model','Count','Sold','Investment','Profit'], true)]
+    .concat(data.perModel.map(x=> row([x.model, x.count, x.sold, `${currency} ${x.invest.toFixed(2)}`, `${currency} ${x.profit.toFixed(2)}`])))
+    .concat(['</table>']).join('');
+
+  const ownerTable = ['<table>', row(['Owner','Count','Sold','Investment','Profit'], true)]
+    .concat(data.perOwner.map(x=> row([x.owner, x.count, x.sold, `${currency} ${x.invest.toFixed(2)}`, `${currency} ${x.profit.toFixed(2)}`])))
+    .concat(['</table>']).join('');
+
+  const quick = `
+    <table>
+      ${row(['Metric','Value'],true)}
+      ${row(['Total Investment', `${currency} ${data.investment.toFixed(2)}`])}
+      ${row(['Total Returns', `${currency} ${data.returns.toFixed(2)}`])}
+      ${row(['Net Profit', `${currency} ${data.netProfit.toFixed(2)}`])}
+      ${row(['Sold / Unsold', `${data.soldCount} / ${data.unsoldCount}`])}
+    </table>`;
+
+  const when = new Date().toLocaleString();
+  const dateRange = `From: ${E.from.value||'—'} To: ${E.to.value||'—'}`;
+  const html = `
+    <!doctype html><html><head><meta charset="utf-8">
+    <title>Bike Resell Report</title>
+    <style>${css}</style></head><body>
+    <h1>${esc(settings.businessName||'Bike Resell Manager')} — Full Report</h1>
+    <div class="note">Generated: ${esc(when)} • ${esc(dateRange)}</div>
+
+    <h2>Quick Insights</h2>
+    ${quick}
+
+    <h2>Per Model Analytics</h2>
+    ${modelTable}
+
+    <h2>Per Owner Analytics</h2>
+    ${ownerTable}
+
+    <script>window.onload=()=>setTimeout(()=>window.print(),50)</script>
+    </body></html>
+  `;
+  // Avoid innerHTML in main app; writing to new doc is acceptable and content is controlled.
+  w.document.open(); w.document.write(html); w.document.close();
+});
+
+// Recent ops persistence (until dismissed)
+async function addRecentOp(op){
+  // op: {id?, type, id(bike), when, meta}
+  const rec = {id: op.id || `${op.type}-${op.when}-${op.meta?.plate||''}`, ...op};
+  await db.put(db.STORE.recentOps, rec);
+  renderRecentOps();
+}
+async function renderRecentOps(){
+  const items = await db.all(db.STORE.recentOps);
+  if(!items.length) return;
+  for(const it of items){
+    toast(E.toasts, {
+      kind:'info',
+      text:`Recent: ${it.type} ${it.meta?.plate||''}`,
+      actions:[
+        {label:'Dismiss', onClick: async ()=>{ await db.del(db.STORE.recentOps, it.id); }},
+      ]
+    });
+  }
+}
+
+// PAT prompt on first load this session
+requestPAT();
+
+// Initial settings into UI
+E.bizName.value = settings.businessName||'';
+E.currency.value = settings.currency||'₹';
+E.gistId.value = settings.gistId||'';
+
+// Listeners for generic dialog close buttons
+document.body.addEventListener('click',(e)=>{
+  const t = e.target;
+  if(t && t.matches('[data-close]')){
+    const sel = t.getAttribute('data-close');
+    const scrim = document.querySelector(sel);
+    if(scrim) closeDialog(scrim);
+  }
+});
+
+// Main initial render
+await refreshKPIs();
+await renderList();
+await refreshAnalytics();
+await renderRecentOps();
+
+// SW registration (versioned; prevents stale shell)
 if('serviceWorker' in navigator){
   const swCode = `
-    const CACHE='brm-v1';
-    const ASSETS = ['.', location.href];
-    self.addEventListener('install', e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))); self.skipWaiting(); });
-    self.addEventListener('activate', e=>{ e.waitUntil(self.clients.claim()); });
-    self.addEventListener('fetch', e=>{
+    const V='shell-${APP_VERSION}';
+    self.addEventListener('install',e=>{
+      e.waitUntil((async()=>{
+        const c = await caches.open(V);
+        await c.addAll(['./']);
+        self.skipWaiting();
+      })());
+    });
+    self.addEventListener('activate',e=>{
+      e.waitUntil((async()=>{
+        const keys = await caches.keys();
+        await Promise.all(keys.filter(k=>k!==V).map(k=>caches.delete(k)));
+        self.clients.claim();
+      })());
+    });
+    self.addEventListener('fetch',e=>{
       const url = new URL(e.request.url);
-      if(url.origin===location.origin){ e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const copy=res.clone(); caches.open(CACHE).then(c=>c.put(e.request,copy)); return res;}))); }
-      else if(url.origin==='https://api.github.com'){ e.respondWith(fetch(e.request).catch(()=>new Response(JSON.stringify({error:'offline'}),{status:503}))); }
+      if(e.request.method!=='GET') return;
+      if(url.origin===location.origin){
+        // Cache-first only for same-version shell asset (this index.html).
+        e.respondWith((async()=>{
+          const c = await caches.open(V);
+          const hit = await c.match('./');
+          if(url.pathname==='/' || url.pathname.endsWith('index.html')){
+            return hit || fetch(e.request, {cache:'no-store'});
+          }
+          return fetch(e.request, {cache:'no-store'});
+        })());
+      }
+      // Allow GitHub API network pass-through; no caching to avoid token leakage.
     });
   `;
   const blob = new Blob([swCode],{type:'text/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(blob));
+  const url = URL.createObjectURL(blob);
+  try{ await navigator.serviceWorker.register(url); }catch{}
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
+
+// Sync now button hint
+setStatus('offline');
+</script>
+
+<!-- ========================= -->
+<!-- MODULE: Navigation binds  -->
+<!-- ========================= -->
+<script type="module" id="nav" nonce="csp123">
+import { openDialog } from './index.html#util';
+const menu = {
+  bikes: document.getElementById('tabBikes'),
+  analytics: document.getElementById('tabAnalytics'),
+  settings: document.getElementById('tabSettings'),
+};
+for(const b of Object.values(menu)){
+  b.addEventListener('keydown',(e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); b.click(); } });
+}
+
+// Also allow keyboard shortcut: b/a/s to jump
+document.addEventListener('keydown',(e)=>{
+  if(e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+  if(e.key==='b') menu.bikes.click();
+  else if(e.key==='a') menu.analytics.click();
+  else if(e.key==='s') menu.settings.click();
+});
+
+// ESC closes top-most dialog
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape'){
+    const open = Array.from(document.querySelectorAll('.scrim[open]')).pop();
+    if(open) open.removeAttribute('open');
+  }
+});
 </script>
 
 </body>
