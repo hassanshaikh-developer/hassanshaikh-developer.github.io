@@ -5,128 +5,194 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://api.github.com; worker-src blob:; base-uri 'none'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Bike Resell Manager</title>
-<meta name="theme-color" content="#0f172a" />
+<meta name="theme-color" content="#0A84FF" />
 <!-- Inline Web App Manifest as data URL -->
 <link rel="manifest" id="manifest-link" href='data:application/manifest+json,{
   "name":"Bike Resell Manager",
   "short_name":"BRM",
   "start_url":"./",
   "display":"standalone",
-  "background_color":"#0f172a",
-  "theme_color":"#0f172a",
+  "background_color":"#F5F7FB",
+  "theme_color":"#0A84FF",
   "icons":[
-    {"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 128 128%27%3E%3Crect width=%27128%27 height=%27128%27 rx=%2724%27 fill=%27%230f172a%27/%3E%3Cpath fill=%27%23fff%27 d=%27M22 88h12l8-20h34l8 20h12l-9-22c6-4 9-10 9-16 0-12-10-22-22-22H53c-12 0-22 10-22 22 0 6 3 12 9 16l-18 22zm31-30c-7 0-13-6-13-13s6-13 13-13h25c7 0 13 6 13 13s-6 13-13 13H53zM38 100a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm52 0a10 10 0 1 1 0-20 10 10 0 0 1 0 20z%27/%3E%3C/svg%3E","sizes":"128x128","type":"image/svg+xml","purpose":"any maskable"}
+    {"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 128 128%27%3E%3Crect width=%27128%27 height=%27128%27 rx=%2728%27 fill=%27%230A84FF%27/%3E%3Cpath fill=%27%23fff%27 d=%27M36 86a12 12 0 1 0 0-24 12 12 0 0 0 0 24zm56 0a12 12 0 1 0 0-24 12 12 0 0 0 0 24zM64 38h18a18 18 0 0 1 0 36H50l-6 12H30l9.2-18.5A18 18 0 0 1 46 38h18zm0 10H46a8 8 0 0 0 0 16h18a8 8 0 0 0 0-16z%27/%3E%3C/svg%3E","sizes":"128x128","type":"image/svg+xml","purpose":"any maskable"}
   ]
 }' />
 <style>
+/* =========================================================
+   Galaxy-like / One UI Light Theme
+   - Large headers, generous spacing, rounded surfaces, subtle shadows
+   - High-contrast text, clear forms & controls
+   ========================================================= */
 :root{
-  --bg:#0b1220; --bg-soft:#0f172a; --bg-elev:#111827; --txt:#e5e7eb; --muted:#9ca3af; --brand:#22c55e;
-  --danger:#ef4444; --warn:#f59e0b; --ok:#10b981; --card:#0f172a; --stroke:#1f2937; --chip:#1f2937;
-  --focus:#60a5fa;
-  --radius:16px;
+  /* Colors */
+  --bg:#F5F7FB;            /* app background */
+  --surface:#FFFFFF;       /* cards, sheets */
+  --surface-2:#FAFBFF;     /* subtle alt */
+  --text:#0B1A33;          /* primary text */
+  --text-muted:#5A6B86;    /* secondary */
+  --brand:#0A84FF;         /* primary accent (Galaxy-like) */
+  --brand-ink:#064C9A;
+  --ok:#17A34A;
+  --warn:#FB8C00;
+  --danger:#E73A39;
+  --stroke:#E2E8F0;        /* borders */
+  --chip:#EEF2F8;
+  --focus:#0A84FF55;
+
+  /* Radii & shadows */
+  --r-xl:20px; --r-lg:16px; --r-md:12px; --r-sm:10px;
+  --shadow:0 8px 24px rgba(12,21,46,.08), 0 2px 6px rgba(12,21,46,.06);
+
+  /* Type */
+  --h1:22px; --h2:16px; --h3:12px; --kpi:22px; --body:14px;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";color:var(--txt);background:linear-gradient(180deg,#0b1220,#0a1020 40%,#0b1220)}
-a{color:inherit}
+body{
+  margin:0;color:var(--text);background:var(--bg);
+  font:var(--body)/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+a{color:var(--brand);text-decoration:none}
 button,input,select,textarea{font:inherit;color:inherit}
+
 header{
-  position:sticky;top:0;z-index:5;background:rgba(15,23,42,.9);backdrop-filter: blur(6px);
+  position:sticky;top:0;z-index:5;background:rgba(255,255,255,.8);backdrop-filter:saturate(1.3) blur(8px);
   border-bottom:1px solid var(--stroke)
 }
-.container{max-width:1000px;margin:0 auto;padding:0 12px}
-.h-row{display:flex;align-items:center;gap:10px;min-height:56px}
-h1{font-size:18px;margin:0}
-.pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--stroke);background:var(--bg-elev)}
-.pill[data-state="offline"]{background:#1f2937;color:#fca5a5;border-color:#374151}
-.pill[data-state="syncing"]{background:#1f2937;color:#fde68a;border-color:#374151}
-.pill[data-state="ok"]{background:#052e1a;color:#a7f3d0;border-color:#064e3b}
-main{padding-bottom:72px}
+.container{max-width:1024px;margin:0 auto;padding:0 14px}
+.h-row{display:flex;align-items:center;gap:12px;min-height:64px}
+h1{font-size:var(--h1);margin:0;font-weight:800;letter-spacing:.2px}
+.brand-dot{width:8px;height:8px;border-radius:999px;background:var(--brand)}
+.pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--stroke);background:var(--chip)}
+.pill[data-state="offline"]{background:#FFF4F4;color:#D12E2E;border-color:#FFD9D9}
+.pill[data-state="syncing"]{background:#FFF6E8;color:#B76100;border-color:#FFE2B3}
+.pill[data-state="ok"]{background:#E8FFF4;color:#086B3C;border-color:#B6F0D1}
+
+main{padding:16px 0 92px 0}
 .grid{display:grid;gap:12px}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (min-width:720px){ .cards{grid-template-columns:repeat(4,1fr)} }
-.card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--radius);padding:12px}
-.card h3{margin:0 0 6px 0;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.kpi{font-size:18px;font-weight:700}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (min-width:760px){ .cards{grid-template-columns:repeat(4,1fr)} }
+.card{
+  background:var(--surface); border:1px solid var(--stroke); border-radius:var(--r-xl); padding:14px; box-shadow:var(--shadow)
+}
+.card h3{margin:0 0 8px 0;font-size:var(--h3);color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+.kpi{font-size:var(--kpi);font-weight:800}
+
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
 input[type="text"],input[type="number"],input[type="date"],input[type="datetime-local"],select,textarea{
-  width:100%;padding:10px;border-radius:12px;border:1px solid var(--stroke);background:#0b1020
+  width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--stroke);background:var(--surface-2);
+  outline:none; transition:.2s border-color;
 }
-input::placeholder{color:#6b7280}
-label{display:block;margin:8px 0 4px 0;font-size:12px;color:#9fb0c6}
-.btn{border:1px solid var(--stroke);background:#0b1020;border-radius:12px;padding:10px 12px;cursor:pointer}
-.btn.primary{background:linear-gradient(180deg,#16a34a,#15803d);border:0}
-.btn.warn{background:linear-gradient(180deg,#f59e0b,#b45309);border:0}
-.btn.ghost{background:transparent}
-.btn.danger{background:linear-gradient(180deg,#ef4444,#b91c1c);border:0}
+input::placeholder{color:#94A3B8}
+input:focus,select:focus,textarea:focus{border-color:#C3D7FF; box-shadow:0 0 0 3px var(--focus)}
+label{display:block;margin:8px 0 6px 0;font-size:12px;color:var(--text-muted);font-weight:600}
+
+.btn{
+  border:1px solid var(--stroke); background:#FFF; border-radius:14px; padding:10px 14px; cursor:pointer; box-shadow:var(--shadow);
+}
+.btn.primary{background:linear-gradient(180deg,#0A84FF,#0064E6); color:#fff; border:0}
+.btn.warn{background:linear-gradient(180deg,#FB8C00,#E27200); color:#fff; border:0}
+.btn.danger{background:linear-gradient(180deg,#E73A39,#C71E1E); color:#fff; border:0}
+.btn.ghost{background:#fff}
 .btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{background:var(--chip);border:1px solid var(--stroke);border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
-.chip[aria-pressed="true"]{background:#1f2937;outline:2px solid var(--brand)}
-.list{display:grid;gap:8px}
-.item{background:var(--card);border:1px solid var(--stroke);border-radius:14px;padding:10px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
-.item .meta{font-size:12px;color:var(--muted)}
-.item .title{font-weight:700}
-.bulkbar{position:sticky;bottom:56px;z-index:4;background:#0b1020;border-top:1px solid var(--stroke);padding:10px;display:none;gap:8px}
-.bulkbar[data-show="true"]{display:flex}
-.bottom-nav{
-  position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(15,23,42,.95);
-  border-top:1px solid var(--stroke);display:grid;grid-template-columns:repeat(3,1fr)
+
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--chip);border:1px solid var(--stroke);border-radius:999px;padding:8px 12px;font-size:12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:#E6F0FF;border-color:#B7D3FF;color:#0A4FBF}
+
+.list{display:grid;gap:10px}
+.item{
+  background:var(--surface); border:1px solid var(--stroke); border-radius:18px; padding:12px;
+  display:grid;grid-template-columns:auto 1fr auto; gap:12px; align-items:center; box-shadow:var(--shadow)
 }
-.tabbtn{appearance:none;border:0;background:transparent;padding:8px 4px;font:inherit;color:#c4cfde;display:flex;flex-direction:column;align-items:center;gap:4px}
-.tabbtn[data-active="true"]{color:#e5e7eb}
+.item .meta{font-size:12px;color:var(--text-muted)}
+.item .title{font-weight:800}
+
+.bulkbar{
+  position:sticky;bottom:72px;z-index:4;background:#FFFFFFCC; backdrop-filter:blur(8px);
+  border:1px solid var(--stroke); padding:12px; display:none; gap:8px; border-radius:16px; box-shadow:var(--shadow)
+}
+.bulkbar[data-show="true"]{display:flex}
+
+.bottom-nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:6;background:#fff; border-top:1px solid var(--stroke);
+  display:grid;grid-template-columns:repeat(3,1fr); box-shadow:0 -10px 30px rgba(9,30,66,.05)
+}
+.tabbtn{appearance:none;border:0;background:transparent;padding:10px 4px;font:inherit;color:#7A8CA8;display:flex;flex-direction:column;align-items:center;gap:4px}
+.tabbtn[data-active="true"]{color:#0B1A33;font-weight:700}
 .tabcontent{display:none;padding:12px}
 .tabcontent[data-active="true"]{display:block}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#111827;border:1px solid var(--stroke);padding:10px 14px;border-radius:12px;display:none;z-index:7}
+
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:104px;background:#0B1A33;color:#fff;border:0;
+  padding:12px 16px;border-radius:14px;display:none;z-index:7; box-shadow:var(--shadow)
+}
 .toast[data-show="true"]{display:block;animation:fade 3.2s ease}
 @keyframes fade{0%{opacity:0;transform:translate(-50%,10px)}10%,90%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,5px)}}
-.badge{font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid var(--stroke);background:#0b1020}
+
+.badge{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--stroke);background:var(--surface-2)}
 hr.sep{border:0;border-top:1px solid var(--stroke);margin:8px 0}
-.help{font-size:13px;color:#9fb0c6}
+.help{font-size:13px;color:var(--text-muted)}
 table{width:100%;border-collapse:collapse}
-th,td{border:1px solid var(--stroke);padding:6px;text-align:left}
-th{background:#0a1222;color:#cbd5e1}
-dialog{border:1px solid var(--stroke);border-radius:14px;background:#0b1020;color:var(--txt);padding:0;max-width:560px;width:calc(100% - 24px)}
-dialog::backdrop{background:rgba(0,0,0,.5)}
-.dhead{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--stroke)}
-.dbody{padding:12px;max-height:65vh;overflow:auto}
-.dfoot{padding:12px;border-top:1px solid var(--stroke);display:flex;gap:8px;justify-content:flex-end}
-.small{font-size:12px;color:#9fb0c6}
-code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;border-radius:6px}
+th,td{border:1px solid var(--stroke);padding:8px;text-align:left}
+th{background:#F3F6FD;color:#374151}
+
+dialog{
+  border:1px solid var(--stroke);border-radius:18px;background:#fff;color:var(--text);padding:0;max-width:640px;width:calc(100% - 24px);box-shadow:var(--shadow)
+}
+dialog::backdrop{background:rgba(14,24,46,.25)}
+.dhead{display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid var(--stroke)}
+.dhead strong{font-size:16px}
+.dbody{padding:14px;max-height:65vh;overflow:auto}
+.dfoot{padding:14px;border-top:1px solid var(--stroke);display:flex;gap:10px;justify-content:flex-end}
+.small{font-size:12px;color:var(--text-muted)}
+code.inline{background:#F3F6FD;border:1px solid var(--stroke);padding:2px 6px;border-radius:8px}
 .hidden{display:none !important}
-.sticky-undo{position:fixed;right:12px;bottom:120px;z-index:8}
+.sticky-undo{position:fixed;right:14px;bottom:120px;z-index:8}
+
+.header-note{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:12px;color:#5A6B86}
+kbd{background:#EEF2F8;border:1px solid #DCE4F0;border-bottom-width:2px;border-radius:6px;padding:0 6px;font-size:12px}
+
+.callout{background:#F3F9FF;border:1px solid #D8E9FF;color:#053B7A;border-radius:12px;padding:10px}
 </style>
 </head>
 <body>
 <header role="banner">
   <div class="container h-row" aria-live="polite">
+    <span class="brand-dot" aria-hidden="true"></span>
     <h1 aria-label="App title">Bike Resell Manager</h1>
     <span class="pill" id="syncPill" data-state="offline" title="Sync status">Offline</span>
-    <span class="small" id="lastSyncedText" aria-live="polite"></span>
-    <span class="small" style="margin-left:auto">Only talks to <code class="inline">api.github.com</code></span>
+    <span class="header-note">
+      <span id="lastSyncedText" aria-live="polite"></span>
+      <span>Only <code class="inline">api.github.com</code></span>
+    </span>
   </div>
 </header>
 
 <main class="container" id="app" role="main">
   <!-- Bikes / Dashboard Tab -->
   <section id="tab-bikes" class="tabcontent" data-active="true" aria-labelledby="nav-bikes">
-    <div class="cards" role="region" aria-label="Stats">
+    <div class="cards" role="region" aria-label="At a Glance">
       <div class="card" aria-live="polite"><h3>Cash in Hand</h3><div class="kpi" id="kpi-cash">₹0</div></div>
       <div class="card"><h3>Profit (Sold)</h3><div class="kpi" id="kpi-profit">₹0</div></div>
       <div class="card"><h3>Unsold Investment</h3><div class="kpi" id="kpi-unsold">₹0</div></div>
       <div class="card"><h3>Inventory S/U</h3><div class="kpi"><span id="kpi-stock">0</span> / <span id="kpi-sold">0</span></div></div>
     </div>
+
     <div class="card">
       <div class="toolbar" role="toolbar" aria-label="List actions">
         <label class="hidden" for="searchInput">Search</label>
-        <input id="searchInput" type="text" placeholder="Search plate / model / owner" aria-label="Search" />
+        <input id="searchInput" type="text" placeholder="Search plate / model / owner" aria-label="Search all bikes (e.g., MH12.., Splendor, Rohit)" />
         <select id="sortSelect" aria-label="Sort">
           <option value="latest">Sort: Latest</option>
           <option value="oldest">Oldest</option>
           <option value="profitDesc">Profit high → low</option>
           <option value="profitAsc">Profit low → high</option>
         </select>
-        <button class="btn" id="btnFilters" aria-haspopup="dialog">Filters</button>
+        <button class="btn" id="btnFilters" aria-haspopup="dialog" title="Advanced filters">Filters</button>
         <button class="btn primary" id="btnBuy">Buy Bike</button>
         <button class="btn" id="btnAdjust">Adjust Cash</button>
       </div>
@@ -135,12 +201,15 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
         <button class="chip" data-status="sold" aria-pressed="false">Sold</button>
         <button class="chip" data-status="available" aria-pressed="false">Unsold</button>
       </div>
+      <p class="help callout" style="margin-top:8px">
+        Tip: Press <kbd>F</kbd> to open filters quickly. Press <kbd>/</kbd> to jump to search.
+      </p>
     </div>
 
     <div id="bikeList" class="list" role="list" aria-label="Bikes"></div>
 
     <div class="bulkbar" id="bulkBar" aria-live="polite" aria-label="Bulk actions">
-      <span id="bulkCount">0 selected</span>
+      <span id="bulkCount"><strong>0</strong> selected</span>
       <button class="btn primary" id="bulkSell">Mass Sell</button>
       <button class="btn" id="bulkExport">Export CSV</button>
       <button class="btn danger" id="bulkWriteoff">Write-off</button>
@@ -195,22 +264,22 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
   <!-- Settings Tab -->
   <section id="tab-settings" class="tabcontent" aria-labelledby="nav-settings">
     <div class="card">
-      <h3>Appearance & Finance</h3>
-      <div class="grid">
-        <div><label for="setBiz">Business Name</label><input id="setBiz" type="text" placeholder="e.g., RoadRunner Bikes"/></div>
-        <div><label for="setCurrency">Default Currency</label><input id="setCurrency" type="text" value="₹" maxlength="3"/></div>
+      <h3>Business & Display</h3>
+      <div class="grid" style="grid-template-columns:1fr 120px">
+        <div><label for="setBiz">Business Name</label><input id="setBiz" type="text" placeholder="e.g., Apex Motors"/></div>
+        <div><label for="setCurrency">Currency</label><input id="setCurrency" type="text" value="₹" maxlength="3"/></div>
       </div>
       <div class="dfoot" style="padding:0;margin-top:8px">
-        <button class="btn" id="saveAppearance">Save</button>
+        <button class="btn primary" id="saveAppearance">Save</button>
         <button class="btn" id="btnAdjustSettings">Adjust Cash</button>
       </div>
     </div>
 
     <div class="card">
       <h3>GitHub Sync</h3>
-      <div class="grid">
-        <div><label for="setGist">Gist ID</label><input id="setGist" type="text" placeholder="e.g., a1b2c3d4e5..."/></div>
-        <div><label for="setPAT">Session PAT (gist scope)</label><input id="setPAT" type="password" autocomplete="current-password" placeholder="ghp_... (not persisted)"/></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div><label for="setGist">Gist ID</label><input id="setGist" type="text" placeholder="a1b2c3..."/></div>
+        <div><label for="setPAT">Session PAT (gist scope)</label><input id="setPAT" type="password" autocomplete="current-password" placeholder="ghp_... (not saved)"/></div>
       </div>
       <div class="toolbar" style="margin-top:8px">
         <button class="btn" id="btnValidateGist">Validate</button>
@@ -218,7 +287,7 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
         <button class="btn primary" id="btnSyncNow">Sync Now</button>
       </div>
       <p class="help">
-        Your PAT is <strong>not persisted</strong>. It’s kept in this browser session only (sessionStorage). Enter it at the start of each session — your password manager can remember it for you.
+        <strong>PAT is NOT saved</strong>. We keep it only for this session (you can store it in your browser’s password manager).
       </p>
     </div>
 
@@ -235,13 +304,13 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
       <div class="toolbar">
         <button class="btn danger" id="btnReset">Reset Local Cache</button>
       </div>
+      <p class="help callout">Reset only clears local data on this device. To fully remove cloud data, delete the Gist on GitHub.</p>
     </div>
 
     <div class="card">
       <h3>Help</h3>
       <p class="help">
-        <strong>Personal Access Token (PAT):</strong> Create a token with only the <em>gist</em> scope. Paste it above to enable syncing with a single private Gist that holds one <code class="inline">db.json</code> file.
-        We never send data anywhere else. To revoke access, delete or regenerate the token on GitHub and/or delete the Gist.
+        <strong>Personal Access Token (PAT)</strong>: Create a token with only the <em>gist</em> scope on GitHub. Paste it here each session to enable syncing with a private Gist holding a single <code class="inline">db.json</code> file. We never talk to any other server.
       </p>
     </div>
   </section>
@@ -262,18 +331,18 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
 
 <!-- Dialogs -->
 <dialog id="dlgBuy" aria-labelledby="dlgBuyTitle">
-  <div class="dhead"><strong id="dlgBuyTitle">Buy Bike</strong><button class="btn ghost" onclick="closeDialog('dlgBuy')" aria-label="Close">✕</button></div>
+  <div class="dhead"><strong id="dlgBuyTitle">Buy Bike</strong><button class="btn" onclick="closeDialog('dlgBuy')" aria-label="Close">✕</button></div>
   <form class="dbody" id="buyForm" method="dialog">
-    <div class="grid">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
       <div><label for="buyPlate">Bike No/Plate *</label><input id="buyPlate" required/></div>
       <div><label for="buyModel">Model *</label><input id="buyModel" required/></div>
       <div><label for="buyOwner">Owner Name *</label><input id="buyOwner" required/></div>
       <div><label for="buyPrice">Buying Price *</label><input id="buyPrice" type="number" min="0" required/></div>
       <div><label for="buyDate">Date of Purchase *</label><input id="buyDate" type="date" required/></div>
       <div><label for="buyRepair">Repair Cost</label><input id="buyRepair" type="number" min="0" value="0"/></div>
-      <div><label for="buyNotes">Notes</label><textarea id="buyNotes" rows="2" placeholder="Optional notes"></textarea></div>
+      <div style="grid-column:1/-1"><label for="buyNotes">Notes</label><textarea id="buyNotes" rows="2" placeholder="Optional notes"></textarea></div>
     </div>
-    <p class="small">Total cost is calculated automatically: buying price + repair cost. Capital decreases by total cost on buy.</p>
+    <p class="small">Total cost is calculated automatically: buying price + repair cost. Capital decreases by total cost.</p>
   </form>
   <div class="dfoot">
     <button class="btn" onclick="closeDialog('dlgBuy')">Cancel</button>
@@ -282,14 +351,14 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
 </dialog>
 
 <dialog id="dlgAdjust" aria-labelledby="dlgAdjustTitle">
-  <div class="dhead"><strong id="dlgAdjustTitle">Manual Capital Adjustment</strong><button class="btn ghost" onclick="closeDialog('dlgAdjust')" aria-label="Close">✕</button></div>
+  <div class="dhead"><strong id="dlgAdjustTitle">Manual Capital Adjustment</strong><button class="btn" onclick="closeDialog('dlgAdjust')" aria-label="Close">✕</button></div>
   <form class="dbody" id="adjustForm" method="dialog">
-    <div class="grid">
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
       <div><label for="adjAmount">Amount (+/-) *</label><input id="adjAmount" type="number" required/></div>
       <div><label for="adjReason">Reason *</label><input id="adjReason" required placeholder="Required"/></div>
       <div><label for="adjDate">Date</label><input id="adjDate" type="date"/></div>
     </div>
-    <p class="small">Reason is mandatory. Adjustment will create a capital ledger entry.</p>
+    <p class="small">This creates a ledger entry. Use for deposits/withdrawals/expenses.</p>
   </form>
   <div class="dfoot">
     <button class="btn" onclick="closeDialog('dlgAdjust')">Cancel</button>
@@ -298,7 +367,7 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
 </dialog>
 
 <dialog id="dlgFilters" aria-labelledby="dlgFiltersTitle">
-  <div class="dhead"><strong id="dlgFiltersTitle">Advanced Filters</strong><button class="btn ghost" onclick="closeDialog('dlgFilters')" aria-label="Close">✕</button></div>
+  <div class="dhead"><strong id="dlgFiltersTitle">Advanced Filters</strong><button class="btn" onclick="closeDialog('dlgFilters')" aria-label="Close">✕</button></div>
   <form class="dbody" id="filterForm" method="dialog">
     <div class="grid" style="grid-template-columns:1fr 1fr">
       <div><label for="fFrom">From Date</label><input type="date" id="fFrom"/></div>
@@ -316,9 +385,9 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
 </dialog>
 
 <dialog id="dlgMassSell" aria-labelledby="dlgMassSellTitle">
-  <div class="dhead"><strong id="dlgMassSellTitle">Mass Sell</strong><button class="btn ghost" onclick="closeDialog('dlgMassSell')" aria-label="Close">✕</button></div>
+  <div class="dhead"><strong id="dlgMassSellTitle">Mass Sell</strong><button class="btn" onclick="closeDialog('dlgMassSell')" aria-label="Close">✕</button></div>
   <div class="dbody">
-    <div class="grid">
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
       <div><label for="msDefaultPrice">Default Sell Price</label><input id="msDefaultPrice" type="number" min="0"/></div>
       <div><label for="msDefaultDate">Sell Date</label><input id="msDefaultDate" type="date"/></div>
       <div><label for="msBuyer">Buyer Info</label><input id="msBuyer" placeholder="Optional"/></div>
@@ -344,9 +413,9 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
 <dialog id="dlgPAT" aria-labelledby="dlgPATTitle">
   <div class="dhead"><strong id="dlgPATTitle">Enter GitHub PAT (gist scope)</strong></div>
   <form class="dbody" id="patForm" method="dialog" autocomplete="on">
-    <label for="patInput">Personal Access Token (not persisted)</label>
+    <label for="patInput">Personal Access Token (not saved)</label>
     <input id="patInput" type="password" name="password" autocomplete="current-password" placeholder="ghp_..." required>
-    <p class="small">Stored only for this session. Your browser’s password manager can remember it.</p>
+    <p class="small">We keep it only during this session. Your browser can remember it.</p>
   </form>
   <div class="dfoot">
     <button class="btn" onclick="closeDialog('dlgPAT')">Skip</button>
@@ -359,14 +428,13 @@ code.inline{background:#0b1020;border:1px solid var(--stroke);padding:1px 6px;bo
 
 <script>
 /* =========================================================
-   Bike Resell Manager — Single-file PWA (Hardened)
-   Changes vs. previous version:
-   - PAT is session-only (sessionStorage). Never persisted.
-   - Strict CSP and removal of risky innerHTML paths.
-   - "Delete" → Write-off bulk action with proper ledger adjust.
-   - Merge now re-computes capital balances deterministically.
-   - Added Top Models/Owners analytics + PDF section.
-   - Added PAT-at-session-start dialog.
+   Bike Resell Manager — One UI Light Edition
+   - Session-only PAT (password manager friendly)
+   - Safer DOM (no innerHTML on user fields)
+   - "Delete" becomes accounting-safe Write-off
+   - Deterministic capital recompute (order-independent)
+   - PDF generator fixed (no blank pages)
+   - Keyboard shortcuts: / (search), F (filters)
    ========================================================= */
 
 /* ---------- Utilities ---------- */
@@ -377,7 +445,6 @@ const todayISODate = () => new Date().toISOString().slice(0,10);
 const toISO = (dateStr) => new Date(dateStr).toISOString();
 const ym = (d) => new Date(d).toISOString().slice(0,7);
 const uuid = (p='id_')=> p + Date.now().toString(36)+ Math.random().toString(36).slice(2,7);
-const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
 
 /* ---------- PAT session handling ---------- */
 const PAT_KEY = 'brm_session_pat';
@@ -393,7 +460,7 @@ const idb = (() => {
   function open(){
     if(dbp) return dbp;
     dbp = new Promise((res,rej)=>{
-      const req = indexedDB.open('bike-resell',4);
+      const req = indexedDB.open('bike-resell',5);
       req.onupgradeneeded = e=>{
         const db = req.result;
         if(!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
@@ -452,8 +519,8 @@ const idb = (() => {
 function defaultDB(){
   const now = new Date().toISOString();
   return {
-    meta:{app:'bike-resell',version:2,createdAt:now,updatedAt:now},
-    settings:{businessName:'',currency:'₹',gistId:''}, // PAT removed from persistence
+    meta:{app:'bike-resell',version:3,createdAt:now,updatedAt:now},
+    settings:{businessName:'',currency:'₹',gistId:''}, // PAT never persisted
     months:{} // keyed YYYY-MM
   };
 }
@@ -466,7 +533,6 @@ const state = {
   selection: new Set(),
   lastSync: null,
   syncing: false,
-  conflicts: [],
   lastUndo: null
 };
 
@@ -481,19 +547,17 @@ function closeDialog(id){ $("#"+id)?.close();}
 async function load(){
   let db = await idb.get('kv','db');
   if(!db){ db = defaultDB(); await idb.set('kv','db',db); }
-  // Migrate: strip persisted PAT if older versions had it
+  // Strip legacy PAT if present
   if(db.settings && 'pat' in db.settings){ delete db.settings.pat; await idb.set('kv','db',db); }
   state.db = db;
   state.settings = {...db.settings};
   $("#setBiz").value = state.settings.businessName || '';
   $("#setCurrency").value = state.settings.currency || '₹';
   $("#setGist").value = state.settings.gistId || '';
-  // PAT field loads from session only
   $("#setPAT").value = pat.get() || '';
   state.lastSync = await idb.get('kv','lastSync');
   recomputeBalances(); // ensure balanceAfter fields are consistent
   renderAll();
-  // Ask PAT at session start if empty, to support password managers
   if(!pat.get()){ $("#patForm").reset(); openDialog('dlgPAT'); }
 }
 async function saveDB(){
@@ -538,7 +602,6 @@ function recomputeBalances(){
   let bal = 0;
   for(const c of caps){
     bal += Number(c.change||0);
-    // write back to the original month store
     const mm = monthEnsure(c._month);
     const ref = mm.capitalLedger.find(x=>x.id===c.id);
     if(ref){ ref.balanceAfter = bal; }
@@ -552,7 +615,6 @@ function lastBalance(){
 /* ---------- Data model ops ---------- */
 function setBalanceEntry(monthKey, change, type, reason, dateISO){
   const m = monthEnsure(monthKey);
-  // balanceAfter will be recomputed globally
   const cap = {
     id: uuid('cap_'), change: Number(change), balanceAfter: 0,
     type, reason, date: dateISO, updatedAt: new Date().toISOString()
@@ -607,10 +669,7 @@ function sellBike(bikeId, price, buyer, dateISO){
   recomputeBalances();
   return ref;
 }
-/* Write-off (replaces destructive delete):
-   - Marks bike as deleted
-   - Adds reversing capital entry (+totalCost) and a writeoff transaction
-   This restores cash, and records the write-off event. */
+/* Accounting-safe write-off (replaces destructive delete) */
 function writeOffBikes(ids){
   const months = getAllMonths();
   let total=0, count=0;
@@ -843,29 +902,34 @@ function allDataCSV(){
   return lines.join('\n');
 }
 
-/* ---------- Minimal PDF (text-only) ---------- */
+/* ---------- Minimal PDF (text-only) — FIXED ---------- */
+/* Generates a clean, non-blank text PDF. Key fixes:
+   - Proper /Kids [ ... ] array
+   - Use Tm (absolute) for line placement (Td is relative)
+   - Reasonable top/bottom margins
+*/
 function simplePDF(title, sections){
   const objects=[]; const xref=[];
   function addObject(str){ const off = objects.join('').length; xref.push(off); objects.push(str); }
   const header = '%PDF-1.4\n'; const pages=[];
+  function escapePdf(s){ return String(s).replace(/([()\\])/g,'\\$1'); }
   function makePage(textLines){
-    const content = [];
-    content.push('BT\n/F1 12 Tf\n0 g\n');
-    let y = 780;
+    let content = 'BT\n/F1 12 Tf\n0 g\n';
+    let y = 780; // top margin
     for(const line of textLines){
-      content.push(`72 ${y} Td (${line.replace(/([()\\])/g,'\\$1')}) Tj\n`);
-      y -= 14;
-      if(y<72){ content.push('ET\n'); break; }
+      content += `1 0 0 1 72 ${y} Tm (${escapePdf(line)}) Tj\n`;
+      y -= 16;
+      if(y<72){ break; }
     }
-    if(!content[content.length-1].endsWith('ET\n')) content.push('ET\n');
-    const stream = content.join(''); const len = stream.length;
+    content += 'ET\n';
+    const stream = content;
+    const len = stream.length;
     const n = xref.length+1;
     addObject(`${n} 0 obj\n<< /Length ${len} >>\nstream\n${stream}endstream\nendobj\n`);
     const contentRef = n;
     const m = xref.length+1;
     addObject(`${m} 0 obj\n<< /Type /Page /Parent 1 0 R /MediaBox [0 0 612 792] /Contents ${contentRef} 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >> >>\nendobj\n`);
     pages.push(m);
-    return m;
   }
   const lines = [];
   lines.push(title);
@@ -876,15 +940,15 @@ function simplePDF(title, sections){
     for(const l of s.lines){ lines.push(l); }
     lines.push('');
   }
-  const chunkSize = 52;
+  const chunkSize = 44;
   for(let i=0;i<lines.length;i+=chunkSize){
     makePage(lines.slice(i,i+chunkSize));
   }
-  addObject(`1 0 obj\n<< /Type /Pages /Kids ${pages.map(p=>p+' 0 R').join(' ')} /Count ${pages.length} >>\nendobj\n`);
+  addObject(`1 0 obj\n<< /Type /Pages /Kids [ ${pages.map(p=>p+' 0 R').join(' ')} ] /Count ${pages.length} >>\nendobj\n`);
   addObject(`2 0 obj\n<< /Type /Catalog /Pages 1 0 R >>\nendobj\n`);
-  addObject(`3 0 obj\n<< /Producer (BRM) /Title (${title.replace(/([()\\])/g,'\\$1')}) >>\nendobj\n`);
+  addObject(`3 0 obj\n<< /Producer (BRM) /Title (${escapePdf(title)}) >>\nendobj\n`);
   const xoff = header.length;
-  let body = objects.join('');
+  const body = objects.join('');
   const xrefPos = xoff + body.length;
   let xrefTbl = `xref\n0 ${xref.length+1}\n0000000000 65535 f \n`;
   for(const off of xref){ xrefTbl += String(off + xoff).padStart(10,'0') + ' 00000 n \n'; }
@@ -1085,6 +1149,13 @@ function setupUI(){
     });
   });
 
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='/'){ e.preventDefault(); $("#searchInput").focus(); }
+    if(e.key.toLowerCase()==='f'){ e.preventDefault(); openDialog('dlgFilters'); }
+    if(e.key==='Escape'){ const open = $$('dialog').find(d=>d.open); if(open) open.close(); }
+  });
+
   // Chips
   $$('.chip').forEach(ch=>{
     ch.addEventListener('click',()=>{
@@ -1095,7 +1166,7 @@ function setupUI(){
     });
   });
 
-  // Search
+  // Search/sort
   $("#searchInput").addEventListener('input', e=>{ state.filters.search = e.target.value.trim(); renderList(); });
   $("#sortSelect").addEventListener('change', e=>{ state.filters.sort = e.target.value; renderList(); });
 
@@ -1124,7 +1195,7 @@ function setupUI(){
     closeDialog('dlgBuy'); renderAll(); toast('Bike added');
   });
 
-  // Adjust (toolbar + settings)
+  // Adjust
   const openAdjust = ()=>{ $("#adjustForm").reset(); $("#adjDate").value=todayISODate(); openDialog('dlgAdjust'); };
   $("#btnAdjust").addEventListener('click', openAdjust);
   $("#btnAdjustSettings").addEventListener('click', openAdjust);
@@ -1143,7 +1214,7 @@ function setupUI(){
   $("#bulkWriteoff").addEventListener('click',()=>{
     const count = state.selection.size;
     if(count===0){ toast('Select bikes to write-off'); return; }
-    $("#dlgConfirmBody").textContent = `Write-off ${count} selected bikes? This will restore cash and archive the bikes.`;
+    $("#dlgConfirmBody").textContent = `Write-off ${count} selected bikes? Cash will be restored; bikes archived.`;
     openDialog('dlgConfirm');
     $("#confirmYes").onclick = async ()=>{
       const ids = new Set(state.selection);
@@ -1221,7 +1292,7 @@ function setupUI(){
   $("#dmCapCSV").addEventListener('click', ()=> download('capital.csv', capCSV(allCap()), 'text/csv'));
 
   $("#btnReset").addEventListener('click', async ()=>{
-    $("#dlgConfirmBody").textContent = 'This will clear all local cache and settings. You will need to re-sync from Gist or start fresh. Continue?';
+    $("#dlgConfirmBody").textContent = 'This clears local data/settings on this device. Continue?';
     openDialog('dlgConfirm');
     $("#confirmYes").onclick = async ()=>{
       await idb.del('kv','db'); await idb.del('kv','lastSync'); await idb.clearOps(); pat.clear();
@@ -1232,7 +1303,7 @@ function setupUI(){
   // Session PAT dialog
   $("#patSubmit").addEventListener('click', ()=>{
     const v = $("#patInput").value.trim();
-    if(v){ pat.set(v); $("#setPAT").value = v; closeDialog('dlgPAT'); toast('PAT saved for this session'); }
+    if(v){ pat.set(v); $("#setPAT").value = v; closeDialog('dlgPAT'); toast('PAT ready for this session'); }
     else { toast('Enter a token or click Skip'); }
   });
   $("#setPAT").addEventListener('change', ()=>{ const v=$("#setPAT").value.trim(); pat.set(v); toast('Session PAT updated'); });
@@ -1240,23 +1311,20 @@ function setupUI(){
   // Connectivity
   window.addEventListener('online',()=>{ updateSyncPill(); triggerBackgroundSync(); });
   window.addEventListener('offline',()=>{ updateSyncPill(); });
-
-  // Keyboard: ESC closes topmost dialog
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ const open = $$('dialog').find(d=>d.open); if(open) open.close(); }});
-
-  // Undo button
-  $("#undoSticky").addEventListener('click', doUndo);
+}
+function updateBulkBar(){
+  const n = state.selection.size;
+  $("#bulkBar").dataset.show = n>0 ? "true" : "";
+  $("#bulkCount").innerHTML = `<strong>${n}</strong> selected`;
 }
 function showUndoSticky(){
   const b = $("#undoSticky"); b.classList.remove('hidden');
-  // auto-hide after 60s to avoid clutter
   setTimeout(()=>b.classList.add('hidden'), 60000);
 }
 async function doUndo(){
   const undo = state.lastUndo;
   if(!undo) return;
   if(undo.kind==='writeoff'){
-    // unmark deleted and remove the last writeoff reverse entry
     const ids = new Set(undo.ids);
     const months = getAllMonths();
     for(const m in months){
@@ -1278,20 +1346,23 @@ async function doUndo(){
     toast('Undo complete');
   }
 }
+$("#undoSticky").addEventListener('click', doUndo);
 
-/* ---------- Safe DOM builder for Mass Sell (no innerHTML) ---------- */
+/* ---------- Safe DOM builder for Mass Sell (no innerHTML on user data) ---------- */
 function buildMassSellList(){
   const list = $("#msList"); list.textContent='';
   const sel = allBikes().filter(b=>state.selection.has(b.id) && b.status!=='sold');
   sel.forEach(b=>{
     const wrap=document.createElement('div'); wrap.className='msrow card'; wrap.dataset.id=b.id;
+    const row=document.createElement('div'); row.style.display='flex'; row.style.alignItems='baseline'; row.style.gap='8px';
     const title=document.createElement('strong'); title.textContent=b.plateNo;
-    const subtitle=document.createElement('div'); subtitle.className='small'; subtitle.textContent='— '+b.model;
+    const subtitle=document.createElement('span'); subtitle.className='small'; subtitle.textContent='— '+b.model;
+    row.appendChild(title); row.appendChild(subtitle);
     const grid=document.createElement('div'); grid.className='grid'; grid.style.gridTemplateColumns='1fr 1fr';
     const f1=document.createElement('div'); const l1=document.createElement('label'); l1.textContent='Sell Price'; const i1=document.createElement('input'); i1.type='number'; i1.min='0'; i1.placeholder=String(b.totalCost||''); i1.setAttribute('data-field','price'); f1.appendChild(l1); f1.appendChild(i1);
     const f2=document.createElement('div'); const l2=document.createElement('label'); l2.textContent='Sell Date'; const i2=document.createElement('input'); i2.type='date'; i2.value=todayISODate(); i2.setAttribute('data-field','date'); f2.appendChild(l2); f2.appendChild(i2);
     grid.appendChild(f1); grid.appendChild(f2);
-    wrap.appendChild(title); wrap.appendChild(subtitle); wrap.appendChild(grid);
+    wrap.appendChild(row); wrap.appendChild(grid);
     list.appendChild(wrap);
   });
 }
@@ -1307,7 +1378,7 @@ async function attemptQuickSync(){
 (function registerSW(){
   if(!('serviceWorker' in navigator)) return;
   const swCode = `
-    const CACHE='brm-cache-v2';
+    const CACHE='brm-cache-v3';
     const APP_SHELL = ['.'];
     self.addEventListener('install', e=>{
       e.waitUntil((async()=>{ const c=await caches.open(CACHE); await c.addAll(APP_SHELL); })());
@@ -1341,10 +1412,6 @@ async function attemptQuickSync(){
   const blob = new Blob([swCode], {type:'text/javascript'});
   navigator.serviceWorker.register(URL.createObjectURL(blob));
 })();
-
-/* ---------- Accessibility tweaks ---------- */
-document.addEventListener('focusin', (e)=>{ if(e.target.matches('input,select,textarea,button')) e.target.classList.add('focus'); });
-document.addEventListener('focusout', (e)=>{ if(e.target.matches('input,select,textarea,button')) e.target.classList.remove('focus'); });
 
 /* ---------- Boot ---------- */
 setupUI();
