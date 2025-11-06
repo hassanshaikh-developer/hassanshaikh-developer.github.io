@@ -1,0 +1,1050 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Bike Manager</title>
+  <meta name="description" content="Offline-first bike inventory manager with GitHub sync and analytics." />
+  
+  <!-- 
+    Bike Manager v3 (Production Refactor)
+    - Code: All CSS and JS are self-contained.
+    - REMOVED: All Chart.js graphs and images.
+    - REMOVED: Keyboard shortcut feature (HTML and JS).
+    - REMOVED: JSON Export option.
+    - UPDATED: Import feature is now CSV-only.
+    - UPDATED: "mass-activity-bar" (bulk bar) CSS was already correct (only visible when active).
+    - ADDED: New Analytics Report PDF/CSV export on Stats page.
+    - ADDED: Syncing manual cash-in-hand changes from Settings to the repository cash log.
+  -->
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bike Manager" />
+  
+  <!-- 
+    CSP: Content Security Policy. 
+    Allows required CDNs for libraries (Dexie, jsPDF) and GitHub repository sync.
+    REMOVED: Chart.js from CSP.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+    style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://api.github.com;
+    img-src 'self' data: blob:;
+    object-src 'none';
+    frame-ancestors 'none';
+  ">
+  
+  <!-- Chart.js v4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <!-- Web App Manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0e7490" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%2300B0C9'%3E%3Crect width='192' height='192' rx='32' fill='%23fff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='96' font-family='sans-serif' fill='%230c475b' font-weight='bold'%3EBM%3C/text%3E%3C/svg%3E" />
+
+  <!-- External Stylesheet -->
+  <link rel="stylesheet" href="styles/main.css" />
+    
+</head>
+<body>
+
+  <!-- 
+    SVG Icon Definitions (Symbols).
+    No changes needed.
+  -->
+  <svg width="0" height="0" style="position:absolute; overflow:hidden;">
+    <symbol id="icon-list" viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24"><path fill="currentColor" d="M3 22v-9h4v9H3zm0-11V3h4v8H3zm6 11v-5h4v5H9zm0-7V3h4v12H9zm6 7v-9h4v9h-4zm0-11V3h4v8h-4z"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 12c0-.2.1-.4.1-.6c0-.2-.1-.4-.1-.6l1.7-1.3c.2-.1.2-.4 0-.6l-1.6-2.8c-.1-.2-.4-.3-.6-.2l-2 .8c-.4-.3-.8-.5-1.3-.7l-.3-2.1c0-.3-.2-.4-.5-.4h-3.2c-.3 0-.5.1-.5.4l-.3 2.1c-.5.2-.9.4-1.3.7l-2-.8c-.2-.1-.5 0-.6.2l-1.6 2.8c-.1.2-.1.5 0 .6l1.7 1.3c-.1.2-.1.4-.1.6c0 .2.1.4.1.6l-1.7 1.3c-.2.1-.2.4 0 .6l1.6 2.8c.1.2.4.3.6.2l2-.8c.4.3.8.5 1.3.7l.3 2.1c0 .3.2.4.5.4h3.2c.3 0 .5-.1.5.4l.3-2.1c.5-.2.9-.4 1.3-.7l2 .8c.2.1.5 0-.6.2l1.6-2.8c.1-.2.1-.5 0-.6l-1.7-1.3zm-7.4 2.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5z"/></symbol>
+    <symbol id="icon-buy" viewBox="0 0 24 24"><path fill="currentColor" d="M11 9h2v8h-2V9zm-2 2h-2v6h2v-6zm8 0h-2v6h2v-6zm-4-4h-2V5h2v2zm7-3H4.01L4 21h16V4zm-2 15H6V6h12v13z"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/></symbol>
+    <symbol id="icon-filter" viewBox="0 0 24 24"><path fill="currentColor" d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></symbol>
+    <symbol id="icon-save" viewBox="0 0 24 24"><path fill="currentColor" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3s3 1.34 3 3s-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
+    <symbol id="icon-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+    <symbol id="icon-sync" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8z"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></symbol>
+    <symbol id="icon-sort" viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></symbol>
+    <symbol id="icon-duplicate" viewBox="0 0 24 24"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></symbol>
+    <symbol id="icon-share" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></symbol>
+    <symbol id="icon-undo" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></symbol>
+    <symbol id="icon-pdf" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1.0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1.0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 13c-1.66.0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm-6-2.5c0-.83.67-1.5 1.5-1.5h.5v-1h-1c-.83.0-1.5.67-1.5 1.5v3c0 .83.67 1.5 1.5 1.5h1v-1h-.5c-.83.0-1.5-.67-1.5-1.5v-1zM18 15h-1v1.5h-.5v-1h-.5v-1.5h.5v-.5h.5v.5h1v1.5zm-5.5-2v-1h-1v3h.5c.83.0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5h-.5z"/></symbol>
+  </svg>
+
+  <!-- App Loader -->
+  <div class="app-loader" id="app-loader">
+    <div class="spinner"></div>
+    <h2 id="app-loader-title">Bike Manager</h2>
+    <p class="text-secondary" id="app-loader-status">Loading application...</p>
+  </div>
+
+  <!-- Main App Container -->
+  <div class="app-container" id="app-container">
+    
+    <!-- Navigation -->
+    <nav class="app-bottom-nav" id="app-nav" role="navigation" aria-label="Main navigation">
+      <button class="nav-btn active" data-view="view-list" aria-label="Bikes list">
+        <svg><use href="#icon-list"></use></svg>
+        <span>Bikes</span>
+      </button>
+      <button class="nav-btn" data-view="view-stats" aria-label="Statistics and analytics">
+        <svg><use href="#icon-chart"></use></svg>
+        <span>Stats</span>
+      </button>
+      <button class="nav-btn" data-view="view-settings" aria-label="Settings">
+        <svg><use href="#icon-settings"></use></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+    
+    <!-- Wrapper for Header and Main Content -->
+    <div class="app-content-wrapper">
+      
+      <!-- App Header -->
+      <header class="app-header">
+        <h1 id="header-title">Bike Manager</h1>
+        <div id="sync-status" class="sync-status" role="status" aria-live="polite">
+          <div class="status-dot"></div>
+          <span id="sync-status-text">Offline</span>
+        </div>
+        <button class="btn-icon btn-ghost" id="sync-now-btn" title="Sync Now" aria-label="Sync now">
+          <svg><use href="#icon-sync"></use></svg>
+        </button>
+      </header>
+      
+      <main class="app-main" role="main">
+        
+        <!-- =================== -->
+        <!-- LIST VIEW           -->
+        <!-- =================== -->
+        <section id="view-list" class="view active">
+          
+          <!-- Quick Stats -->
+          <div class="stats-grid mb-2">
+            <div class="stat-card">
+              <div class="stat-card-title">
+                Cash in Hand
+                <div style="float: right;">
+                  <button class="btn btn-secondary btn-sm" id="cash-set" title="Set Cash" style="padding: 4px 8px;">
+                    <svg width="16" height="16"><use href="#icon-save"></use></svg>
+                  </button>
+                  <button class="btn btn-success btn-sm" id="cash-increase" title="Add Cash" style="padding: 4px 8px;">+</button>
+                  <button class="btn btn-danger btn-sm" id="cash-decrease" title="Remove Cash" style="padding: 4px 8px;">-</button>
+                </div>
+              </div>
+              <div class="stat-card-value"><span class="currency" id="currency-symbol-0">₹</span> <span id="stat-cash-in-hand">0</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-title">Total Profit (Sold)</div>
+              <div class="stat-card-value"><span class="currency" id="currency-symbol-1">₹</span> <span id="stat-total-profit">0</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-title">Unsold Investment</div>
+              <div class="stat-card-value"><span class="currency" id="currency-symbol-2">₹</span> <span id="stat-unsold-value">0</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-title">Inventory (S/U)</div>
+              <div class="stat-card-value"><span id="stat-sold-count">0</span> / <span id="stat-unsold-count">0</span></div>
+            </div>
+          </div>
+          
+          <!-- Tabs -->
+          <div class="tabs-container mb-2" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color);">
+            <button class="tab-btn active" id="tab-bikes" data-tab="bikes">
+              <svg width="18" height="18"><use href="#icon-list"></use></svg>
+              <span>Bikes</span>
+            </button>
+            <button class="tab-btn" id="tab-expenses" data-tab="expenses">
+              <svg width="18" height="18"><use href="#icon-buy"></use></svg>
+              <span>Expenses</span>
+            </button>
+          </div>
+          
+          <!-- Bikes Tab Content -->
+          <div id="tab-content-bikes" class="tab-content active">
+          <!-- Search and Actions Bar -->
+          <div class="filter-bar">
+            <div style="position: relative; flex-grow: 1;">
+              <input type="search" class="form-input" id="search-input" placeholder="Search plate or owner..." aria-label="Search bikes" />
+              <button id="search-clear" class="btn-icon btn-ghost" title="Clear search" aria-label="Clear search">
+                <svg><use href="#icon-close"></use></svg>
+              </button>
+            </div>
+            
+            <button class="btn-icon btn-ghost" id="filter-toggle-btn" title="Filter & Sort" aria-label="Open filters" aria-expanded="false">
+              <svg width="20" height="20"><use href="#icon-filter"></use></svg>
+            </button>
+            
+            <button class="btn btn-primary" id="buy-bike-desktop" style="display: none; margin-left: 8px;">
+              <svg width="20" height="20"><use href="#icon-buy"></use></svg>
+              <span>Buy Bike</span>
+            </button>
+          </div>
+          
+          <!-- Filter Panel (Hidden by default) -->
+          <div class="filter-panel" id="filter-panel" role="region" aria-label="Filter and sort options" style="display: none;">
+            <form id="filter-form" onsubmit="return false;">
+              <div class="filter-panel-section">
+                <label class="filter-panel-label">Status</label>
+                <div class="filter-panel-options">
+                  <label class="filter-radio">
+                    <input type="radio" name="status" value="all" checked />
+                    <span>All</span>
+                  </label>
+                  <label class="filter-radio">
+                    <input type="radio" name="status" value="sold" />
+                    <span>Sold</span>
+                  </label>
+                  <label class="filter-radio">
+                    <input type="radio" name="status" value="unsold" />
+                    <span>Unsold</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="filter-panel-section">
+                <label class="filter-panel-label">Sort By</label>
+                <div class="filter-panel-options">
+                  <label class="filter-radio">
+                    <input type="radio" name="sort" value="latest" checked />
+                    <span>Latest First</span>
+                  </label>
+                  <label class="filter-radio">
+                    <input type="radio" name="sort" value="oldest" />
+                    <span>Oldest First</span>
+                  </label>
+                  <label class="filter-radio">
+                    <input type="radio" name="sort" value="profit-high" />
+                    <span>Highest Profit</span>
+                  </label>
+                  <label class="filter-radio">
+                    <input type="radio" name="sort" value="profit-low" />
+                    <span>Lowest Profit</span>
+                  </label>
+                  <label class="filter-radio">
+                    <input type="radio" name="sort" value="plate" />
+                    <span>Plate (A-Z)</span>
+                  </label>
+                  <label class="filter-radio">
+                    <input type="radio" name="sort" value="owner" />
+                    <span>Owner (A-Z)</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="filter-panel-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="filter-reset">Reset</button>
+                <button type="button" class="btn btn-primary btn-sm" id="filter-apply">Apply</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Bike List container -->
+          <div class="bike-list-skeleton" id="bike-list-skeleton">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+          <div class="bike-list" id="bike-list" role="list">
+            <!-- Bike cards will be injected here by JS -->
+          </div>
+          <p id="bike-list-empty" class="text-secondary text-center mt-2 hidden">No bikes found. Try buying one!</p>
+          
+          <!-- Pagination -->
+          <div class="pagination hidden" id="pagination" role="navigation" aria-label="Pagination">
+            <button id="prev-page" aria-label="Previous page">â€¹</button>
+            <span id="page-info" aria-live="polite">Page 1 of 1</span>
+            <button id="next-page" aria-label="Next page">â€º</button>
+          </div>
+          </div>
+          
+          <!-- Expenses Tab Content -->
+          <div id="tab-content-expenses" class="tab-content" style="display: none;">
+            <!-- Add Expense Button - Prominent at top -->
+            <button class="btn btn-primary" id="add-expense-btn-list" style="width: 100%; padding: 14px 16px; font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <svg width="20" height="20"><use href="#icon-save"></use></svg>
+              <span>Add Expense</span>
+            </button>
+            
+            <div class="card">
+              <h3>Business Expenses</h3>
+              <div class="bike-list" id="expenses-list" style="max-height: calc(100vh - 450px); overflow-y: auto;">
+                <!-- Expenses will be inserted here -->
+              </div>
+            </div>
+          </div>
+          
+        </section>
+        
+        <!-- =================== -->
+        <!-- STATS VIEW          -->
+        <!-- =================== -->
+        <section id="view-stats" class="view">
+          <h2>Analytics Dashboard</h2>
+          <p class="text-secondary mb-2">Live insights from your local data.</p>
+          
+          <!-- NEW: Analytics Report Section -->
+          <div class="card">
+            <h3>Analytics Report</h3>
+            <p class="text-secondary mb-2">Generate a summary report of your business analytics.</p>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+              <button class="btn btn-secondary" id="export-analytics-html">
+                <svg width="18" height="18"><use href="#icon-chart"></use></svg>
+                <span>Export HTML Report</span>
+              </button>
+              <button class="btn btn-secondary" id="export-analytics-csv">
+                <svg width="18" height="18"><use href="#icon-save"></use></svg>
+                <span>Export CSV (Cash Log)</span>
+              </button>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>Filters</h3>
+            <div class="date-filter">
+              <label for="stats-date-from">From:</label>
+              <input type="date" id="stats-date-from" class="form-input" />
+              <label for="stats-date-to">To:</label>
+              <input type="date" id="stats-date-to" class="form-input" />
+              <button class="btn btn-secondary btn-sm" id="apply-date-filter">Apply</button>
+              <button class="btn btn-ghost btn-sm" id="reset-date-filter">Reset</button>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>Quick Insights</h3>
+            <p id="auto-insight-text" class="text-secondary" style="line-height: 1.6; font-size: 1rem;">Calculating insights...</p>
+          </div>
+          
+          <!-- Chart.js Visual Analytics -->
+          <div class="card">
+            <h3>Profit Over Time</h3>
+            <canvas id="profit-chart" style="max-height: 300px;"></canvas>
+          </div>
+          
+          <div class="card">
+            <h3>Sales Volume</h3>
+            <canvas id="sales-volume-chart" style="max-height: 300px;"></canvas>
+          </div>
+          
+          <div class="card">
+            <h3>Cash Flow Trends</h3>
+            <canvas id="cash-flow-chart" style="max-height: 300px;"></canvas>
+          </div>
+
+          <!-- Cash Flow Panel -->
+          <div class="card">
+            <h3>Cash Flow Summary</h3>
+              <div class="stat-card">
+                <div class="stat-card-title">Total Cash Inflow</div>
+                <div class="stat-card-value text-success" id="stat-cash-inflow">₹ 0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Total Cash Outflow</div>
+                <div class="stat-card-value text-error" id="stat-cash-outflow">₹ 0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Net Cash Flow</div>
+                <div class="stat-card-value" id="stat-net-cash">₹ 0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Current Cash</div>
+                <div class="stat-card-value" id="stat-cash-current">₹ 0.00</div>
+              </div>
+            
+            <!-- Text Analytics Summary -->
+            <div class="analytics-summary">
+              <div class="analytics-row">
+                <div class="analytics-label">30-Day Summary:</div>
+                <div class="analytics-value" id="cash-30-day-summary">Loading...</div>
+              </div>
+              <div class="analytics-row">
+                <div class="analytics-label">Monthly Growth:</div>
+                <div class="analytics-value" id="cash-monthly-growth">Loading...</div>
+              </div>
+              <div class="analytics-row">
+                <div class="analytics-label">Largest Inflow:</div>
+                <div class="analytics-value" id="cash-largest-inflow">Loading...</div>
+              </div>
+              <div class="analytics-row">
+                <div class="analytics-label">Largest Outflow:</div>
+                <div class="analytics-value" id="cash-largest-outflow">Loading...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cash Log -->
+          <div class="card">
+            <h3>
+              <span>Cash Transaction Log</span>
+              <div class="chart-controls">
+                <button class="btn-icon btn-ghost" id="export-cash-log" title="Export Log" aria-label="Export cash log as CSV">
+                  <svg width="20" height="20"><use href="#icon-save"></use></svg>
+                </button>
+              </div>
+            </h3>
+            <div class="bike-list" id="cash-log" style="max-height: 300px; overflow-y: auto;">
+              <!-- Cash log entries will be inserted here -->
+            </div>
+          </div>
+          
+          <!-- Reminders Section -->
+          <div class="card">
+            <h3>Service Reminders</h3>
+            <div class="bike-list" id="reminders-list" style="max-height: 300px; overflow-y: auto;">
+              <!-- Service reminders will be inserted here -->
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>Performance Metrics</h3>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-card-title">Average ROI</div>
+                <div class="stat-card-value" id="stat-avg-roi">0%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Best Performer</div>
+                <div class="stat-card-value text-success" id="stat-best-bike" style="font-size: 1.1rem;">-</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Worst Performer</div>
+                <div class="stat-card-value text-error" id="stat-worst-bike" style="font-size: 1.1rem;">-</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Avg Days to Sell</div>
+                <div class="stat-card-value" id="stat-avg-days">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Top Model</div>
+                <div class="stat-card-value text-success" id="stat-best-model" style="font-size: 1.1rem;">-</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Worst Model</div>
+                <div class="stat-card-value text-error" id="stat-worst-model" style="font-size: 1.1rem;">-</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Advanced Reports Section -->
+          <div class="card" style="margin-top: 24px;">
+            <h3>Advanced Reports</h3>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button class="btn btn-secondary" id="generate-aging-report">
+                <svg width="18" height="18"><use href="#icon-chart"></use></svg>
+                <span>Inventory Aging Report</span>
+              </button>
+              <button class="btn btn-secondary" id="generate-performer-report">
+                <svg width="18" height="18"><use href="#icon-chart"></use></svg>
+                <span>Top Performer Report</span>
+              </button>
+              <div>
+                <h4 style="margin-bottom: 12px;">Expense Breakdown</h4>
+                <canvas id="expense-breakdown-chart" style="max-height: 300px;"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </section>
+        
+        <!-- =================== -->
+        <!-- SETTINGS VIEW       -->
+        <!-- =================== -->
+        <section id="view-settings" class="view">
+          <h2>Settings</h2>
+          
+          <div class="settings-section">
+            <h3>Appearance & Finance</h3>
+            <div class="form-group">
+              <label for="list-density">List Density</label>
+              <select class="form-select" id="list-density">
+                <option value="comfortable">Comfortable</option>
+                <option value="compact">Compact</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="setting-business-name">Business Name</label>
+              <input type="text" class="form-input" id="setting-business-name" placeholder="My Bike Shop" />
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="setting-currency">Currency Symbol</label>
+                <input type="text" class="form-input" id="setting-currency" placeholder="₹" style="width: 100px;" />
+              </div>
+              <div class="form-group">
+                <label for="setting-cash-in-hand">Initial/Current Cash in Hand</label>
+                <input type="number" class="form-input" id="setting-cash-in-hand" placeholder="0" />
+              </div>
+            </div>
+            <p class="text-secondary" style="font-size: 0.8rem; margin-top: 6px;">
+              Saving will log any change to "Cash in Hand" as a "Manual Set" in your cash log for repository syncing.
+            </p>
+            <button class="btn btn-secondary" id="save-display-settings">Save Display Settings</button>
+          </div>
+          
+          <div class="settings-section">
+            <h3>Notifications</h3>
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="enable-notifications" />
+                <span>Enable Push Notifications for Service Reminders</span>
+              </label>
+              <p class="text-secondary" style="font-size: 0.8rem; margin-top: 6px;">
+                Receive notifications when bikes are due for service within 7 days.
+              </p>
+            </div>
+          </div>
+          
+          <div class="settings-section">
+            <h3>GitHub Repository Sync</h3>
+            <p>Syncs your data to a private GitHub repository as CSV and JSON files. Sync is now automatic after most actions.</p>
+            
+            <div class="form-group">
+              <label for="setting-repo-owner">Repository Owner</label>
+              <input type="text" class="form-input" id="setting-repo-owner" placeholder="e.g., username or organization" />
+            </div>
+            <div class="form-group">
+              <label for="setting-repo-name">Repository Name</label>
+              <input type="text" class="form-input" id="setting-repo-name" placeholder="e.g., bike-manager-data" />
+            </div>
+            <div class="form-group">
+              <label for="setting-repo-branch">Branch</label>
+              <input type="text" class="form-input" id="setting-repo-branch" value="main" placeholder="main" />
+            </div>
+            <div class="form-group">
+              <label for="setting-repo-path">File Path (directory)</label>
+              <input type="text" class="form-input" id="setting-repo-path" value="data" placeholder="data" />
+              <p class="text-secondary" style="font-size: 0.8rem; margin-top: 6px;">
+                Directory path where files will be stored (e.g., "data" creates data/bikes_inventory.csv)
+              </p>
+            </div>
+            <div class="form-group">
+              <label for="setting-github-pat">GitHub Personal Access Token (PAT)</label>
+              <input type="password" class="form-input" id="setting-github-pat" placeholder="ghp_... (stored in session)" autocomplete="password" />
+              <p class="text-secondary" style="font-size: 0.8rem; margin-top: 6px;">
+                Requires `repo` scope. Your browser will offer to save this token. It's stored <strong>only</strong> in sessionStorage (cleared when tab closes).
+              </p>
+            </div>
+            <button class="btn btn-secondary" id="save-sync-settings">
+              <svg width="20" height="20"><use href="#icon-save"></use></svg>
+              <span>Save Sync Settings</span>
+            </button>
+          </div>
+          
+          <div class="settings-section">
+            <h3>Data Management</h3>
+            <p>Export all local data or import from a file. Exports will be synced first.</p>
+            <!-- UPDATED: Removed JSON Export, renamed Import -->
+            <div class="form-grid" style="gap: 12px; grid-template-columns: 1fr 1fr 1fr;">
+              <button class="btn btn-secondary" id="export-csv">Export CSV</button>
+              <button class="btn btn-secondary" id="export-html">
+                 <svg width="18" height="18"><use href="#icon-chart"></use></svg>
+                <span>Export HTML</span>
+              </button>
+              <button class="btn btn-secondary" id="import-csv">Import CSV</button>
+              <button class="btn btn-secondary" id="download-template">
+                <svg width="18" height="18"><use href="#icon-download"></use></svg>
+                <span>Template</span>
+              </button>
+              <button class="btn btn-secondary hidden" id="share-data">
+                <svg width="18" height="18"><use href="#icon-share"></use></svg>
+                <span>Share</span>
+              </button>
+            </div>
+            <!-- UPDATED: File input accept attribute -->
+            <input type="file" id="import-file-input" class="hidden" accept=".csv,text/csv" />
+            
+            <!-- REMOVED: Keyboard Shortcuts Section -->
+            
+            <h4 class="mt-2">Danger Zone</h4>
+            <button class="btn btn-danger" id="wipe-data-btn">
+              <svg width="20" height="20"><use href="#icon-delete"></use></svg>
+              <span>Wipe All Local Data</span>
+            </button>
+          </div>
+
+        </section>
+        
+      </main>
+    </div>
+  </div>
+
+  <!-- FAB (Floating Action Button) -->
+  <button class="fab" id="fab-buy" title="Buy New Bike" aria-label="Buy new bike">
+    <svg><use href="#icon-buy"></use></svg>
+  </button>
+  
+  <!-- Bulk Action Toolbar -->
+  <div class="bulk-action-bar" id="bulk-action-bar" role="toolbar" aria-label="Bulk actions">
+    <span class="count"><span id="selected-count">0</span> selected</span>
+    <button class="btn btn-secondary btn-sm" id="bulk-mark-sold">Mark Sold</button>
+    <button class="btn btn-secondary btn-sm" id="bulk-export">Export</button>
+    <button class="btn btn-danger-ghost btn-sm" id="bulk-delete">
+      <svg width="16" height="16"><use href="#icon-delete"></use></svg>
+    </button>
+    <button class="btn btn-ghost btn-sm" id="bulk-deselect" aria-label="Clear selection" title="Clear selection">
+      <svg width="16" height="16"><use href="#icon-close"></use></svg>
+    </button>
+  </div>
+  
+  <!-- Form Modal (Buy/Sell/Edit) -->
+  <div class="modal-overlay" id="form-modal" role="dialog" aria-labelledby="form-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="form-title">Buy New Bike</h2>
+        <button class="btn-icon btn-ghost" id="close-form-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="bike-form" onsubmit="return false;">
+          <input type="hidden" id="form-bike-id" />
+          
+          <div id="form-section-buy">
+            <h3 class="form-section-title">Purchase Details</h3>
+            <div class="form-group">
+              <label for="form-no">Bike Number (Plate) *</label>
+              <input type="text" class="form-input" id="form-no" placeholder="GJ05AB1234" required aria-required="true" />
+            </div>
+            <div class="form-group">
+              <label for="form-owner">Owner/Customer *</label>
+              <div style="display: flex; gap: 8px;">
+                <select class="form-input" id="form-owner-select" style="flex: 1;" required aria-required="true">
+                  <option value="">Select or type to search...</option>
+                </select>
+                <button type="button" class="btn btn-secondary btn-sm" id="add-customer-btn" style="white-space: nowrap;">New</button>
+              </div>
+              <input type="hidden" id="form-owner-id" />
+              <input type="text" class="form-input" id="form-owner" style="margin-top: 8px; display: none;" placeholder="Owner name (legacy)" />
+            </div>
+            <div class="form-group">
+              <label for="form-model">Bike Model</label>
+              <input type="text" class="form-input" id="form-model" placeholder="e.g., Hero Splendor, Bajaj Pulsar" />
+            </div>
+            <div class="form-group">
+              <label for="form-serviceDueDate">Service Due Date</label>
+              <input type="date" class="form-input" id="form-serviceDueDate" />
+            </div>
+            <div class="form-group">
+              <label for="form-images">Bike Images (Max 3)</label>
+              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="upload-images-btn">
+                  <svg width="16" height="16"><use href="#icon-save"></use></svg>
+                  <span>Upload Files</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="capture-image-btn">
+                  <svg width="16" height="16"><use href="#icon-save"></use></svg>
+                  <span>Capture Photo</span>
+                </button>
+              </div>
+              <input type="file" class="form-input" id="form-images" accept="image/*" multiple style="display: none;" />
+              <div id="form-images-preview" style="margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
+                <!-- Images will be previewed here -->
+              </div>
+              <p class="text-secondary" style="font-size: 0.8rem; margin-top: 4px;">
+                You can upload up to 3 images. Click on an image to remove it.
+              </p>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="form-datePurchase">Purchase Date</label>
+                <input type="date" class="form-input" id="form-datePurchase" />
+              </div>
+              <div class="form-group">
+                <label for="form-purchasePrice">Purchase Price</label>
+                <input type="number" class="form-input" id="form-purchasePrice" placeholder="0" step="0.01" inputmode="decimal" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="form-repairCost">Repair Cost</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" class="form-input" id="form-repairCost" placeholder="0" step="0.01" inputmode="decimal" style="flex: 1;" />
+                <button type="button" class="btn btn-secondary btn-sm" id="log-service-btn" style="white-space: nowrap;">Log Service</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="form-supplier">Supplier</label>
+              <div style="display: flex; gap: 8px;">
+                <select class="form-input" id="form-supplier" style="flex: 1;">
+                  <option value="">Select supplier...</option>
+                </select>
+                <button type="button" class="btn btn-secondary btn-sm" id="add-supplier-btn" style="white-space: nowrap;">New</button>
+              </div>
+            </div>
+          </div>
+          
+          <div id="form-section-sell" class="hidden">
+            <div class="form-section-divider"></div>
+            <h3 class="form-section-title">Selling Details</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="form-dateSelling">Selling Date</label>
+                <input type="date" class="form-input" id="form-dateSelling" />
+              </div>
+              <div class="form-group">
+                <label for="form-sellingPrice">Selling Price</label>
+                <input type="number" class="form-input" id="form-sellingPrice" placeholder="0" step="0.01" inputmode="decimal" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="form-netProfit">Net Profit (Auto)</label>
+              <input type="number" class="form-input" id="form-netProfit" readonly aria-readonly="true" tabIndex="-1" />
+            </div>
+          </div>
+          
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="delete-bike-btn" style="margin-right: auto;">
+          <svg width="20" height="20"><use href="#icon-delete"></use></svg>
+          <span>Delete</span>
+        </button>
+        <button class="btn btn-secondary" id="cancel-form-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-form-btn">
+          <svg width="20" height="20"><use href="#icon-save"></use></svg>
+          <span id="save-form-btn-text">Save Purchase</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Sell Modal -->
+  <div class="modal-overlay" id="bulk-sell-modal" role="dialog" aria-labelledby="bulk-sell-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="bulk-sell-title">Bulk Mark as Sold</h2>
+        <button class="btn-icon btn-ghost" id="close-bulk-sell-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-secondary mb-2">Apply the same selling date and price to all <strong id="bulk-sell-count">0</strong> selected unsold bikes.</p>
+        <form id="bulk-sell-form" onsubmit="return false;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="bulk-sell-date">Selling Date *</label>
+              <input type="date" class="form-input" id="bulk-sell-date" required />
+            </div>
+            <div class="form-group">
+              <label for="bulk-sell-price">Selling Price (each) *</label>
+              <input type="number" class="form-input" id="bulk-sell-price" placeholder="0" step="0.01" inputmode="decimal" required />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-bulk-sell-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-bulk-sell-btn">Apply to All</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Update Modal -->
+  <div class="modal-overlay" id="update-modal" role="dialog" aria-labelledby="update-title" aria-modal="true">
+    <div class="modal-content text-center">
+      <h2 id="update-title">Update Available</h2>
+      <p class="text-secondary mb-2">A new version of Bike Manager is ready. Refresh to get the latest features.</p>
+      <button class="btn btn-primary" id="update-refresh-btn">Refresh Now</button>
+    </div>
+  </div>
+
+  <!-- PAT Re-entry Modal -->
+  <div class="modal-overlay" id="pat-modal" role="dialog" aria-labelledby="pat-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="pat-title">GitHub PAT Required</h2>
+      </div>
+      <div class="modal-body">
+        <p class="text-secondary mb-2">Your GitHub Personal Access Token was cleared when you closed your last session. Please re-enter it to enable repository sync.</p>
+        <div class="form-group">
+          <label for="pat-reenter">GitHub PAT</label>
+          <input type="password" class="form-input" id="pat-reenter" placeholder="ghp_..." autocomplete="password" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="pat-skip">Skip</button>
+        <button class="btn btn-primary" id="pat-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash in Hand Modal -->
+  <div class="modal-overlay" id="cash-modal" role="dialog" aria-labelledby="cash-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="cash-title">Manage Cash</h2>
+        <button class="btn-icon btn-ghost" id="close-cash-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="cash-operation">Operation Type</label>
+          <select class="form-select" id="cash-operation" required>
+            <option value="set">Set Cash Balance</option>
+            <option value="increase">Increase Cash</option>
+            <option value="decrease">Decrease Cash</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cash-amount">Amount</label>
+          <input type="number" class="form-input" id="cash-amount" placeholder="0.00" required step="0.01" />
+        </div>
+        <div class="form-group" id="cash-reason-group" style="display: none;">
+          <label for="cash-reason">Reason for Decrease <span class="text-error">*</span></label>
+          <input type="text" class="form-input" id="cash-reason" placeholder="Required for cash decrease" />
+        </div>
+        <div class="form-group">
+          <label>Current Balance</label>
+          <input type="text" class="form-input" id="cash-current" readonly value="₹ 0.00" />
+        </div>
+        <div class="form-group">
+          <label>New Balance</label>
+          <input type="text" class="form-input" id="cash-new" readonly value="₹ 0.00" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-cash-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-cash-btn">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  
+  <!-- Hidden form for browser password manager integration -->
+  <form id="pat-save-form" class="hidden" autocomplete="on">
+    <input type="text" name="username" autocomplete="username" value="github-repo-sync" />
+    <input type="password" name="password" id="pat-save-input" autocomplete="current-password" />
+    <button type="submit"></button>
+  </form>
+
+  <!-- 
+    External Libraries
+    REMOVED: Chart.js
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.1/dist/dexie.min.js"></script>
+  <!-- Added for PDF Export -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- Expense Modal -->
+  <div class="modal-overlay" id="expense-modal" role="dialog" aria-labelledby="expense-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="expense-title">Add Expense</h2>
+        <button class="btn-icon btn-ghost" id="close-expense-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="expense-form" onsubmit="return false;">
+          <input type="hidden" id="expense-id" />
+          <div class="form-group">
+            <label for="expense-date">Date *</label>
+            <input type="date" class="form-input" id="expense-date" required />
+          </div>
+          <div class="form-group">
+            <label for="expense-category">Category *</label>
+            <select class="form-input" id="expense-category" required>
+              <option value="">Select category...</option>
+              <option value="Parts">Parts</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Repairs">Repairs</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="expense-amount">Amount *</label>
+            <input type="number" class="form-input" id="expense-amount" placeholder="0" step="0.01" required />
+          </div>
+          <div class="form-group">
+            <label for="expense-description">Description</label>
+            <textarea class="form-input" id="expense-description" rows="3" placeholder="Optional description..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="expense-image">Receipt/Image</label>
+            <input type="file" class="form-input" id="expense-image" accept="image/*" />
+            <div id="expense-image-preview" style="margin-top: 8px; display: none;">
+              <img id="expense-image-preview-img" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid var(--border-color);" />
+              <button type="button" class="btn btn-ghost btn-sm" id="remove-expense-image-btn" style="margin-top: 4px;">Remove Image</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-expense-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-expense-btn">Save Expense</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Modal -->
+  <div class="modal-overlay" id="customer-modal" role="dialog" aria-labelledby="customer-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="customer-title">Add Customer</h2>
+        <button class="btn-icon btn-ghost" id="close-customer-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="customer-form" onsubmit="return false;">
+          <input type="hidden" id="customer-id" />
+          <div class="form-group">
+            <label for="customer-name">Name *</label>
+            <input type="text" class="form-input" id="customer-name" required />
+          </div>
+          <div class="form-group">
+            <label for="customer-phone">Phone</label>
+            <input type="tel" class="form-input" id="customer-phone" />
+          </div>
+          <div class="form-group">
+            <label for="customer-email">Email</label>
+            <input type="email" class="form-input" id="customer-email" />
+          </div>
+          <div class="form-group">
+            <label for="customer-address">Address</label>
+            <textarea class="form-input" id="customer-address" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-customer-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-customer-btn">Save Customer</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Parts/Service Selection Modal -->
+  <div class="modal-overlay" id="service-parts-modal" role="dialog" aria-labelledby="service-parts-title" aria-modal="true">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2 id="service-parts-title">Select Parts for Service</h2>
+        <button class="btn-icon btn-ghost" id="close-service-parts-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="service-date">Service Date *</label>
+          <input type="date" class="form-input" id="service-date" required />
+        </div>
+        <div class="form-group">
+          <label for="service-description">Description</label>
+          <textarea class="form-input" id="service-description" rows="3" placeholder="Service details..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Available Parts</label>
+          <div id="parts-selection-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px;">
+            <!-- Parts will be loaded here -->
+          </div>
+        </div>
+        <div class="form-group" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong>Total Cost:</strong>
+            <span id="service-total-cost" style="font-size: 1.2rem; font-weight: bold;">${this.settings.currency || '₹'}0</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-service-parts-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-service-parts-btn">Save Service</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Camera Capture Modal -->
+  <div class="modal-overlay" id="camera-modal" role="dialog" aria-labelledby="camera-title" aria-modal="true" style="z-index: 10000;">
+    <div class="modal-content" style="max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh; margin: 0; border-radius: 0; display: flex; flex-direction: column; background: #000;">
+      <div class="modal-header" style="background: rgba(0,0,0,0.8); color: white; border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <h2 id="camera-title" style="color: white;">Camera</h2>
+        <button class="btn-icon btn-ghost" id="close-camera-modal" aria-label="Close" style="color: white;">
+          <svg width="24" height="24"><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; position: relative; overflow: hidden;">
+        <video id="camera-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain; background: #000;"></video>
+        <canvas id="camera-canvas" style="display: none;"></canvas>
+        <div id="camera-controls" style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 32px 16px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+          <div style="display: flex; gap: 16px; align-items: center;">
+            <button class="btn btn-secondary" id="switch-camera-btn" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white;">
+              <svg width="24" height="24"><use href="#icon-save"></use></svg>
+              <span>Switch</span>
+            </button>
+            <button class="btn" id="capture-photo-btn" style="width: 80px; height: 80px; border-radius: 50%; background: white; border: 4px solid rgba(255,255,255,0.5); padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+              <div style="width: 64px; height: 64px; border-radius: 50%; background: white; border: 2px solid #000;"></div>
+            </button>
+            <button class="btn btn-secondary" id="camera-cancel-btn" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white;">
+              <svg width="24" height="24"><use href="#icon-close"></use></svg>
+              <span>Cancel</span>
+            </button>
+          </div>
+          <div id="camera-captured-preview" style="display: flex; gap: 8px; max-width: 100%; overflow-x: auto; padding: 8px;">
+            <!-- Captured images will appear here -->
+          </div>
+        </div>
+        <div id="camera-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 24px; border-radius: 8px; text-align: center;">
+          <p>Camera access denied or not available.</p>
+          <button class="btn btn-primary" id="camera-error-close" style="margin-top: 16px;">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Supplier Modal -->
+  <div class="modal-overlay" id="supplier-modal" role="dialog" aria-labelledby="supplier-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="supplier-title">Add Supplier</h2>
+        <button class="btn-icon btn-ghost" id="close-supplier-modal" aria-label="Close">
+          <svg><use href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="supplier-form" onsubmit="return false;">
+          <input type="hidden" id="supplier-id" />
+          <div class="form-group">
+            <label for="supplier-name">Supplier Name *</label>
+            <input type="text" class="form-input" id="supplier-name" required />
+          </div>
+          <div class="form-group">
+            <label for="supplier-contact-person">Contact Person</label>
+            <input type="text" class="form-input" id="supplier-contact-person" />
+          </div>
+          <div class="form-group">
+            <label for="supplier-phone">Phone</label>
+            <input type="tel" class="form-input" id="supplier-phone" />
+          </div>
+          <div class="form-group">
+            <label for="supplier-category">Category</label>
+            <select class="form-input" id="supplier-category">
+              <option value="">Select category...</option>
+              <option value="Bike Dealer">Bike Dealer</option>
+              <option value="Parts Supplier">Parts Supplier</option>
+              <option value="Service Provider">Service Provider</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-supplier-btn">Cancel</button>
+        <button class="btn btn-primary" id="save-supplier-btn">Save Supplier</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- External JavaScript -->
+  <script src="scripts/app.js"></script>
+    
+</body>
+</html>
