@@ -805,7 +805,7 @@
                 pwaInstallButton.classList.remove('hidden');
                 pwaInstallButton.disabled = true;
                 pwaInstallButton.setAttribute('aria-disabled', 'true');
-                pwaInstallButton.textContent = 'Welcome';
+                pwaInstallButton.textContent = 'App Installed';
                 pwaInstallButton.title = 'App already installed';
                 pwaInstallButton.classList.add('opacity-60', 'cursor-not-allowed');
                 return;
@@ -820,12 +820,7 @@
                 pwaInstallButton.textContent = 'Install App';
                 pwaInstallButton.title = 'Install this app on your device';
             } else {
-                pwaInstallButton.classList.remove('hidden');
                 pwaInstallButton.disabled = true;
-                pwaInstallButton.setAttribute('aria-disabled', 'true');
-                pwaInstallButton.textContent = 'Install App';
-                pwaInstallButton.title = installHelp;
-                pwaInstallButton.classList.add('opacity-60', 'cursor-not-allowed');
             }
         };
 
