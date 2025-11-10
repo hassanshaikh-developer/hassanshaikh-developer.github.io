@@ -5468,30 +5468,11 @@
             });
             
             // PAT Modal Skip
-            patSkip.addEventListener('click', () => {
-                state.storageMode = 'local';
-                
-                try {
-                    const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
-                    if (localData) {
-                        state.data = JSON.parse(localData);
-                        showToast('Loaded local data.');
-                    } else {
-                        showToast('Starting fresh. Data will be saved locally.');
-                    }
-                } catch (error) {
-                    console.error('Failed to parse local data:', error);
-                    showToast('Could not load local data, starting fresh.', true);
+            patSkip.addEventListener('click', async () => {
+                const needsPin = loadLocalData();
+                if (needsPin) {
+                    await requirePinSetup('Set a new 4–6 digit PIN to get started.');
                 }
-                
-                runDataMigration();
-                state.security.isUnlocked = false;
-                lockSensitiveData();
-                updateSensitiveToggle();
-                
-                patModal.classList.add('hidden');
-                appWrapper.classList.remove('hidden');
-                renderPage('dashboard');
             });
 
             // Bottom Navigation
@@ -5989,8 +5970,36 @@
 
         // --- App Initialization ---
         
-        const init = () => {
+        const loadLocalData = () => {
+            state.storageMode = 'local';
+            let localData = null;
+            try {
+                const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (raw) {
+                    localData = JSON.parse(raw);
+                }
+            } catch (error) {
+                console.error('Failed to read local data. Resetting to defaults.', error);
+            }
+
+            if (!localData) {
+                localData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            }
+
+            state.data = localData;
+            runDataMigration();
+            state.security.isUnlocked = false;
+            updateSensitiveToggle();
+            patModal?.classList.add('hidden');
+            hideLoader();
+            appWrapper.classList.remove('hidden');
+            renderPage('dashboard');
+            return (state.data?.settings?.pin || '1111') === '1111';
+        };
+
+        const init = async () => {
             setupPWAInstall();
+            addEventListeners();
             const pat = sessionStorage.getItem('githubPAT');
             const gistId = sessionStorage.getItem('gistId');
             
@@ -6000,37 +6009,40 @@
                 state.storageMode = 'gist';
                 
                 showLoader();
-                fetch(`${GIST_API_URL}/${gistId}`, { headers: getHeaders() })
-                    .then(res => {
-                        if (!res.ok) {
-                            if (res.status === 401 || res.status === 404) {
-                                throw new Error('Invalid token or Gist not found. Please log in again.');
-                            }
-                            throw new Error(`Failed to load data (Status ${res.status})`);
+                try {
+                    const res = await fetch(`${GIST_API_URL}/${gistId}`, { headers: getHeaders() });
+                    if (!res.ok) {
+                        if (res.status === 401 || res.status === 404) {
+                            throw new Error('Invalid token or Gist not found. Please log in again.');
                         }
-                        return res.json();
-                    })
-                    .then(gist => {
-                        state.data = JSON.parse(gist.files[GIST_FILENAME].content);
-                        runDataMigration();
-                        appWrapper.classList.remove('hidden');
-                        renderPage('dashboard');
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        sessionStorage.clear();
-                        patModal.classList.remove('hidden');
-                        patError.textContent = err.message;
-                    })
-                    .finally(() => {
-                        hideLoader();
-                    });
-                
-            } else {
-                patModal.classList.remove('hidden');
+                        throw new Error(`Failed to load data (Status ${res.status})`);
+                    }
+                    const gist = await res.json();
+                    state.data = JSON.parse(gist.files[GIST_FILENAME].content);
+                    runDataMigration();
+                    state.security.isUnlocked = false;
+                    updateSensitiveToggle();
+                    appWrapper.classList.remove('hidden');
+                    renderPage('dashboard');
+                    const needsPinSetup = (state.data?.settings?.pin || '1111') === '1111';
+                    if (needsPinSetup) {
+                        await requirePinSetup('Set a new 4–6 digit PIN to secure your data.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    sessionStorage.clear();
+                    patModal?.classList.remove('hidden');
+                    patError.textContent = err.message;
+                } finally {
+                    hideLoader();
+                }
+                return;
             }
             
-            addEventListeners();
+            const needsPinSetup = loadLocalData();
+            if (needsPinSetup) {
+                await requirePinSetup('Set a new 4–6 digit PIN to get started.');
+            }
         };
 
         document.addEventListener('DOMContentLoaded', init);
