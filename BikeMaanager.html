@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bike Manager</title>
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.452.0/dist/umd/lucide.min.js"></script>
     <!-- jsPDF for PDF exports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Google Font: Inter -->
@@ -109,6 +116,17 @@
         }
         .modal-sheet.open {
             transform: translateY(0);
+        }
+        @media (min-width: 1024px) {
+            .modal-sheet {
+                position: static !important;
+                transform: none !important;
+                max-height: 90vh;
+                margin: 0 auto;
+            }
+            .modal-sheet.open {
+                transform: none !important;
+            }
         }
         .modal-overlay {
             transition: opacity 0.3s ease-out;
@@ -247,33 +265,37 @@
       Main App Wrapper
       Simulates a mobile phone screen, centered on desktop.
     -->
-    <div id="app-wrapper" class="max-w-md mx-auto h-[100dvh] flex flex-col bg-gray-100 shadow-xl overflow-hidden hidden">
+    <div id="app-wrapper" class="w-full max-w-6xl mx-auto min-h-screen lg:min-h-[100vh] flex flex-col lg:flex-row bg-gray-100 shadow-xl lg:rounded-3xl overflow-hidden hidden">
 
-        <!-- App Header (Dynamic Title) -->
-        <header class="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-20">
-            <div class="px-4 py-4 flex justify-between items-center">
-                <h1 id="page-title" class="text-xl font-bold text-gray-900">Dashboard</h1>
-                <!-- Add Button (context-aware) -->
-                <div class="flex items-center gap-3">
-                    <button id="sensitive-toggle" class="lock-button locked" title="Unlock sensitive data" aria-pressed="false">
-                        <i data-lucide="lock"></i>
-                    </button>
-                    <button id="add-button" class="text-blue-500 hidden" title="Add new item">
-                        <i data-lucide="plus" class="w-7 h-7"></i>
-                    </button>
+        <div class="flex-1 flex flex-col">
+            <!-- App Header (Dynamic Title) -->
+            <header class="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-20">
+                <div class="px-4 lg:px-8 py-4 flex flex-wrap gap-3 justify-between items-center">
+                    <h1 id="page-title" class="text-xl lg:text-2xl font-bold text-gray-900">Dashboard</h1>
+                    <!-- Add Button (context-aware) -->
+                    <div class="flex items-center gap-3">
+                        <button id="pwa-install-button" class="px-3 py-2 rounded-lg bg-blue-500 text-white text-xs sm:text-sm font-semibold shadow-sm hover:bg-blue-600 transition hidden" type="button">
+                            Install App
+                        </button>
+                        <button id="sensitive-toggle" class="lock-button locked" title="Unlock sensitive data" aria-pressed="false">
+                            <i data-lucide="lock"></i>
+                        </button>
+                        <button id="add-button" class="text-blue-500 hidden" title="Add new item">
+                            <i data-lucide="plus" class="w-7 h-7"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
 
-        <!-- 
-          Content Area
-          Pages will be swapped here.
-        -->
-        <main class="flex-1 overflow-y-auto page-content">
+            <!-- 
+              Content Area
+              Pages will be swapped here.
+            -->
+            <main class="flex-1 overflow-y-auto page-content lg:px-8">
             
             <!-- Page: Dashboard (Home) -->
-            <div id="page-dashboard" class="page p-4 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+            <div id="page-dashboard" class="page p-4 lg:p-6 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div class="bg-white rounded-2xl p-4 shadow-sm">
                         <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
                         <div class="sensitive-wrapper mt-1">
@@ -300,7 +322,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="bg-white rounded-2xl p-4 shadow-sm">
                         <span class="text-sm font-medium text-gray-500">Unsold Investment</span>
                         <div id="metric-investment" class="text-2xl font-bold text-gray-900 mt-1">₹0</div>
@@ -313,7 +335,7 @@
 
                 <!-- Payment Reminders -->
                 <div class="bg-white rounded-2xl p-4 shadow-sm">
-                    <h2 class="text-lg font-semibold mb-2">Payment Reminders (Next 7 Days)</h2>
+                    <h2 class="text-lg font-semibold mb-2">Next Payment Reminder</h2>
                     <div id="dashboard-reminders" class="max-h-40 overflow-y-auto space-y-3 pr-2">
                         <!-- Reminders injected here -->
                     </div>
@@ -336,7 +358,7 @@
             </div>
 
             <!-- Page: Bikes -->
-            <div id="page-bikes" class="page p-4 space-y-4 hidden">
+            <div id="page-bikes" class="page p-4 lg:p-6 space-y-4 hidden">
                 <!-- Filters -->
                 <div class="sticky top-0 bg-gray-100 py-2 space-y-3">
                     <input type="search" id="bike-search" placeholder="Search by name, plate, or owner..." class="form-input">
@@ -377,9 +399,9 @@
             </div>
 
             <!-- Page: Credit -->
-            <div id="page-credit" class="page p-4 space-y-4 hidden">
+            <div id="page-credit" class="page p-4 lg:p-6 space-y-4 hidden">
                 <div class="bg-white rounded-2xl p-4 shadow-sm space-y-4">
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         <div class="bg-blue-50 rounded-xl p-3">
                             <p class="text-xs text-blue-600 font-medium uppercase tracking-wide">Total Credit Given</p>
                             <p id="credit-total" class="text-xl font-bold text-blue-900 mt-1">₹0</p>
@@ -397,22 +419,37 @@
                             <p id="credit-active" class="text-xl font-bold text-purple-900 mt-1">0</p>
                         </div>
                     </div>
-                    <button id="credit-export" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Export Credit Data</button>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="credit-export" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Export Credit Data</button>
+                        <button id="credit-bulk-toggle" class="w-full py-3 bg-white border border-blue-200 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition">Start Bulk Collection</button>
+                    </div>
                 </div>
                 <div id="credit-list" class="space-y-3">
                     <!-- Credit cards injected here -->
                 </div>
+                <div id="credit-bulk-footer" class="hidden fixed inset-x-0 bottom-24 z-30 px-4">
+                    <div class="max-w-2xl mx-auto bg-blue-600 text-white rounded-2xl shadow-xl p-4 space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span id="credit-bulk-count">0 customers selected</span>
+                            <span id="credit-bulk-total" class="font-semibold">₹0</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="credit-bulk-cancel" class="w-1/3 py-2 bg-white/20 rounded-lg font-semibold text-white hover:bg-white/30 transition">Cancel</button>
+                            <button id="credit-bulk-confirm" class="flex-1 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition">Record Payments</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Page: Analytics -->
-            <div id="page-analytics" class="page p-4 space-y-4 hidden">
+            <div id="page-analytics" class="page p-4 lg:p-6 space-y-4 hidden">
                 <div id="analytics-locked-state" class="hidden analytics-locked">
                     <div class="text-lg font-semibold">Sensitive analytics locked</div>
                     <p class="text-sm text-blue-700">Unlock with your PIN to review financial analytics.</p>
                     <button id="analytics-unlock" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Unlock Analytics</button>
                 </div>
                 <div id="analytics-content" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                         <div class="bg-white rounded-2xl p-4 shadow-sm">
                             <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
                             <div class="sensitive-wrapper mt-1">
@@ -471,14 +508,14 @@
             </div>
 
             <!-- Page: Expenses -->
-            <div id="page-expenses" class="page p-4 space-y-3 hidden">
+            <div id="page-expenses" class="page p-4 lg:p-6 space-y-3 hidden">
                 <div id="expense-list" class="space-y-3">
                     <!-- Expense card template -->
                 </div>
             </div>
 
             <!-- Page: PR (Personal Relationship) -->
-            <div id="page-pr" class="page p-4 space-y-4 hidden">
+            <div id="page-pr" class="page p-4 lg:p-6 space-y-4 hidden">
                 <!-- Filters -->
                 <div class="sticky top-0 bg-gray-100 py-2">
                     <input type="search" id="pr-search" placeholder="Search by name, contact, or bike..." class="form-input mb-2">
@@ -496,7 +533,7 @@
             </div>
 
             <!-- Page: Settings -->
-            <div id="page-settings" class="page p-4 space-y-4">
+            <div id="page-settings" class="page p-4 lg:p-6 space-y-4">
                 <!-- Cash Adjustments -->
                 <div class="bg-white rounded-2xl p-4 shadow-sm">
                     <h2 class="text-lg font-semibold mb-2">Cash Adjustments</h2>
@@ -561,36 +598,37 @@
             </div>
 
         </main>
+        </div>
 
-        <!-- Bottom Navigation Bar -->
-        <nav class="flex justify-around items-center h-16 bg-white/90 backdrop-blur-sm border-t border-gray-200 sticky bottom-0 z-20">
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500 active" data-page="dashboard">
+        <!-- Navigation -->
+        <nav class="flex justify-around items-center h-16 bg-white/90 backdrop-blur-sm border-t border-gray-200 sticky bottom-0 z-20 lg:static lg:h-auto lg:min-h-full lg:flex-col lg:justify-start lg:gap-4 lg:py-8 lg:px-4 lg:w-64 lg:border-t-0 lg:border-l">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 active lg:flex-row lg:w-full lg:justify-start lg:gap-3 lg:px-3 lg:py-2" data-page="dashboard">
                 <i data-lucide="layout-dashboard"></i>
-                <span class="text-xs font-medium">Home</span>
+                <span class="text-xs lg:text-sm font-medium">Home</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="bikes">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 lg:flex-row lg:w-full lg:justify-start lg:gap-3 lg:px-3 lg:py-2" data-page="bikes">
                 <i data-lucide="bike"></i>
-                <span class="text-xs font-medium">Bikes</span>
+                <span class="text-xs lg:text-sm font-medium">Bikes</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="credit">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 lg:flex-row lg:w-full lg:justify-start lg:gap-3 lg:px-3 lg:py-2" data-page="credit">
                 <i data-lucide="wallet"></i>
-                <span class="text-xs font-medium">Credit</span>
+                <span class="text-xs lg:text-sm font-medium">Credit</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="analytics">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 lg:flex-row lg:w-full lg:justify-start lg:gap-3 lg:px-3 lg:py-2" data-page="analytics">
                 <i data-lucide="line-chart"></i>
-                <span class="text-xs font-medium">Analytics</span>
+                <span class="text-xs lg:text-sm font-medium">Analytics</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="expenses">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 lg:flex-row lg:w-full lg:justify-start lg:gap-3 lg:px-3 lg:py-2" data-page="expenses">
                 <i data-lucide="receipt"></i>
-                <span class="text-xs font-medium">Expenses</span>
+                <span class="text-xs lg:text-sm font-medium">Expenses</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="pr">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 lg:flex-row lg:w-full lg:justify-start lg:gap-3 lg:px-3 lg:py-2" data-page="pr">
                 <i data-lucide="users"></i>
-                <span class="text-xs font-medium">PR</span>
+                <span class="text-xs lg:text-sm font-medium">PR</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="settings">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 lg:flex-row lg:w-full lg:justify-start lg:gap-3 lg:px-3 lg:py-2" data-page="settings">
                 <i data-lucide="settings"></i>
-                <span class="text-xs font-medium">Settings</span>
+                <span class="text-xs lg:text-sm font-medium">Settings</span>
             </button>
         </nav>
     </div>
@@ -599,7 +637,7 @@
       PAT Authentication Modal
     -->
     <div id="pat-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-100 p-4 hidden">
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg">
             <h2 class="text-xl font-bold text-center mb-2">GitHub Access</h2>
             <p class="text-sm text-gray-600 text-center mb-4">
                 Enter a GitHub PAT with <code class="text-xs bg-gray-200 px-1 py-0.5 rounded">gist</code> permissions to sync data.
@@ -630,10 +668,10 @@
     -->
     <div id="confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 hidden">
         <div class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm z-10">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg z-10">
             <h2 id="confirm-title" class="text-lg font-semibold text-center mb-2">Are you sure?</h2>
             <p id="confirm-message" class="text-sm text-gray-600 text-center mb-5">This action cannot be undone.</p>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button id="confirm-cancel" class="w-full py-3 bg-gray-200 text-gray-800 rounded-lg font-medium">Cancel</button>
                 <button id="confirm-ok" class="w-full py-3 bg-red-500 text-white rounded-lg font-medium">Confirm</button>
             </div>
@@ -645,7 +683,7 @@
     -->
     <div id="pin-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 hidden">
         <div class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm z-10 space-y-4">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg z-10 space-y-4">
             <div class="space-y-1 text-center">
                 <h2 class="text-xl font-bold text-gray-900">Unlock Sensitive Data</h2>
                 <p class="text-sm text-gray-600" id="pin-modal-message">Enter your 4-digit PIN to continue.</p>
@@ -654,7 +692,7 @@
                 <input type="password" maxlength="6" inputmode="numeric" id="pin-input" class="form-input text-center tracking-widest text-lg" placeholder="••••">
                 <p id="pin-error" class="text-xs text-red-500 text-center"></p>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button id="pin-cancel" class="w-full py-3 bg-gray-200 text-gray-800 rounded-lg font-medium">Cancel</button>
                 <button id="pin-submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition">Unlock</button>
             </div>
@@ -664,12 +702,12 @@
     <!-- 
       Main Form Modal (Sheet style)
     -->
-    <div id="form-modal" class="fixed inset-0 z-40 hidden">
+    <div id="form-modal" class="fixed inset-0 z-40 hidden lg:flex lg:items-center lg:justify-center">
         <!-- Overlay -->
         <div id="modal-overlay" class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
         
         <!-- Sheet Content -->
-        <div id="modal-sheet" class="modal-sheet fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-gray-100 rounded-t-2xl shadow-t-lg">
+        <div id="modal-sheet" class="modal-sheet fixed bottom-0 left-0 right-0 max-w-md sm:max-w-xl lg:max-w-3xl mx-auto z-50 bg-gray-100 rounded-t-2xl shadow-t-lg lg:rounded-3xl">
             <!-- Modal Header -->
             <div class="flex justify-between items-center p-4 border-b border-gray-200">
                 <button id="modal-close" class="text-blue-500 font-medium">Cancel</button>
@@ -701,6 +739,7 @@
         const navBar = $('nav');
         const pageTitle = $('#page-title');
         const addButton = $('#add-button');
+        const pwaInstallButton = $('#pwa-install-button');
         const sensitiveToggle = $('#sensitive-toggle');
         
         // Pages
@@ -733,6 +772,137 @@
         const creditPending = $('#credit-pending');
         const creditActive = $('#credit-active');
         const creditExport = $('#credit-export');
+        const creditBulkToggle = $('#credit-bulk-toggle');
+        const creditBulkFooter = $('#credit-bulk-footer');
+        const creditBulkCount = $('#credit-bulk-count');
+        const creditBulkTotal = $('#credit-bulk-total');
+        const creditBulkConfirm = $('#credit-bulk-confirm');
+        const creditBulkCancel = $('#credit-bulk-cancel');
+
+        let deferredInstallPrompt = null;
+
+        const getInstallSupportMessage = () => {
+            const ua = (navigator.userAgent || '').toLowerCase();
+            if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
+                return 'On Safari tap the Share icon, then choose "Add to Home Screen".';
+            }
+            if (ua.includes('android')) {
+                return 'Open your browser menu and choose "Install app" or "Add to Home screen".';
+            }
+            return 'Use your browser menu to install/add this app to your device.';
+        };
+
+        const isStandaloneDisplay = () => {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        };
+
+        const updateInstallButtonState = () => {
+            if (!pwaInstallButton) return;
+
+            const installHelp = getInstallSupportMessage();
+            const installed = isStandaloneDisplay();
+            if (installed) {
+                pwaInstallButton.classList.remove('hidden');
+                pwaInstallButton.disabled = true;
+                pwaInstallButton.setAttribute('aria-disabled', 'true');
+                pwaInstallButton.textContent = 'App Installed';
+                pwaInstallButton.title = 'App already installed';
+                pwaInstallButton.classList.add('opacity-60', 'cursor-not-allowed');
+                return;
+            }
+
+            pwaInstallButton.classList.remove('opacity-60', 'cursor-not-allowed');
+
+            if (deferredInstallPrompt) {
+                pwaInstallButton.classList.remove('hidden');
+                pwaInstallButton.disabled = false;
+                pwaInstallButton.setAttribute('aria-disabled', 'false');
+                pwaInstallButton.textContent = 'Install App';
+                pwaInstallButton.title = 'Install this app on your device';
+            } else {
+                pwaInstallButton.classList.remove('hidden');
+                pwaInstallButton.disabled = true;
+                pwaInstallButton.setAttribute('aria-disabled', 'true');
+                pwaInstallButton.textContent = 'Install App';
+                pwaInstallButton.title = installHelp;
+                pwaInstallButton.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+        };
+
+        const setupPWAInstall = () => {
+            if (!pwaInstallButton) return;
+
+            updateInstallButtonState();
+
+            const canUseServiceWorker = (window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname));
+            if ('serviceWorker' in navigator && canUseServiceWorker) {
+                navigator.serviceWorker.register('./sw.js', { scope: './' }).catch((error) => {
+                    console.error('Service worker registration failed:', error);
+                });
+            } else if (!canUseServiceWorker) {
+                console.warn('Service workers require HTTPS. PWA features may be limited.');
+                pwaInstallButton.classList.remove('hidden');
+                pwaInstallButton.disabled = true;
+                pwaInstallButton.setAttribute('aria-disabled', 'true');
+                pwaInstallButton.textContent = 'Install App';
+                pwaInstallButton.title = 'Install requires HTTPS or serving from localhost.';
+                pwaInstallButton.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault();
+                deferredInstallPrompt = event;
+                updateInstallButtonState();
+            });
+
+            pwaInstallButton.addEventListener('click', async () => {
+                if (pwaInstallButton.disabled) {
+                    if (typeof showToast === 'function') {
+                        showToast(getInstallSupportMessage(), true);
+                    }
+                    return;
+                }
+                if (!deferredInstallPrompt) {
+                    if (typeof showToast === 'function') {
+                        showToast(getInstallSupportMessage(), true);
+                    }
+                    updateInstallButtonState();
+                    return;
+                }
+                try {
+                    deferredInstallPrompt.prompt();
+                    const choice = await deferredInstallPrompt.userChoice;
+                    deferredInstallPrompt = null;
+                    if (choice.outcome === 'accepted') {
+                        if (typeof showToast === 'function') {
+                            showToast('Installation started. Check your device for the app icon.');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Install prompt failed:', error);
+                } finally {
+                    updateInstallButtonState();
+                }
+            });
+
+            window.addEventListener('appinstalled', () => {
+                deferredInstallPrompt = null;
+                if (typeof showToast === 'function') {
+                    showToast('App installed! You can launch it from your device.');
+                }
+                updateInstallButtonState();
+            });
+
+            const standaloneMedia = window.matchMedia('(display-mode: standalone)');
+            const handleStandaloneChange = () => updateInstallButtonState();
+            if (standaloneMedia.addEventListener) {
+                standaloneMedia.addEventListener('change', handleStandaloneChange);
+            } else if (standaloneMedia.addListener) {
+                standaloneMedia.addListener(handleStandaloneChange);
+            }
+
+            updateInstallButtonState();
+        };
 
         // Expenses Page
         const expenseList = $('#expense-list');
@@ -1042,7 +1212,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 text-sm bg-gray-50 rounded-lg p-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 text-sm bg-gray-50 rounded-lg p-3">
                         <div>
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Delivery Date</p>
                             <p class="font-semibold text-gray-800">${formatDate(delivery.deliveryDate || delivery.createdAt)}</p>
@@ -1104,6 +1274,9 @@
                 currentDashboardSort: 'recent', // NEW
                 currentPRFilter: 'all',
                 currentPRSearch: '',
+                creditBulkMode: false,
+                creditBulkSelection: [],
+                creditBulkDrafts: {},
                 modal: {
                     isOpen: false,
                     type: null,
@@ -1360,6 +1533,114 @@
         };
         
         const EPSILON = 0.01; // For floating point comparisons
+        const MS_IN_DAY = 24 * 60 * 60 * 1000;
+        const DEFAULT_GRACE_PERIOD_DAYS = 7;
+
+        const parseToMidnight = (value) => {
+            if (!value) return null;
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return null;
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        };
+
+        const getGracePeriodDays = (bike) => {
+            if (bike.paymentMode === 'credit') {
+                return parseInt(bike.creditInfo?.gracePeriodDays, 10) || DEFAULT_GRACE_PERIOD_DAYS;
+            }
+            if (bike.paymentMode === 'emi') {
+                return parseInt(bike.emiInfo?.gracePeriodDays, 10) || DEFAULT_GRACE_PERIOD_DAYS;
+            }
+            return DEFAULT_GRACE_PERIOD_DAYS;
+        };
+
+        const getInterestRate = (bike) => {
+            if (bike.paymentMode === 'credit') {
+                return parseFloat(bike.creditInfo?.interestRate) || 0;
+            }
+            if (bike.paymentMode === 'emi') {
+                return parseFloat(bike.emiInfo?.interestRate) || 0;
+            }
+            return 0;
+        };
+
+        const calculateSuggestedInterest = ({ principal, interestRate, daysOverdue }) => {
+            if (!principal || principal <= 0) return 0;
+            if (!interestRate || interestRate <= 0) return 0;
+            if (!daysOverdue || daysOverdue <= 0) return 0;
+            const dailyRate = (interestRate / 100) / 30;
+            const interest = principal * dailyRate * daysOverdue;
+            return Math.max(0, Math.round(interest));
+        };
+
+        const getDueMetadata = (bike) => {
+            const today = parseToMidnight(new Date());
+            const graceDays = getGracePeriodDays(bike);
+            const interestRate = getInterestRate(bike);
+            let dueDate = null;
+            let pendingPrincipal = 0;
+            let installmentsLeft = 0;
+
+            if (bike.paymentMode === 'credit' && bike.creditInfo) {
+                dueDate = parseToMidnight(bike.creditInfo.dueDate);
+                pendingPrincipal = Math.max(0, parseFloat(bike.creditInfo.remaining) || 0);
+            } else if (bike.paymentMode === 'emi' && bike.emiInfo) {
+                dueDate = parseToMidnight(bike.emiInfo.nextDueDate);
+                installmentsLeft = Math.max(0, (parseInt(bike.emiInfo.totalInstallments, 10) || 0) - (parseInt(bike.emiInfo.installmentsPaid, 10) || 0));
+                pendingPrincipal = Math.max(0, installmentsLeft * (parseFloat(bike.emiInfo.monthlyAmount) || 0));
+            }
+
+            let status = 'clear';
+            let statusLabel = 'All dues cleared';
+            let daysUntilDue = null;
+            let daysOverdue = null;
+
+            if (dueDate && pendingPrincipal > EPSILON) {
+                const diffMs = dueDate.getTime() - today.getTime();
+                const diffDays = Math.floor(diffMs / MS_IN_DAY);
+
+                if (diffDays > 0) {
+                    status = 'upcoming';
+                    daysUntilDue = diffDays;
+                    statusLabel = diffDays === 1 ? 'Due tomorrow' : `Due in ${diffDays} days`;
+                } else if (diffDays === 0) {
+                    status = 'dueToday';
+                    statusLabel = 'Due today';
+                } else {
+                    const overdueBy = Math.abs(diffDays);
+                    if (overdueBy <= graceDays) {
+                        status = 'grace';
+                        daysOverdue = overdueBy;
+                        const remainingGrace = graceDays - overdueBy;
+                        statusLabel = remainingGrace === 0
+                            ? 'Grace period ends today'
+                            : `Within grace period (${remainingGrace} day${remainingGrace === 1 ? '' : 's'} left)`;
+                    } else {
+                        status = 'overdue';
+                        daysOverdue = overdueBy - graceDays;
+                        statusLabel = `Overdue by ${daysOverdue} day${daysOverdue === 1 ? '' : 's'}`;
+                    }
+                }
+            }
+
+            const suggestedInterest = calculateSuggestedInterest({
+                principal: pendingPrincipal,
+                interestRate,
+                daysOverdue: status === 'overdue' ? daysOverdue : 0
+            });
+
+            return {
+                dueDate: dueDate ? dueDate.toISOString().split('T')[0] : null,
+                graceDays,
+                interestRate,
+                pendingPrincipal,
+                installmentsLeft,
+                status,
+                statusLabel,
+                daysUntilDue,
+                daysOverdue,
+                suggestedInterest
+            };
+        };
 
         const showLoader = () => {
             loader.classList.remove('hidden');
@@ -1494,6 +1775,28 @@
             }
 
             state.data.bikes.forEach(bike => {
+            if (bike.creditInfo) {
+                const parsedGrace = parseInt(bike.creditInfo.gracePeriodDays, 10);
+                bike.creditInfo.gracePeriodDays = Number.isFinite(parsedGrace) && parsedGrace >= 0
+                    ? parsedGrace
+                    : DEFAULT_GRACE_PERIOD_DAYS;
+                const parsedRate = parseFloat(bike.creditInfo.interestRate);
+                bike.creditInfo.interestRate = Number.isFinite(parsedRate) && parsedRate >= 0
+                    ? parsedRate
+                    : 0;
+            }
+
+            if (bike.emiInfo) {
+                const parsedGrace = parseInt(bike.emiInfo.gracePeriodDays, 10);
+                bike.emiInfo.gracePeriodDays = Number.isFinite(parsedGrace) && parsedGrace >= 0
+                    ? parsedGrace
+                    : DEFAULT_GRACE_PERIOD_DAYS;
+                const parsedRate = parseFloat(bike.emiInfo.interestRate);
+                bike.emiInfo.interestRate = Number.isFinite(parsedRate) && parsedRate >= 0
+                    ? parsedRate
+                    : 0;
+            }
+
                 if (!bike.referral) {
                     bike.referral = null;
                 } else {
@@ -1957,56 +2260,123 @@
         };
         
         const renderDashboardReminders = () => {
-            const reminders = [];
-            const today = new Date();
-            const reminderCutoff = new Date();
-            reminderCutoff.setDate(today.getDate() + 7);
+            const { records } = summarizeCreditRecords();
+            const statusRank = {
+                overdue: 0,
+                dueToday: 1,
+                grace: 2,
+                upcoming: 3
+            };
 
-            state.data.bikes
-                .filter(b => b.sold)
-                .forEach(bike => {
-                    const bikeName = bike.bikeName || bike.bikeNumberPlate;
-                    if (bike.paymentMode === 'credit' && bike.creditInfo && bike.creditInfo.remaining > EPSILON) {
-                        const dueDate = new Date(bike.creditInfo.dueDate);
-                        if (dueDate <= reminderCutoff) {
-                            reminders.push({
-                                bikeId: bike.id,
-                                date: dueDate,
-                                text: `Call ${bike.customerName || 'Customer'} (${bike.customerContact || 'N/A'}) for ${bikeName}`,
-                                amount: bike.creditInfo.remaining,
-                                dueText: `Credit due: ${formatDate(dueDate)}`
-                            });
-                        }
-                    } else if (bike.paymentMode === 'emi' && bike.emiInfo && bike.emiInfo.installmentsPaid < bike.emiInfo.totalInstallments) {
-                        const dueDate = new Date(bike.emiInfo.nextDueDate);
-                         if (dueDate <= reminderCutoff) {
-                            reminders.push({
-                                bikeId: bike.id,
-                                date: dueDate,
-                                text: `Call ${bike.customerName || 'Customer'} (${bike.customerContact || 'N/A'}) for ${bikeName}`,
-                                amount: bike.emiInfo.monthlyAmount,
-                                dueText: `EMI due: ${formatDate(dueDate)}`
-                            });
-                        }
+            let bestReminder = null;
+
+            records.forEach(record => {
+                const dueMeta = record.dueMeta || {};
+                const pendingPrincipal = typeof dueMeta.pendingPrincipal === 'number'
+                    ? dueMeta.pendingPrincipal
+                    : (typeof record.pendingAmount === 'number' ? record.pendingAmount : 0);
+                if (pendingPrincipal <= EPSILON) {
+                    return;
+                }
+
+                let dueDate = null;
+                if (dueMeta.dueDate) {
+                    const parsed = new Date(dueMeta.dueDate);
+                    if (!Number.isNaN(parsed.getTime())) {
+                        dueDate = parsed;
                     }
-                });
-                
-            reminders.sort((a, b) => a.date - b.date);
-            
-            if (reminders.length === 0) {
-                dashboardReminders.innerHTML = `<p class="text-gray-500 text-sm text-center">No upcoming payments due.</p>`;
+                }
+
+                if (!dueDate) {
+                    return;
+                }
+
+                const status = dueMeta.status || 'upcoming';
+                const priority = Object.prototype.hasOwnProperty.call(statusRank, status)
+                    ? statusRank[status]
+                    : 99;
+
+                let amount = pendingPrincipal;
+                if (record.paymentMode === 'emi') {
+                    const monthly = record.monthlyAmount || 0;
+                    const installmentsLeft = typeof dueMeta.installmentsLeft === 'number'
+                        ? dueMeta.installmentsLeft
+                        : Math.max((record.totalInstallments || 0) - (record.installmentsPaid || 0), 0);
+                    const isFinalInstallment = installmentsLeft <= 1;
+                    if (monthly > EPSILON) {
+                        amount = isFinalInstallment ? pendingPrincipal : Math.min(monthly, pendingPrincipal);
+                    }
+                }
+
+                const candidate = {
+                    record,
+                    priority,
+                    dueDate,
+                    amount
+                };
+
+                if (
+                    !bestReminder ||
+                    candidate.priority < bestReminder.priority ||
+                    (candidate.priority === bestReminder.priority && candidate.dueDate < bestReminder.dueDate)
+                ) {
+                    bestReminder = candidate;
+                }
+            });
+
+            if (!bestReminder) {
+                dashboardReminders.innerHTML = `<p class="text-gray-500 text-sm text-center">No upcoming EMI or credit payments.</p>`;
                 return;
             }
-            
-            dashboardReminders.innerHTML = reminders.map(r => `
-                <div class="py-2 border-b border-gray-200 last:border-0 cursor-pointer" data-action="log-payment" data-bike-id="${r.bikeId}">
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold text-sm">${r.text}</span>
-                        <span class="font-bold text-blue-600">${formatCurrency(r.amount)}</span>
+
+            const { record, amount, dueDate } = bestReminder;
+            const dueMeta = record.dueMeta || {};
+            const label = record.paymentMode === 'emi' ? 'EMI' : 'Credit';
+            const dueDateDisplay = formatDate(dueDate.toISOString());
+            const statusLabel = dueMeta.statusLabel || '';
+            const contactLabel = (record.contact && record.contact !== 'N/A') ? record.contact : 'No contact saved';
+            const contactDigits = record.phoneHref || '';
+            const callHref = contactDigits ? `tel:${contactDigits}` : '';
+            const whatsappHref = contactDigits
+                ? `https://wa.me/${contactDigits}?text=${encodeURIComponent(buildWhatsappReminderMessage(record))}`
+                : '';
+            const overdueInterestLine = record.overdueInterest > EPSILON
+                ? `<p class="text-xs text-red-600 mt-2">Interest due: ${formatCurrency(record.overdueInterest)}</p>`
+                : '';
+
+            const chips = [];
+            if (dueMeta.graceDays) {
+                chips.push(`<span class="px-2 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded-full">Grace ${dueMeta.graceDays}d</span>`);
+            }
+            if (dueMeta.interestRate) {
+                chips.push(`<span class="px-2 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded-full">Interest ${dueMeta.interestRate}%/mo</span>`);
+            }
+
+            dashboardReminders.innerHTML = `
+                <div class="py-3 px-4 border border-blue-100 rounded-xl bg-blue-50/60 space-y-3 cursor-pointer" data-reminder-card data-bike-id="${record.bikeId}">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="space-y-1">
+                            <p class="text-sm font-semibold text-blue-700">${label} due on ${dueDateDisplay}</p>
+                            <p class="text-sm font-medium text-gray-900">${record.customerName}</p>
+                            <p class="text-xs text-gray-600">${record.bikeName}</p>
+                            ${chips.length ? `<div class="flex flex-wrap gap-2">${chips.join('')}</div>` : ''}
+                        </div>
+                        <div class="text-right space-y-1">
+                            <span class="text-base font-bold text-blue-600">${formatCurrency(amount)}</span>
+                            ${statusLabel ? `<span class="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white border border-blue-200 text-blue-700">${statusLabel}</span>` : ''}
+                        </div>
                     </div>
-                    <p class="text-xs text-gray-500">${r.dueText}</p>
+                    <div class="flex justify-between items-center text-xs text-gray-500">
+                        <span>${contactLabel}</span>
+                        <div class="flex gap-2">
+                            ${callHref ? `<a class="px-2 py-1 rounded-lg bg-white text-blue-600 font-semibold shadow-sm" data-reminder-action href="${callHref}">Call</a>` : ''}
+                            ${whatsappHref ? `<a class="px-2 py-1 rounded-lg bg-green-500 text-white font-semibold shadow-sm" data-reminder-action href="${whatsappHref}" target="_blank" rel="noopener noreferrer">WhatsApp</a>` : ''}
+                        </div>
+                    </div>
+                    ${overdueInterestLine}
+                    <p class="text-xs text-gray-500">Tap the card to log a payment.</p>
                 </div>
-            `).join('');
+            `;
         };
         
         const renderBikesPage = () => {
@@ -2322,6 +2692,11 @@
                     body = getLogPaymentFormHTML(data);
                     setTimeout(() => addLogPaymentListeners(data), 10);
                     break;
+                case 'bulkPayments':
+                    title = 'Record Bulk Payments';
+                    body = getBulkPaymentFormHTML(data);
+                    setTimeout(() => addBulkPaymentListeners(data), 10);
+                    break;
                 case 'addExpense':
                     title = 'Add Expense';
                     body = getExpenseFormHTML({ date: today });
@@ -2454,6 +2829,18 @@
             const soldDate = bike.sold ? bike.soldDate : today;
             const creditDueDate = bike.creditInfo ? bike.creditInfo.dueDate : today;
             const emiStartDate = bike.emiInfo ? bike.emiInfo.startDate : today;
+            const creditGrace = typeof bike.creditInfo?.gracePeriodDays !== 'undefined'
+                ? bike.creditInfo.gracePeriodDays
+                : DEFAULT_GRACE_PERIOD_DAYS;
+            const creditInterest = typeof bike.creditInfo?.interestRate !== 'undefined'
+                ? bike.creditInfo.interestRate
+                : '';
+            const emiGrace = typeof bike.emiInfo?.gracePeriodDays !== 'undefined'
+                ? bike.emiInfo.gracePeriodDays
+                : DEFAULT_GRACE_PERIOD_DAYS;
+            const emiInterest = typeof bike.emiInfo?.interestRate !== 'undefined'
+                ? bike.emiInfo.interestRate
+                : '';
 
             return `
             <div class="bg-white rounded-xl p-4 space-y-3">
@@ -2506,6 +2893,15 @@
                         <label class="form-label" for="sale-credit-due-date">Remaining Due Date *</label>
                         <input type="date" id="sale-credit-due-date" class="form-input" value="${formatDate(creditDueDate)}">
                     </div>
+                    <div>
+                        <label class="form-label" for="sale-credit-grace">Grace Period (days)</label>
+                        <input type="number" id="sale-credit-grace" class="form-input" min="0" value="${creditGrace}">
+                    </div>
+                    <div>
+                        <label class="form-label" for="sale-credit-interest">Interest Rate (% per month)</label>
+                        <input type="number" id="sale-credit-interest" class="form-input" min="0" step="0.1" value="${creditInterest}">
+                        <p class="text-xs text-gray-400 mt-1">Used to suggest interest once the grace period ends.</p>
+                    </div>
                 </div>
 
                 <!-- Fields for EMI -->
@@ -2525,6 +2921,15 @@
                     <div>
                         <label class="form-label" for="sale-emi-start-date">EMI Start Date *</label>
                         <input type="date" id="sale-emi-start-date" class="form-input" value="${formatDate(emiStartDate)}">
+                    </div>
+                    <div>
+                        <label class="form-label" for="sale-emi-grace">Grace Period (days)</label>
+                        <input type="number" id="sale-emi-grace" class="form-input" min="0" value="${emiGrace}">
+                    </div>
+                    <div>
+                        <label class="form-label" for="sale-emi-interest">Interest Rate (% per month)</label>
+                        <input type="number" id="sale-emi-interest" class="form-input" min="0" step="0.1" value="${emiInterest}">
+                        <p class="text-xs text-gray-400 mt-1">Applied on overdue EMIs after the grace period.</p>
                     </div>
                 </div>
             </div>
@@ -2624,54 +3029,236 @@
         
         const getLogPaymentFormHTML = (bike = {}) => {
             const bikeName = bike.bikeName || bike.bikeNumberPlate;
-            let expectedAmount = 0;
+            const dueMeta = getDueMetadata(bike);
+            const statusClassMap = {
+                clear: 'bg-green-100 text-green-700',
+                upcoming: 'bg-blue-100 text-blue-700',
+                dueToday: 'bg-amber-100 text-amber-700',
+                grace: 'bg-amber-100 text-amber-700',
+                overdue: 'bg-red-100 text-red-700'
+            };
+            const statusClass = statusClassMap[dueMeta.status] || 'bg-gray-100 text-gray-600';
+
+            let expectedPrincipal = 0;
             let paymentType = '';
-            let balanceInfo = '';
+            let planDetails = '';
             let emiFinalCheckbox = '';
 
             if (bike.paymentMode === 'credit' && bike.creditInfo) {
-                expectedAmount = bike.creditInfo.remaining;
+                expectedPrincipal = Math.max(0, Math.round(bike.creditInfo.remaining || 0));
                 paymentType = 'Credit Payment';
-                balanceInfo = `<p class="text-gray-600">Remaining Due: <span class="font-medium">${formatCurrency(bike.creditInfo.remaining)}</span></p>`;
+                planDetails = `
+                    <p class="text-sm text-gray-600">
+                        Remaining Due: <span class="font-medium">${formatCurrency(bike.creditInfo.remaining || 0)}</span>
+                    </p>
+                `;
             } else if (bike.paymentMode === 'emi' && bike.emiInfo) {
-                expectedAmount = bike.emiInfo.monthlyAmount;
+                expectedPrincipal = Math.max(0, Math.round(bike.emiInfo.monthlyAmount || 0));
                 paymentType = 'EMI Payment';
-                const emiLeft = (bike.emiInfo.totalInstallments || 0) - (bike.emiInfo.installmentsPaid || 0);
-                const totalRemaining = emiLeft * bike.emiInfo.monthlyAmount;
-                balanceInfo = `<p class="text-gray-600">EMIs Left: <span class="font-medium">${emiLeft} of ${bike.emiInfo.totalInstallments} (Est. ${formatCurrency(totalRemaining)})</span></p>`;
-                
+                const emiLeft = dueMeta.installmentsLeft;
+                const totalRemaining = emiLeft * (bike.emiInfo.monthlyAmount || 0);
+                planDetails = `
+                    <p class="text-sm text-gray-600">
+                        EMIs Left: <span class="font-medium">${bike.emiInfo.installmentsPaid || 0}/${bike.emiInfo.totalInstallments || 0}</span> • 
+                        Monthly: <span class="font-medium">${formatCurrency(bike.emiInfo.monthlyAmount || 0)}</span>
+                    </p>
+                    <p class="text-xs text-gray-500">Estimated remaining: ${formatCurrency(totalRemaining)}</p>
+                `;
                 emiFinalCheckbox = `
-                <div class="flex items-center mt-3">
-                    <input type="checkbox" id="payment-emi-final" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                    <label for="payment-emi-final" class="ml-2 block text-sm text-gray-700">Log as Final Settlement?</label>
-                </div>
+                    <div class="flex items-center mt-3">
+                        <input type="checkbox" id="payment-emi-final" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <label for="payment-emi-final" class="ml-2 block text-sm text-gray-700">Log as Final Settlement?</label>
+                    </div>
                 `;
             }
 
+            const dueInfo = dueMeta.pendingPrincipal > EPSILON
+                ? `
+                    <div class="flex items-center justify-between text-xs mt-2">
+                        <span class="text-gray-500">Due ${dueMeta.dueDate ? formatDate(dueMeta.dueDate) : 'Not scheduled'}</span>
+                        <span class="px-2 py-0.5 rounded-full font-medium ${statusClass}">${dueMeta.statusLabel}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Grace: ${dueMeta.graceDays} day${dueMeta.graceDays === 1 ? '' : 's'} • Interest: ${dueMeta.interestRate || 0}% / month</p>
+                `
+                : '<p class="text-xs text-green-600 mt-2">All dues cleared.</p>';
+
+            const suggestedInterest = dueMeta.suggestedInterest || 0;
+            const interestFieldValue = suggestedInterest > 0 ? suggestedInterest : '';
+            const interestDisplay = suggestedInterest > 0
+                ? `Suggested: ${formatCurrency(suggestedInterest)}`
+                : 'No additional interest suggested';
+
             return `
-            <input type="hidden" id="payment-bike-id" value="${bike.id || ''}">
-            <div class="bg-white rounded-xl p-4">
-                <p class="text-lg font-semibold">${bikeName}</p>
-                <p class="text-gray-600">Customer: ${bike.customerName || 'N/A'}</p>
-                ${balanceInfo}
-            </div>
-            <div class="bg-white rounded-xl p-4 space-y-3">
-                <h3 class="font-semibold">Log New Payment</h3>
-                <div>
-                    <label class="form-label" for="payment-amount">Amount Received *</label>
-                    <input type="number" id="payment-amount" class="form-input" value="${expectedAmount || ''}" ${paymentType === 'EMI Payment' ? 'readonly' : ''}>
+                <input type="hidden" id="payment-bike-id" value="${bike.id || ''}">
+                <div class="bg-white rounded-xl p-4 space-y-2">
+                    <p class="text-lg font-semibold">${bikeName}</p>
+                    <p class="text-gray-600">Customer: ${bike.customerName || 'N/A'}</p>
+                    ${planDetails}
+                    ${dueInfo}
                 </div>
-                ${emiFinalCheckbox}
-                <div>
-                    <label class="form-label" for="payment-date">Payment Date *</label>
-                    <input type="date" id="payment-date" class="form-input" value="${formatDate(new Date())}">
+                <div class="bg-white rounded-xl p-4 space-y-3">
+                    <h3 class="font-semibold">Log New Payment</h3>
+                    <div>
+                        <label class="form-label" for="payment-amount">Principal Amount *</label>
+                        <input type="number" id="payment-amount" class="form-input" value="${expectedPrincipal || ''}" ${paymentType === 'EMI Payment' ? 'readonly' : ''}>
+                    </div>
+                    <div>
+                        <label class="form-label" for="payment-interest">Interest Amount</label>
+                        <input type="number" id="payment-interest" class="form-input" min="0" value="${interestFieldValue}">
+                        <p class="text-xs text-gray-400 mt-1">${interestDisplay}</p>
+                    </div>
+                    ${emiFinalCheckbox}
+                    <div>
+                        <label class="form-label" for="payment-date">Payment Date *</label>
+                        <input type="date" id="payment-date" class="form-input" value="${formatDate(new Date())}">
+                    </div>
+                    <div>
+                        <label class="form-label" for="payment-type">Payment Type</label>
+                        <input type="text" id="payment-type" class="form-input bg-gray-200" readonly value="${paymentType}">
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Total (principal + interest)</span>
+                        <span id="payment-total-display" class="text-base font-semibold text-gray-900">${formatCurrency((expectedPrincipal || 0) + (suggestedInterest || 0))}</span>
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label" for="payment-type">Payment Type</label>
-                    <input type="text" id="payment-type" class="form-input bg-gray-200" readonly value="${paymentType}">
-                </div>
-            </div>
             `;
+        };
+        
+        const getBulkPaymentFormHTML = (records = []) => {
+            if (!Array.isArray(records) || records.length === 0) {
+                return `
+                    <div class="bg-white rounded-xl p-4 text-sm text-gray-500">
+                        No customers selected for bulk payment.
+                    </div>
+                `;
+            }
+
+            const today = formatDate(new Date());
+            let totalDefault = 0;
+
+            const rows = records.map((record, index) => {
+                const suggestedPrincipal = Math.max(0, getBulkSuggestedAmount(record));
+                const suggestedInterest = record.overdueInterest > 0 ? record.overdueInterest : 0;
+                totalDefault += suggestedPrincipal + suggestedInterest;
+                const rowId = `${record.bikeId || index}`;
+                const statusBadge = record.dueMeta?.statusLabel || 'Status';
+                const statusClass = record.dueMeta?.status
+                    ? (record.dueMeta.status === 'overdue'
+                        ? 'bg-red-100 text-red-700'
+                        : record.dueMeta.status === 'grace'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-blue-100 text-blue-700')
+                    : 'bg-gray-100 text-gray-600';
+
+                return `
+                    <div class="border border-gray-200 rounded-lg p-3 space-y-3" data-bulk-id="${record.bikeId}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-gray-900">${record.customerName}</p>
+                                <p class="text-xs text-gray-500">${record.bikeName}</p>
+                            </div>
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}">
+                                ${statusBadge}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-500">
+                            <div>Pending: <span class="font-semibold text-gray-700">${formatCurrency(record.pendingAmount)}</span></div>
+                            <div>Mode: <span class="font-semibold text-gray-700">${record.paymentMode === 'emi' ? 'EMI' : 'Credit'}</span></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label" for="bulk-principal-${rowId}">Principal</label>
+                                <input type="number" min="0" id="bulk-principal-${rowId}" class="form-input bulk-principal" data-bulk-id="${record.bikeId}" value="${suggestedPrincipal}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="bulk-interest-${rowId}">Interest</label>
+                                <input type="number" min="0" id="bulk-interest-${rowId}" class="form-input bulk-interest" data-bulk-id="${record.bikeId}" value="${suggestedInterest || ''}">
+                            </div>
+                        </div>
+                        ${record.paymentMode === 'emi' ? `
+                            <label class="flex items-center gap-2 text-xs text-gray-600 select-none">
+                                <input type="checkbox" class="bulk-final h-4 w-4 text-blue-600 border-gray-300 rounded" data-bulk-id="${record.bikeId}">
+                                Mark as final settlement
+                            </label>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="bg-white rounded-xl p-4 space-y-4">
+                    <div>
+                        <label class="form-label" for="bulk-payment-date">Payment Date *</label>
+                        <input type="date" id="bulk-payment-date" class="form-input" value="${today}">
+                    </div>
+                    <div id="bulk-payment-list" class="space-y-3">
+                        ${rows}
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3 flex justify-between items-center text-sm">
+                        <span id="bulk-summary-count">${records.length} customer${records.length === 1 ? '' : 's'}</span>
+                        <span id="bulk-summary-total" class="font-semibold text-gray-900">${formatCurrency(totalDefault)}</span>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                        Adjust principal or interest amounts if needed. Interest entries are logged separately and do not reduce principal.
+                    </p>
+                </div>
+            `;
+        };
+
+        const addBulkPaymentListeners = (records = []) => {
+            const listContainer = $('#bulk-payment-list');
+            const summaryCount = $('#bulk-summary-count');
+            const summaryTotal = $('#bulk-summary-total');
+
+            if (!listContainer) return;
+
+            const updateSummary = () => {
+                let totalPrincipal = 0;
+                let totalInterest = 0;
+                records.forEach(record => {
+                    const principalInput = listContainer.querySelector(`.bulk-principal[data-bulk-id="${record.bikeId}"]`);
+                    const interestInput = listContainer.querySelector(`.bulk-interest[data-bulk-id="${record.bikeId}"]`);
+                    const principal = parseFloat(principalInput?.value || '0') || 0;
+                    const interest = parseFloat(interestInput?.value || '0') || 0;
+                    totalPrincipal += Math.max(0, principal);
+                    totalInterest += Math.max(0, interest);
+                });
+                if (summaryCount) {
+                    summaryCount.textContent = `${records.length} customer${records.length === 1 ? '' : 's'}`;
+                }
+                if (summaryTotal) {
+                    summaryTotal.textContent = formatCurrency(totalPrincipal + totalInterest);
+                }
+            };
+
+            listContainer.addEventListener('input', (event) => {
+                const target = event.target;
+                if (!target) return;
+                if (target.classList.contains('bulk-principal') || target.classList.contains('bulk-interest')) {
+                    if (parseFloat(target.value) < 0) {
+                        target.value = '0';
+                    }
+                    updateSummary();
+                }
+            });
+
+            listContainer.addEventListener('change', (event) => {
+                const checkbox = event.target;
+                if (!checkbox || !checkbox.classList.contains('bulk-final')) return;
+                const bikeId = checkbox.dataset.bulkId;
+                const record = records.find(item => item.bikeId === bikeId);
+                if (!record) return;
+                const principalInput = listContainer.querySelector(`.bulk-principal[data-bulk-id="${bikeId}"]`);
+                if (!principalInput) return;
+                if (checkbox.checked) {
+                    principalInput.value = record.pendingAmount;
+                } else {
+                    principalInput.value = getBulkSuggestedAmount(record);
+                }
+                updateSummary();
+            });
+
+            updateSummary();
         };
         
         const getExpenseFormHTML = (expense = {}) => {
@@ -2762,23 +3349,38 @@
         };
 
         const addLogPaymentListeners = (bike = {}) => {
-            const isEMI = bike.paymentMode === 'emi' && bike.emiInfo;
-            if (!isEMI) return;
-
-            const finalCheckbox = $('#payment-emi-final');
             const amountInput = $('#payment-amount');
-            
-            finalCheckbox.addEventListener('change', () => {
-                if (finalCheckbox.checked) {
-                    const emiLeft = (bike.emiInfo.totalInstallments || 0) - (bike.emiInfo.installmentsPaid || 0);
-                    const totalRemaining = emiLeft * bike.emiInfo.monthlyAmount;
-                    amountInput.value = totalRemaining;
-                    amountInput.readOnly = false;
-                } else {
-                    amountInput.value = bike.emiInfo.monthlyAmount;
-                    amountInput.readOnly = true;
-                }
-            });
+            const interestInput = $('#payment-interest');
+            const totalDisplay = $('#payment-total-display');
+
+            const updateTotal = () => {
+                if (!totalDisplay) return;
+                const principal = parseFloat(amountInput?.value || '0') || 0;
+                const interest = parseFloat(interestInput?.value || '0') || 0;
+                totalDisplay.textContent = formatCurrency(principal + interest);
+            };
+
+            amountInput?.addEventListener('input', updateTotal);
+            interestInput?.addEventListener('input', updateTotal);
+            updateTotal();
+
+            if (bike.paymentMode === 'emi' && bike.emiInfo) {
+                const finalCheckbox = $('#payment-emi-final');
+                if (!finalCheckbox || !amountInput) return;
+
+                finalCheckbox.addEventListener('change', () => {
+                    if (finalCheckbox.checked) {
+                        const emiLeft = (bike.emiInfo.totalInstallments || 0) - (bike.emiInfo.installmentsPaid || 0);
+                        const totalRemaining = emiLeft * (bike.emiInfo.monthlyAmount || 0);
+                        amountInput.value = totalRemaining;
+                        amountInput.readOnly = false;
+                    } else {
+                        amountInput.value = bike.emiInfo.monthlyAmount || 0;
+                        amountInput.readOnly = true;
+                    }
+                    updateTotal();
+                });
+            }
         };
         
         const addBrandNewFormListeners = () => {
@@ -2962,32 +3564,31 @@
             const records = creditBikes.map(bike => {
                 const payments = (paymentsByBike.get(bike.id) || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
                 const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                const dueMeta = getDueMetadata(bike);
+                const totalPrincipal = bike.sellingPrice || 0;
+                const progressPercent = totalPrincipal > EPSILON
+                    ? Math.min(100, Math.round((totalPaid / totalPrincipal) * 100))
+                    : 0;
 
-                let pendingAmount = Math.max((bike.sellingPrice || 0) - totalPaid, 0);
                 let nextDueText = 'Paid in full';
-                let dueDate = null;
                 let initialPayment = 0;
                 let monthlyAmount = 0;
                 let installmentsPaid = 0;
                 let totalInstallments = 0;
+                let overdueInterest = dueMeta.status === 'overdue' ? dueMeta.suggestedInterest : 0;
 
                 if (bike.paymentMode === 'credit' && bike.creditInfo) {
-                    pendingAmount = Math.max(bike.creditInfo.remaining ?? pendingAmount, 0);
-                    dueDate = bike.creditInfo.dueDate || null;
                     initialPayment = bike.creditInfo.initialPayment || 0;
-                    nextDueText = pendingAmount > EPSILON
-                        ? (dueDate ? `Due by ${formatDate(dueDate)}` : 'Pending balance')
+                    nextDueText = dueMeta.pendingPrincipal > EPSILON
+                        ? (dueMeta.dueDate ? `Due ${formatDate(dueMeta.dueDate)} • ${dueMeta.statusLabel}` : dueMeta.statusLabel)
                         : 'All dues cleared';
                 } else if (bike.paymentMode === 'emi' && bike.emiInfo) {
                     monthlyAmount = bike.emiInfo.monthlyAmount || 0;
                     installmentsPaid = bike.emiInfo.installmentsPaid || 0;
                     totalInstallments = bike.emiInfo.totalInstallments || 0;
                     initialPayment = bike.emiInfo.downPayment || 0;
-                    dueDate = bike.emiInfo.nextDueDate || null;
-                    const installmentsLeft = Math.max(totalInstallments - installmentsPaid, 0);
-                    pendingAmount = Math.max(installmentsLeft * monthlyAmount, 0);
-                    nextDueText = installmentsLeft > 0
-                        ? (dueDate ? `Next EMI ${formatDate(dueDate)}` : 'EMI pending')
+                    nextDueText = dueMeta.pendingPrincipal > EPSILON
+                        ? (dueMeta.dueDate ? `Next EMI ${formatDate(dueMeta.dueDate)} • ${dueMeta.statusLabel}` : `EMI pending • ${dueMeta.statusLabel}`)
                         : 'All EMIs completed';
                 }
 
@@ -2998,16 +3599,20 @@
                     phoneHref: sanitizePhone(bike.customerContact || ''),
                     bikeName: bike.bikeName || bike.bikeNumberPlate,
                     bikeNumberPlate: bike.bikeNumberPlate,
-                    salePrice: bike.sellingPrice || 0,
+                    salePrice: totalPrincipal,
                     paymentMode: bike.paymentMode,
-                    pendingAmount,
+                    pendingAmount: dueMeta.pendingPrincipal,
                     nextDueText,
-                    dueDate,
+                    dueDate: dueMeta.dueDate,
                     initialPayment,
                     monthlyAmount,
                     installmentsPaid,
                     totalInstallments,
-                    payments
+                    payments,
+                    totalPaid,
+                    progressPercent,
+                    dueMeta,
+                    overdueInterest
                 };
             });
 
@@ -3021,24 +3626,212 @@
             return { records, totals };
         };
 
-        const renderCreditPage = () => {
-            const { records, totals } = summarizeCreditRecords();
+        const applyPaymentForBike = ({ bike, principalAmount, interestAmount, isoDate, isEMIFinal = false, paymentTypeHint = 'Payment' }) => {
+            if (!bike) throw new Error('Bike not found.');
+            if (!isoDate) throw new Error('Payment date is required.');
+            if (principalAmount < 0 || interestAmount < 0) throw new Error('Amounts cannot be negative.');
+            if (principalAmount <= 0 && interestAmount <= 0) throw new Error('Enter the principal or interest amount to continue.');
 
-            if (!records.length) {
-                creditTotal.textContent = formatCurrency(0);
-                creditCollected.textContent = formatCurrency(0);
-                creditPending.textContent = formatCurrency(0);
-                creditActive.textContent = '0';
-                creditList.innerHTML = `<p class="text-gray-500 text-center mt-4">No credit or EMI sales yet.</p>`;
+            let paymentType = paymentTypeHint || 'Payment';
+            const payments = [];
+
+            if (bike.paymentMode === 'credit' && bike.creditInfo) {
+                if (principalAmount > 0) {
+                    if (principalAmount > bike.creditInfo.remaining + EPSILON) {
+                        throw new Error('Payment cannot be greater than remaining balance.');
+                    }
+                    if (principalAmount >= bike.creditInfo.remaining - EPSILON) {
+                        paymentType = 'Final Credit Payment';
+                        bike.creditInfo.remaining = 0;
+                    } else {
+                        bike.creditInfo.remaining -= principalAmount;
+                    }
+                }
+            } else if (bike.paymentMode === 'emi' && bike.emiInfo) {
+                if (isEMIFinal) {
+                    if (principalAmount <= 0) {
+                        throw new Error('Principal amount is required for final settlement.');
+                    }
+                    const emiLeft = (bike.emiInfo.totalInstallments || 0) - (bike.emiInfo.installmentsPaid || 0);
+                    const totalRemaining = emiLeft * (bike.emiInfo.monthlyAmount || 0);
+                    if (principalAmount > totalRemaining + EPSILON) {
+                        throw new Error('Settlement cannot be greater than total remaining balance.');
+                    }
+                    paymentType = 'Final EMI Installment';
+                    bike.emiInfo.installmentsPaid = bike.emiInfo.totalInstallments;
+                    bike.emiInfo.nextDueDate = null;
+                } else if (principalAmount > 0) {
+                    if (principalAmount > (bike.emiInfo.monthlyAmount || 0) + EPSILON) {
+                        throw new Error('Payment cannot be greater than monthly EMI amount.');
+                    }
+                    bike.emiInfo.installmentsPaid = (bike.emiInfo.installmentsPaid || 0) + 1;
+                    if (bike.emiInfo.installmentsPaid >= bike.emiInfo.totalInstallments) {
+                        paymentType = 'Final EMI Installment';
+                        bike.emiInfo.nextDueDate = null;
+                    } else {
+                        const nextDueSource = bike.emiInfo.nextDueDate || bike.emiInfo.startDate || isoDate;
+                        bike.emiInfo.nextDueDate = getNextMonthDate(nextDueSource);
+                    }
+                }
+            }
+
+            if (principalAmount > 0) {
+                payments.push({
+                    id: crypto.randomUUID(),
+                    bikeId: bike.id,
+                    bikeName: bike.bikeName || bike.bikeNumberPlate,
+                    amount: principalAmount,
+                    date: isoDate,
+                    type: paymentType
+                });
+            }
+
+            if (interestAmount > 0) {
+                payments.push({
+                    id: crypto.randomUUID(),
+                    bikeId: bike.id,
+                    bikeName: bike.bikeName || bike.bikeNumberPlate,
+                    amount: interestAmount,
+                    date: isoDate,
+                    type: 'Interest Charge'
+                });
+            }
+
+            return payments;
+        };
+
+        const buildWhatsappReminderMessage = (record) => {
+            if (!record) return '';
+            const dueMeta = record.dueMeta || {};
+            const pendingAmount = typeof record.pendingAmount === 'number' ? record.pendingAmount : 0;
+            const dueDateText = dueMeta.dueDate ? formatDate(dueMeta.dueDate) : null;
+            const status = dueMeta.status || 'clear';
+            const graceDays = dueMeta.graceDays ?? DEFAULT_GRACE_PERIOD_DAYS;
+            const daysOverdue = dueMeta.daysOverdue ?? 0;
+            const lines = [];
+
+            const namePart = (record.customerName || 'there').split(' ')[0];
+            lines.push(`Hi ${namePart},`);
+            lines.push(`Gentle reminder about your ${record.bikeName || 'bike'} payment.`);
+
+            if (pendingAmount > EPSILON) {
+                lines.push(`Pending amount: ${formatCurrency(pendingAmount)}.`);
+            }
+
+            if (dueDateText) {
+                lines.push(`Due date: ${dueDateText}.`);
+            }
+
+            if (status === 'grace') {
+                const graceLeft = Math.max(0, graceDays - daysOverdue);
+                lines.push(`You are within the grace period (${graceLeft} day${graceLeft === 1 ? '' : 's'} left).`);
+            } else if (status === 'overdue') {
+                lines.push(`Overdue by ${daysOverdue} day${daysOverdue === 1 ? '' : 's'}. Kindly clear it to avoid additional interest.`);
+            }
+
+            if (record.overdueInterest > 0) {
+                lines.push(`Current interest due: ${formatCurrency(record.overdueInterest)}.`);
+            }
+
+            lines.push('Please let me know once the payment is completed. Thank you!');
+            return lines.join('\n');
+        };
+
+        const getBulkSuggestedAmount = (record) => {
+            if (!record) return 0;
+            if (record.paymentMode === 'emi') {
+                const installmentsLeft = record.dueMeta?.installmentsLeft ?? 0;
+                if (installmentsLeft <= 0) {
+                    return record.pendingAmount;
+                }
+                const monthly = record.monthlyAmount || 0;
+                if (monthly <= 0) {
+                    return record.pendingAmount;
+                }
+                return Math.min(monthly, record.pendingAmount);
+            }
+            return record.pendingAmount;
+        };
+
+        const updateCreditBulkFooter = (records = []) => {
+            if (!creditBulkFooter) return;
+            const bulkMode = !!state.ui.creditBulkMode;
+            const selectedIds = new Set(state.ui.creditBulkSelection || []);
+            if (!bulkMode || selectedIds.size === 0) {
+                creditBulkFooter.classList.add('hidden');
+                creditBulkCount.textContent = '0 customers selected';
+                creditBulkTotal.textContent = formatCurrency(0);
                 return;
             }
+
+            const drafts = state.ui.creditBulkDrafts || {};
+            const selectedRecords = records.filter(record => selectedIds.has(record.bikeId));
+            let total = 0;
+
+            selectedRecords.forEach(record => {
+                const draft = drafts[record.bikeId];
+                const amount = typeof draft?.principal === 'number'
+                    ? draft.principal
+                    : getBulkSuggestedAmount(record);
+                total += amount;
+            });
+
+            creditBulkFooter.classList.remove('hidden');
+            creditBulkCount.textContent = `${selectedRecords.length} customer${selectedRecords.length === 1 ? '' : 's'} selected`;
+            creditBulkTotal.textContent = formatCurrency(total);
+        };
+
+        const renderCreditPage = () => {
+            const { records, totals } = summarizeCreditRecords();
+            const bulkMode = !!state.ui.creditBulkMode;
+            const selectedIds = new Set(state.ui.creditBulkSelection || []);
+            const statusClassMap = {
+                clear: 'bg-green-100 text-green-700',
+                upcoming: 'bg-blue-100 text-blue-700',
+                dueToday: 'bg-amber-100 text-amber-700',
+                grace: 'bg-amber-100 text-amber-700',
+                overdue: 'bg-red-100 text-red-700'
+            };
 
             creditTotal.textContent = formatCurrency(totals.totalCredit);
             creditCollected.textContent = formatCurrency(totals.collected);
             creditPending.textContent = formatCurrency(totals.pending);
             creditActive.textContent = totals.activeCustomers.toString();
 
+            if (creditBulkToggle) {
+                creditBulkToggle.textContent = bulkMode ? 'Exit Bulk Collection' : 'Start Bulk Collection';
+                creditBulkToggle.classList.toggle('bg-blue-500', bulkMode);
+                creditBulkToggle.classList.toggle('text-white', bulkMode);
+                creditBulkToggle.classList.toggle('border', !bulkMode);
+                creditBulkToggle.classList.toggle('border-blue-200', !bulkMode);
+            }
+
+            if (!records.length) {
+                creditList.innerHTML = `<p class="text-gray-500 text-center mt-4">No credit or EMI sales yet.</p>`;
+                updateCreditBulkFooter([]);
+                return;
+            }
+
             const creditCards = records.map(record => {
+                const dueMeta = record.dueMeta || {};
+                const pendingPrincipal = typeof dueMeta.pendingPrincipal === 'number' ? dueMeta.pendingPrincipal : record.pendingAmount;
+                const graceDays = dueMeta.graceDays ?? DEFAULT_GRACE_PERIOD_DAYS;
+                const statusKey = dueMeta.status || 'clear';
+                const statusLabel = dueMeta.statusLabel || 'Status';
+                const isSelected = bulkMode && selectedIds.has(record.bikeId);
+                const cardClasses = [
+                    'bg-white',
+                    'rounded-xl',
+                    'p-4',
+                    'shadow-sm',
+                    'space-y-3',
+                    'transition',
+                    'duration-150'
+                ];
+                if (bulkMode && isSelected) {
+                    cardClasses.push('ring-2', 'ring-blue-400', 'ring-offset-1');
+                }
+
                 let scheduleInfo = '';
                 if (record.paymentMode === 'credit') {
                     scheduleInfo = `
@@ -3068,33 +3861,77 @@
                     : '<p class="text-xs text-gray-400 mt-3">No payments logged yet.</p>';
 
                 const callHref = record.phoneHref ? `tel:${record.phoneHref}` : '#';
-                const whatsappHref = record.phoneHref ? `https://wa.me/${record.phoneHref}` : '#';
+                const whatsappHref = record.phoneHref ? `https://wa.me/${record.phoneHref}?text=${encodeURIComponent(buildWhatsappReminderMessage(record))}` : '#';
                 const contactDisabledClass = record.phoneHref ? '' : 'opacity-60 pointer-events-none cursor-not-allowed';
+                const pendingClass = pendingPrincipal > EPSILON ? 'text-amber-600' : 'text-green-600';
+                const dueText = record.paymentMode === 'emi'
+                    ? (pendingPrincipal > EPSILON
+                        ? (dueMeta.dueDate ? `Next EMI ${formatDate(dueMeta.dueDate)}` : 'EMI pending')
+                        : 'All EMIs completed')
+                    : (pendingPrincipal > EPSILON
+                        ? (dueMeta.dueDate ? `Due ${formatDate(dueMeta.dueDate)}` : 'Pending balance')
+                        : 'All dues cleared');
+
+                const chips = [
+                    `<span class="px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">Grace ${graceDays}d</span>`
+                ];
+                if (dueMeta.interestRate) {
+                    chips.push(`<span class="px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 rounded-full">Interest ${dueMeta.interestRate}%/mo</span>`);
+                }
+                if (record.overdueInterest > 0) {
+                    chips.push(`<span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">Interest due ${formatCurrency(record.overdueInterest)}</span>`);
+                }
 
                 return `
-                    <div class="bg-white rounded-xl p-4 shadow-sm space-y-3" data-bike-id="${record.bikeId}">
+                    <div class="${cardClasses.join(' ')}" data-bike-id="${record.bikeId}" data-payment-mode="${record.paymentMode}" data-pending="${record.pendingAmount}" data-monthly="${record.monthlyAmount}">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-lg font-semibold text-gray-900">${record.customerName}</p>
                                 <p class="text-sm text-gray-500">${record.bikeName}</p>
                             </div>
-                            <span class="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
-                                ${record.paymentMode === 'emi' ? 'EMI' : 'Credit'}
-                            </span>
+                            <div class="flex items-center gap-2">
+                                ${bulkMode ? `
+                                    <label class="flex items-center gap-1 text-xs text-gray-500 select-none">
+                                        <input type="checkbox" class="credit-bulk-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-bulk-id="${record.bikeId}" ${isSelected ? 'checked' : ''}>
+                                        Select
+                                    </label>
+                                ` : ''}
+                                <span class="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                    ${record.paymentMode === 'emi' ? 'EMI' : 'Credit'}
+                                </span>
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                             <div>
                                 <p class="text-gray-500">Sale Price</p>
                                 <p class="font-semibold text-gray-900">${formatCurrency(record.salePrice)}</p>
                             </div>
                             <div>
                                 <p class="text-gray-500">Pending</p>
-                                <p class="font-semibold ${record.pendingAmount > 0 ? 'text-amber-600' : 'text-green-600'}">${formatCurrency(record.pendingAmount)}</p>
+                                <p class="font-semibold ${pendingClass}">${formatCurrency(record.pendingAmount)}</p>
                             </div>
                         </div>
 
-                        <p class="text-sm text-blue-600 font-medium">${record.nextDueText}</p>
+                        <div class="flex items-center justify-between text-sm mt-1">
+                            <span class="text-blue-600 font-medium">${dueText}</span>
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${statusClassMap[statusKey] || 'bg-gray-100 text-gray-600'}">
+                                ${statusLabel}
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            ${chips.join('')}
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs text-gray-500 mt-2">
+                            <span>Collected: ${formatCurrency(record.totalPaid)}</span>
+                            <span>Target: ${formatCurrency(record.salePrice)}</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500" style="width: ${record.progressPercent || 0}%;"></div>
+                        </div>
+
                         ${scheduleInfo}
 
                         <div class="flex flex-wrap gap-2 pt-2">
@@ -3111,6 +3948,7 @@
             }).join('');
 
             creditList.innerHTML = creditCards;
+            updateCreditBulkFooter(records);
         };
 
         const renderAnalyticsPage = () => {
@@ -3416,14 +4254,32 @@
                                 salesData.soldDate = $('#sale-cash-date').value;
                             } else if (paymentMode === 'credit') {
                                 const initial = parseFloat($('#sale-credit-initial').value) || 0;
+                        const creditGraceInput = parseInt($('#sale-credit-grace').value, 10);
+                        const creditInterestInput = parseFloat($('#sale-credit-interest').value);
+                        const creditGrace = Number.isFinite(creditGraceInput) && creditGraceInput >= 0
+                            ? creditGraceInput
+                            : DEFAULT_GRACE_PERIOD_DAYS;
+                        const creditInterest = Number.isFinite(creditInterestInput) && creditInterestInput >= 0
+                            ? creditInterestInput
+                            : 0;
                                 initialPaymentAmount = initial;
                                 salesData.creditInfo = {
                                     initialPayment: initial,
                                     remaining: totalSellingPrice - initial,
-                                    dueDate: $('#sale-credit-due-date').value
+                            dueDate: $('#sale-credit-due-date').value,
+                            gracePeriodDays: creditGrace,
+                            interestRate: creditInterest
                                 };
                             } else if (paymentMode === 'emi') {
                                 const downPayment = parseFloat($('#sale-emi-downpayment').value) || 0;
+                        const emiGraceInput = parseInt($('#sale-emi-grace').value, 10);
+                        const emiInterestInput = parseFloat($('#sale-emi-interest').value);
+                        const emiGrace = Number.isFinite(emiGraceInput) && emiGraceInput >= 0
+                            ? emiGraceInput
+                            : DEFAULT_GRACE_PERIOD_DAYS;
+                        const emiInterest = Number.isFinite(emiInterestInput) && emiInterestInput >= 0
+                            ? emiInterestInput
+                            : 0;
                                 initialPaymentAmount = downPayment;
                                 salesData.emiInfo = {
                                     downPayment: downPayment,
@@ -3431,7 +4287,9 @@
                                     totalInstallments: parseInt($('#sale-emi-installments').value) || 0,
                                     installmentsPaid: wasSold ? state.data.bikes[index].emiInfo.installmentsPaid : 0,
                                     startDate: $('#sale-emi-start-date').value,
-                                    nextDueDate: wasSold ? state.data.bikes[index].emiInfo.nextDueDate : $('#sale-emi-start-date').value
+                            nextDueDate: wasSold ? state.data.bikes[index].emiInfo.nextDueDate : $('#sale-emi-start-date').value,
+                            gracePeriodDays: emiGrace,
+                            interestRate: emiInterest
                                 };
                             }
 
@@ -3525,16 +4383,34 @@
                             bikeUpdate.soldDate = paymentDate;
                         } else if (paymentMode === 'credit') {
                             const initial = parseFloat($('#sale-credit-initial').value) || 0;
+                        const creditGraceInput = parseInt($('#sale-credit-grace').value, 10);
+                        const creditInterestInput = parseFloat($('#sale-credit-interest').value);
+                        const creditGrace = Number.isFinite(creditGraceInput) && creditGraceInput >= 0
+                            ? creditGraceInput
+                            : DEFAULT_GRACE_PERIOD_DAYS;
+                        const creditInterest = Number.isFinite(creditInterestInput) && creditInterestInput >= 0
+                            ? creditInterestInput
+                            : 0;
                             initialPaymentAmount = initial;
                             bikeUpdate.soldDate = formatDate(new Date());
                             bikeUpdate.creditInfo = {
                                 initialPayment: initial,
                                 remaining: totalSellingPrice - initial,
-                                dueDate: $('#sale-credit-due-date').value
+                            dueDate: $('#sale-credit-due-date').value,
+                            gracePeriodDays: creditGrace,
+                            interestRate: creditInterest
                             };
                             if (!bikeUpdate.creditInfo.dueDate) throw new Error('Remaining Due Date is required for Credit.');
                         } else if (paymentMode === 'emi') {
                             const downPayment = parseFloat($('#sale-emi-downpayment').value) || 0;
+                        const emiGraceInput = parseInt($('#sale-emi-grace').value, 10);
+                        const emiInterestInput = parseFloat($('#sale-emi-interest').value);
+                        const emiGrace = Number.isFinite(emiGraceInput) && emiGraceInput >= 0
+                            ? emiGraceInput
+                            : DEFAULT_GRACE_PERIOD_DAYS;
+                        const emiInterest = Number.isFinite(emiInterestInput) && emiInterestInput >= 0
+                            ? emiInterestInput
+                            : 0;
                             initialPaymentAmount = downPayment;
                             bikeUpdate.soldDate = formatDate(new Date());
                             bikeUpdate.emiInfo = {
@@ -3543,7 +4419,9 @@
                                 totalInstallments: parseInt($('#sale-emi-installments').value) || 0,
                                 installmentsPaid: 0,
                                 startDate: $('#sale-emi-start-date').value,
-                                nextDueDate: $('#sale-emi-start-date').value
+                            nextDueDate: $('#sale-emi-start-date').value,
+                            gracePeriodDays: emiGrace,
+                            interestRate: emiInterest
                             };
                             if (!bikeUpdate.emiInfo.monthlyAmount || !bikeUpdate.emiInfo.startDate) throw new Error('Monthly Amount and Start Date are required for EMI.');
                             if (!bikeUpdate.emiInfo.totalInstallments) throw new Error('Number of Installments is required for EMI.');
@@ -3576,57 +4454,95 @@
                         if (index === -1) throw new Error('Bike not found.');
                         
                         const bike = state.data.bikes[index];
-                        const amount = parseFloat($('#payment-amount').value) || 0;
+                        const principalInput = parseFloat($('#payment-amount').value);
+                        const interestInput = parseFloat($('#payment-interest')?.value);
+                        const principalAmount = Number.isFinite(principalInput) ? principalInput : 0;
+                        const interestAmount = Number.isFinite(interestInput) ? interestInput : 0;
                         const date = $('#payment-date').value;
-                        let type = $('#payment-type').value;
+                        const paymentTypeHint = $('#payment-type').value || 'Payment';
                         const isEMIFinal = $('#payment-emi-final') && $('#payment-emi-final').checked;
-                        
-                        if (amount <= 0) throw new Error('Payment amount must be positive.');
+
                         if (!date) throw new Error('Payment date is required.');
-                        
-                        if (bike.paymentMode === 'credit' && bike.creditInfo) {
-                            if (amount > bike.creditInfo.remaining + EPSILON) {
-                                throw new Error('Payment cannot be greater than remaining balance.');
-                            }
-                            if (amount >= bike.creditInfo.remaining - EPSILON) {
-                                type = 'Final Credit Payment';
-                                bike.creditInfo.remaining = 0;
-                            } else {
-                                bike.creditInfo.remaining -= amount;
-                            }
-                        } else if (bike.paymentMode === 'emi' && bike.emiInfo) {
-                            if (isEMIFinal) {
-                                const emiLeft = (bike.emiInfo.totalInstallments || 0) - (bike.emiInfo.installmentsPaid || 0);
-                                const totalRemaining = emiLeft * bike.emiInfo.monthlyAmount;
-                                if (amount > totalRemaining + EPSILON) {
-                                    throw new Error('Settlement cannot be greater than total remaining balance.');
-                                }
-                                type = 'Final EMI Installment';
-                                bike.emiInfo.installmentsPaid = bike.emiInfo.totalInstallments;
-                            } else {
-                                if (amount > bike.emiInfo.monthlyAmount + EPSILON) {
-                                     throw new Error('Payment cannot be greater than monthly EMI amount.');
-                                }
-                                bike.emiInfo.installmentsPaid = (bike.emiInfo.installmentsPaid || 0) + 1;
-                                if (bike.emiInfo.installmentsPaid === bike.emiInfo.totalInstallments) {
-                                    type = 'Final EMI Installment';
-                                } else {
-                                    bike.emiInfo.nextDueDate = getNextMonthDate(bike.emiInfo.nextDueDate);
-                                }
-                            }
-                        }
-                        
-                        state.data.payments.push({
-                            id: crypto.randomUUID(),
-                            bikeId: bike.id,
-                            bikeName: bike.bikeName || bike.bikeNumberPlate,
-                            amount: amount,
-                            date: new Date(date).toISOString(),
-                            type: type
+                        const isoDate = new Date(date).toISOString();
+
+                        const paymentEntries = applyPaymentForBike({
+                            bike,
+                            principalAmount,
+                            interestAmount,
+                            isoDate,
+                            isEMIFinal,
+                            paymentTypeHint
                         });
+
+                        paymentEntries.forEach(entry => state.data.payments.push(entry));
                         
                         state.data.bikes[index] = bike;
                         showToast('Payment logged successfully!');
+                        break;
+                    }
+                    
+                    case 'bulkPayments': {
+                        const records = Array.isArray(data) ? data : [];
+                        if (!records.length) throw new Error('No customers selected.');
+
+                        const dateValue = $('#bulk-payment-date')?.value;
+                        if (!dateValue) throw new Error('Payment date is required.');
+                        const isoDate = new Date(dateValue).toISOString();
+
+                        const errors = [];
+                        let processed = 0;
+
+                        records.forEach(record => {
+                            const row = modalBody.querySelector(`[data-bulk-id="${record.bikeId}"]`);
+                            if (!row) return;
+
+                            const principalInput = parseFloat(row.querySelector('.bulk-principal')?.value);
+                            const interestInput = parseFloat(row.querySelector('.bulk-interest')?.value);
+                            const principalAmount = Number.isFinite(principalInput) ? principalInput : 0;
+                            const interestAmount = Number.isFinite(interestInput) ? interestInput : 0;
+                            const isEMIFinal = row.querySelector('.bulk-final')?.checked || false;
+
+                            if (principalAmount <= 0 && interestAmount <= 0) {
+                                return; // skip entries with no amounts
+                            }
+
+                            if (isEMIFinal && principalAmount <= 0) {
+                                errors.push(`${record.customerName}: Principal amount is required for final settlement.`);
+                                return;
+                            }
+
+                            const bikeIndex = state.data.bikes.findIndex(bike => bike.id === record.bikeId);
+                            if (bikeIndex === -1) {
+                                errors.push(`${record.customerName}: Bike not found.`);
+                                return;
+                            }
+
+                            try {
+                                const bikeRef = state.data.bikes[bikeIndex];
+                                const paymentEntries = applyPaymentForBike({
+                                    bike: bikeRef,
+                                    principalAmount,
+                                    interestAmount,
+                                    isoDate,
+                                    isEMIFinal,
+                                    paymentTypeHint: record.paymentMode === 'emi' ? 'EMI Payment' : 'Credit Payment'
+                                });
+                                paymentEntries.forEach(entry => state.data.payments.push(entry));
+                                state.data.bikes[bikeIndex] = bikeRef;
+                                processed += 1;
+                            } catch (error) {
+                                errors.push(`${record.customerName}: ${error.message}`);
+                            }
+                        });
+
+                        if (errors.length) {
+                            throw new Error(errors.join('\n'));
+                        }
+
+                        state.ui.creditBulkSelection = [];
+                        state.ui.creditBulkDrafts = {};
+                        state.ui.creditBulkMode = false;
+                        showToast(`Payments recorded for ${processed} customer${processed === 1 ? '' : 's'}.`);
                         break;
                     }
                     
@@ -4334,10 +5250,14 @@
 
             // Dashboard: Reminder Clicks
             dashboardReminders.addEventListener('click', (e) => {
-                const item = e.target.closest('[data-action="log-payment"]');
-                if (!item) return;
+                if (e.target.closest('[data-reminder-action]')) {
+                    return;
+                }
 
-                const bikeId = item.dataset.bikeId;
+                const card = e.target.closest('[data-reminder-card]');
+                if (!card) return;
+
+                const bikeId = card.dataset.bikeId;
                 const bike = state.data.bikes.find(b => b.id === bikeId);
                 if (bike) {
                     openModal('logPayment', bike);
@@ -4436,7 +5356,55 @@
                         openModal('logPayment', bike);
                     }
                 });
+
+                creditList.addEventListener('change', (e) => {
+                    const checkbox = e.target.closest('.credit-bulk-checkbox');
+                    if (!checkbox) return;
+                    const bikeId = checkbox.dataset.bulkId;
+                    if (!bikeId) return;
+                    const selection = new Set(state.ui.creditBulkSelection || []);
+                    if (checkbox.checked) {
+                        selection.add(bikeId);
+                    } else {
+                        selection.delete(bikeId);
+                    }
+                    state.ui.creditBulkSelection = Array.from(selection);
+                    render();
+                });
             }
+
+            creditBulkToggle?.addEventListener('click', () => {
+                state.ui.creditBulkMode = !state.ui.creditBulkMode;
+                if (!state.ui.creditBulkMode) {
+                    state.ui.creditBulkSelection = [];
+                    state.ui.creditBulkDrafts = {};
+                }
+                render();
+            });
+
+            creditBulkCancel?.addEventListener('click', () => {
+                state.ui.creditBulkMode = false;
+                state.ui.creditBulkSelection = [];
+                state.ui.creditBulkDrafts = {};
+                render();
+            });
+
+            creditBulkConfirm?.addEventListener('click', () => {
+                const selectedIds = state.ui.creditBulkSelection || [];
+                if (!selectedIds.length) {
+                    showToast('Select at least one customer to proceed.', true);
+                    return;
+                }
+                const { records } = summarizeCreditRecords();
+                const selectedRecords = records.filter(record => selectedIds.includes(record.bikeId));
+                if (!selectedRecords.length) {
+                    showToast('Selected customers are no longer pending.', true);
+                    state.ui.creditBulkSelection = [];
+                    render();
+                    return;
+                }
+                openModal('bulkPayments', selectedRecords);
+            });
             
             // Expense Page: List Clicks
             expenseList.addEventListener('click', (e) => {
@@ -4547,6 +5515,7 @@
         // --- App Initialization ---
         
         const init = () => {
+            setupPWAInstall();
             const pat = sessionStorage.getItem('githubPAT');
             const gistId = sessionStorage.getItem('gistId');
             
