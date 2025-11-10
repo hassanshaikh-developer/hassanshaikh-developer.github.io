@@ -391,10 +391,67 @@
                             </ul>
                         </div>
                     </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button id="bike-advanced-toggle" class="px-3 py-2 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition">
+                            Show Advanced Filters
+                        </button>
+                        <button id="bike-advanced-reset" class="px-3 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition">
+                            Reset Filters
+                        </button>
+                        <button id="bike-bulk-toggle" class="px-3 py-2 text-xs font-semibold text-amber-600 bg-amber-100/70 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
+                            Select for Clearance
+                        </button>
+                    </div>
+                    <div id="bike-advanced-panel" class="hidden bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label" for="bike-filter-profit-min">Profit Range (₹)</label>
+                                <div class="flex gap-2">
+                                    <input type="number" id="bike-filter-profit-min" class="form-input" placeholder="Min">
+                                    <input type="number" id="bike-filter-profit-max" class="form-input" placeholder="Max">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label" for="bike-filter-date-from">Purchase Date</label>
+                                <div class="flex gap-2">
+                                    <input type="date" id="bike-filter-date-from" class="form-input">
+                                    <input type="date" id="bike-filter-date-to" class="form-input">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label" for="bike-filter-repair-min">Repair Cost (₹)</label>
+                                <div class="flex gap-2">
+                                    <input type="number" id="bike-filter-repair-min" class="form-input" placeholder="Min">
+                                    <input type="number" id="bike-filter-repair-max" class="form-input" placeholder="Max">
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            Advanced filters apply to both sold and unsold bikes. Profit for unsold bikes uses the target or similar sale averages.
+                        </p>
+                    </div>
                 </div>
                 <!-- Bike List -->
                 <div id="bike-list" class="space-y-3">
                     <!-- Bike card template -->
+                </div>
+                <div id="bike-clearance-footer" class="hidden fixed inset-x-0 bottom-24 z-30 px-4">
+                    <div class="max-w-2xl mx-auto bg-white shadow-xl border border-amber-200 rounded-2xl p-4 space-y-3">
+                        <div class="flex flex-wrap justify-between items-center gap-3 text-sm">
+                            <span id="bike-clearance-count" class="font-semibold text-gray-800">0 bikes selected</span>
+                            <button id="bike-clearance-cancel" class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition">
+                                Cancel
+                            </button>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="bike-clearance-mark" class="flex-1 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition">
+                                Mark as Clearance
+                            </button>
+                            <button id="bike-clearance-remove" class="flex-1 py-2 bg-white border border-amber-300 text-amber-600 rounded-lg font-semibold hover:bg-amber-100 transition">
+                                Remove Clearance
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -766,6 +823,21 @@
         const bikeSortTrigger = $('#bike-sort-trigger');
         const bikeSortMenu = $('#bike-sort-menu');
         const bikeSortLabel = $('#bike-sort-label');
+        const bikeAdvancedToggle = $('#bike-advanced-toggle');
+        const bikeAdvancedReset = $('#bike-advanced-reset');
+        const bikeAdvancedPanel = $('#bike-advanced-panel');
+        const bikeFilterProfitMin = $('#bike-filter-profit-min');
+        const bikeFilterProfitMax = $('#bike-filter-profit-max');
+        const bikeFilterDateFrom = $('#bike-filter-date-from');
+        const bikeFilterDateTo = $('#bike-filter-date-to');
+        const bikeFilterRepairMin = $('#bike-filter-repair-min');
+        const bikeFilterRepairMax = $('#bike-filter-repair-max');
+        const bikeBulkToggle = $('#bike-bulk-toggle');
+        const bikeClearanceFooter = $('#bike-clearance-footer');
+        const bikeClearanceCount = $('#bike-clearance-count');
+        const bikeClearanceCancel = $('#bike-clearance-cancel');
+        const bikeClearanceMark = $('#bike-clearance-mark');
+        const bikeClearanceRemove = $('#bike-clearance-remove');
 
         // Credit Page
         const creditList = $('#credit-list');
@@ -984,8 +1056,10 @@
                     purchaseDate: '2025-11-09',
                     purchasePrice: 25000,
                     repairPrice: 7000,
+                    targetSalePrice: 48000,
                     createdAt: '2025-11-09T08:30:00.000Z',
                     sold: false,
+                    clearanceSale: false,
                     category: 'second_hand'
                 },
                 {
@@ -999,8 +1073,10 @@
                     purchaseDate: '2025-11-07',
                     purchasePrice: 30000,
                     repairPrice: 5000,
+                    targetSalePrice: 52000,
                     createdAt: '2025-11-07T07:45:00.000Z',
                     sold: false,
+                    clearanceSale: false,
                     category: 'second_hand'
                 },
                 {
@@ -1014,8 +1090,10 @@
                     purchaseDate: '2025-11-05',
                     purchasePrice: 27000,
                     repairPrice: 7997,
+                    targetSalePrice: 60000,
                     createdAt: '2025-11-05T06:20:00.000Z',
                     sold: false,
+                    clearanceSale: false,
                     category: 'second_hand'
                 },
                 {
@@ -1029,8 +1107,10 @@
                     purchaseDate: '2025-11-03',
                     purchasePrice: 22000,
                     repairPrice: 2500,
+                    targetSalePrice: null,
                     createdAt: '2025-11-03T05:15:00.000Z',
                     sold: true,
+                    clearanceSale: false,
                     soldAt: '2025-11-08T10:00:00.000Z',
                     soldDate: '2025-11-08',
                     customerName: 'Harsh',
@@ -1268,6 +1348,17 @@
                 currentBikeSearch: '',
                 currentBikeSort: 'dateDesc', // NEW
                 currentBikeType: 'second_hand',
+                bikeAdvancedFilters: {
+                    profitMin: '',
+                    profitMax: '',
+                    dateFrom: '',
+                    dateTo: '',
+                    repairMin: '',
+                    repairMax: ''
+                },
+                showBikeAdvanced: false,
+                bikeBulkMode: false,
+                bikeBulkSelection: [],
                 currentDashboardSort: 'recent', // NEW
                 currentPRFilter: 'all',
                 currentPRSearch: '',
@@ -1800,6 +1891,17 @@
                     bike.referral.name = (bike.referral.name || '').trim();
                     bike.referral.contact = (bike.referral.contact || '').trim();
                     bike.referral.commission = parseFloat(bike.referral.commission || 0) || 0;
+                }
+
+                const parsedTarget = parseFloat(bike.targetSalePrice);
+                const cleanTarget = Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : null;
+                if (bike.targetSalePrice !== cleanTarget) {
+                    bike.targetSalePrice = cleanTarget;
+                    migrated = true;
+                }
+                if (typeof bike.clearanceSale !== 'boolean') {
+                    bike.clearanceSale = !!bike.clearanceSale;
+                    migrated = true;
                 }
 
                 if (bike.sold && bike.sellingPrice > 0 && !bike.paymentMode) {
@@ -2376,9 +2478,178 @@
             `;
         };
         
+        function updateBikeBulkFooter() {
+            if (!bikeClearanceFooter) return;
+            const selection = state.ui.bikeBulkSelection || [];
+            const show = state.ui.bikeBulkMode && selection.length > 0;
+            bikeClearanceFooter.classList.toggle('hidden', !show);
+            if (bikeClearanceCount) {
+                bikeClearanceCount.textContent = `${selection.length} bike${selection.length === 1 ? '' : 's'} selected`;
+            }
+            [bikeClearanceMark, bikeClearanceRemove].forEach((button) => {
+                if (!button) return;
+                const disabled = selection.length === 0;
+                button.disabled = disabled;
+                button.classList.toggle('opacity-60', disabled);
+                button.classList.toggle('cursor-not-allowed', disabled);
+            });
+        }
+
         const renderBikesPage = () => {
-            const { currentBikeFilter, currentBikeSearch, currentBikeSort, currentBikeType } = state.ui;
+            const {
+                currentBikeFilter,
+                currentBikeSearch,
+                currentBikeSort,
+                currentBikeType,
+                bikeAdvancedFilters = {},
+                showBikeAdvanced,
+                bikeBulkMode,
+                bikeBulkSelection = []
+            } = state.ui;
+
             const search = currentBikeSearch.toLowerCase();
+
+            const parseNumber = (value) => {
+                const num = parseFloat(value);
+                return Number.isFinite(num) ? num : null;
+            };
+
+            const parseDate = (value) => {
+                if (!value) return null;
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? null : date;
+            };
+
+            const dayMs = 24 * 60 * 60 * 1000;
+            const getBikeCost = (bike) => (bike.purchasePrice || 0) + (bike.repairPrice || 0);
+            const normalizeName = (value) => (value || '').trim().toLowerCase();
+
+            const insightsCache = new Map();
+            const computeProfitInsights = (bike) => {
+                if (!bike) {
+                    return {
+                        totalCost: 0,
+                        saleValue: 0,
+                        profitValue: 0,
+                        margin: 0,
+                        level: 'medium',
+                        badgeClass: 'bg-yellow-100 text-yellow-700',
+                        label: 'Medium',
+                        isActual: false,
+                        similarSold: [],
+                        similarUnsold: []
+                    };
+                }
+
+                const totalCost = getBikeCost(bike);
+                const sold = !!bike.sold;
+                const soldPrice = sold ? (bike.sellingPrice || 0) : 0;
+                const normalized = normalizeName(bike.bikeName);
+
+                const similarSold = !sold && normalized
+                    ? state.data.bikes.filter(entry =>
+                        entry.id !== bike.id &&
+                        !!entry.sold &&
+                        normalizeName(entry.bikeName) === normalized)
+                    : [];
+
+                const similarUnsold = !sold && normalized
+                    ? state.data.bikes.filter(entry =>
+                        entry.id !== bike.id &&
+                        !entry.sold &&
+                        normalizeName(entry.bikeName) === normalized)
+                    : [];
+
+                let estimatedSale = sold ? soldPrice : (bike.targetSalePrice || 0);
+                if (!sold && !estimatedSale && similarSold.length) {
+                    const total = similarSold.reduce((sum, entry) => sum + (entry.sellingPrice || 0), 0);
+                    estimatedSale = total / similarSold.length;
+                }
+
+                const saleValue = estimatedSale || 0;
+                const profitValue = saleValue - totalCost;
+                const margin = totalCost > 0 ? profitValue / totalCost : 0;
+
+                let level = 'medium';
+                let badgeClass = 'bg-yellow-100 text-yellow-700';
+                if (profitValue <= 0 || margin < 0.08) {
+                    level = 'low';
+                    badgeClass = 'bg-red-100 text-red-700';
+                } else if (profitValue >= 15000 || margin >= 0.25) {
+                    level = 'high';
+                    badgeClass = 'bg-green-100 text-green-700';
+                }
+
+                return {
+                    totalCost,
+                    saleValue,
+                    profitValue,
+                    margin,
+                    level,
+                    badgeClass,
+                    label: level === 'high' ? 'High' : level === 'low' ? 'Low' : 'Medium',
+                    isActual: sold,
+                    similarSold,
+                    similarUnsold
+                };
+            };
+
+            const getInsights = (bike) => {
+                if (!bike || !bike.id) {
+                    return computeProfitInsights(bike);
+                }
+                if (!insightsCache.has(bike.id)) {
+                    insightsCache.set(bike.id, computeProfitInsights(bike));
+                }
+                return insightsCache.get(bike.id);
+            };
+
+            const buildSimilarSection = (bike, insights) => {
+                if (!bike || bike.sold) return '';
+
+                const matches = [...(insights.similarSold || []), ...(insights.similarUnsold || [])]
+                    .filter(entry => entry && entry.id !== bike.id)
+                    .slice(0, 3);
+
+                if (!matches.length) {
+                    return '';
+                }
+
+                const rows = matches.map(entry => {
+                    const entryInsights = getInsights(entry);
+                    const status = entry.sold ? 'Sold' : 'Unsold';
+                    const statusClass = entry.sold ? 'text-green-600' : 'text-amber-600';
+                    const saleLabel = entry.sold
+                        ? `Sold @ ${formatCurrency(entry.sellingPrice || 0)}`
+                        : (entry.targetSalePrice
+                            ? `Target ${formatCurrency(entry.targetSalePrice)}`
+                            : `Cost ${formatCurrency(entryInsights.totalCost)}`);
+                    const profitLabel = entry.sold ? 'Profit' : 'Potential';
+
+                    return `
+                        <div class="flex justify-between items-start gap-3 text-xs">
+                            <div>
+                                <p class="font-semibold text-gray-700">${entry.bikeName || entry.bikeNumberPlate}</p>
+                                <p class="text-gray-500">${saleLabel}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-semibold ${statusClass}">${status}</span>
+                                <p class="text-[11px] text-gray-500">${profitLabel}: ${formatCurrency(entryInsights.profitValue)}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="bg-gray-50 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Similar Bikes</span>
+                            <span class="text-[11px] text-gray-500">${matches.length} match${matches.length === 1 ? '' : 'es'}</span>
+                        </div>
+                        ${rows}
+                    </div>
+                `;
+            };
 
             if (bikeTypeToggle) {
                 bikeTypeToggle.querySelectorAll('button').forEach(button => {
@@ -2396,7 +2667,55 @@
                 });
             }
 
-            if (currentBikeType === 'brand_new') {
+            const isBrandNew = currentBikeType === 'brand_new';
+
+            if (bikeAdvancedToggle) {
+                bikeAdvancedToggle.classList.toggle('hidden', isBrandNew);
+                bikeAdvancedToggle.textContent = showBikeAdvanced ? 'Hide Advanced Filters' : 'Show Advanced Filters';
+            }
+
+            if (bikeAdvancedPanel) {
+                bikeAdvancedPanel.classList.toggle('hidden', !(showBikeAdvanced && !isBrandNew));
+            }
+
+            const advancedFilters = bikeAdvancedFilters || {};
+            const hasAdvancedFilters = Object.values(advancedFilters).some(Boolean);
+
+            if (bikeAdvancedReset) {
+                bikeAdvancedReset.classList.toggle('hidden', isBrandNew);
+                bikeAdvancedReset.disabled = !hasAdvancedFilters;
+                bikeAdvancedReset.classList.toggle('opacity-60', !hasAdvancedFilters);
+                bikeAdvancedReset.classList.toggle('cursor-not-allowed', !hasAdvancedFilters);
+            }
+
+            if (bikeBulkToggle) {
+                bikeBulkToggle.classList.toggle('hidden', isBrandNew);
+                bikeBulkToggle.textContent = bikeBulkMode ? 'Exit Clearance Selection' : 'Select for Clearance';
+                bikeBulkToggle.classList.toggle('bg-amber-500', bikeBulkMode);
+                bikeBulkToggle.classList.toggle('text-white', bikeBulkMode);
+                bikeBulkToggle.classList.toggle('border-amber-500', bikeBulkMode);
+                bikeBulkToggle.classList.toggle('hover:bg-amber-500/90', bikeBulkMode);
+                bikeBulkToggle.classList.toggle('bg-amber-100/70', !bikeBulkMode);
+                bikeBulkToggle.classList.toggle('text-amber-600', !bikeBulkMode);
+                bikeBulkToggle.classList.toggle('border-amber-200', !bikeBulkMode);
+            }
+
+            if (bikeFilterProfitMin && bikeFilterProfitMin !== document.activeElement) bikeFilterProfitMin.value = advancedFilters.profitMin ?? '';
+            if (bikeFilterProfitMax && bikeFilterProfitMax !== document.activeElement) bikeFilterProfitMax.value = advancedFilters.profitMax ?? '';
+            if (bikeFilterDateFrom && bikeFilterDateFrom !== document.activeElement) bikeFilterDateFrom.value = advancedFilters.dateFrom ?? '';
+            if (bikeFilterDateTo && bikeFilterDateTo !== document.activeElement) bikeFilterDateTo.value = advancedFilters.dateTo ?? '';
+            if (bikeFilterRepairMin && bikeFilterRepairMin !== document.activeElement) bikeFilterRepairMin.value = advancedFilters.repairMin ?? '';
+            if (bikeFilterRepairMax && bikeFilterRepairMax !== document.activeElement) bikeFilterRepairMax.value = advancedFilters.repairMax ?? '';
+
+            if (isBrandNew) {
+                if (state.ui.showBikeAdvanced) {
+                    state.ui.showBikeAdvanced = false;
+                }
+                if (state.ui.bikeBulkMode || (state.ui.bikeBulkSelection || []).length) {
+                    state.ui.bikeBulkMode = false;
+                    state.ui.bikeBulkSelection = [];
+                    updateBikeBulkFooter();
+                }
                 bikeFilter.classList.add('hidden');
                 bikeSortTrigger.classList.add('hidden');
                 bikeSortMenu.classList.add('hidden');
@@ -2408,14 +2727,14 @@
             bikeFilter.classList.remove('hidden');
             bikeSortTrigger.classList.remove('hidden');
             bikeSearch.placeholder = 'Search by name, plate, or owner...';
-            
+
             let filteredBikes = state.data.bikes.filter(bike => {
                 if (currentBikeFilter === 'sold' && !bike.sold) return false;
                 if (currentBikeFilter === 'unsold' && bike.sold) return false;
-                
+
                 if (search) {
-                    const plate = bike.bikeNumberPlate.toLowerCase();
-                    const owner = bike.ownerName.toLowerCase();
+                    const plate = (bike.bikeNumberPlate || '').toLowerCase();
+                    const owner = (bike.ownerName || '').toLowerCase();
                     const name = (bike.bikeName || '').toLowerCase();
                     if (!plate.includes(search) && !owner.includes(search) && !name.includes(search)) {
                         return false;
@@ -2424,107 +2743,244 @@
                 return true;
             });
 
-            // NEW: Sorting Logic
-            const getBikeCost = b => (b.purchasePrice || 0) + (b.repairPrice || 0);
-            const getBikeProfit = b => b.sold ? (b.sellingPrice || 0) - getBikeCost(b) : 0;
+            const profitMin = parseNumber(advancedFilters.profitMin);
+            const profitMax = parseNumber(advancedFilters.profitMax);
+            const repairMin = parseNumber(advancedFilters.repairMin);
+            const repairMax = parseNumber(advancedFilters.repairMax);
+            const dateFrom = parseDate(advancedFilters.dateFrom);
+            const dateTo = parseDate(advancedFilters.dateTo);
+
+            filteredBikes = filteredBikes.filter(bike => {
+                const insights = getInsights(bike);
+
+                if (profitMin !== null && insights.profitValue < profitMin) return false;
+                if (profitMax !== null && insights.profitValue > profitMax) return false;
+
+                if (dateFrom) {
+                    const purchaseDate = bike.purchaseDate ? new Date(bike.purchaseDate) : null;
+                    if (!purchaseDate || purchaseDate < dateFrom) return false;
+                }
+
+                if (dateTo) {
+                    const purchaseDate = bike.purchaseDate ? new Date(bike.purchaseDate) : null;
+                    if (!purchaseDate || purchaseDate > dateTo) return false;
+                }
+
+                const repairValue = parseFloat(bike.repairPrice || 0);
+                if (repairMin !== null && repairValue < repairMin) return false;
+                if (repairMax !== null && repairValue > repairMax) return false;
+
+                return true;
+            });
+
+            const getSaleValue = (bike) => getInsights(bike).saleValue;
+            const getProfitValue = (bike) => getInsights(bike).profitValue;
 
             filteredBikes.sort((a, b) => {
                 switch (currentBikeSort) {
-                    case 'az': return (a.bikeName || '').localeCompare(b.bikeName || '');
-                    case 'za': return (b.bikeName || '').localeCompare(a.bikeName || '');
-                    case 'purchaseHigh': return getBikeCost(b) - getBikeCost(a);
-                    case 'purchaseLow': return getBikeCost(a) - getBikeCost(b);
-                    case 'saleHigh': return (b.sellingPrice || 0) - (a.sellingPrice || 0);
-                    case 'saleLow': return (a.sellingPrice || 0) - (b.sellingPrice || 0);
-                    case 'profitHigh': return getBikeProfit(b) - getBikeProfit(a);
-                    case 'profitLow': return getBikeProfit(a) - getBikeProfit(b);
+                    case 'az':
+                        return (a.bikeName || '').localeCompare(b.bikeName || '');
+                    case 'za':
+                        return (b.bikeName || '').localeCompare(a.bikeName || '');
+                    case 'purchaseHigh':
+                        return getBikeCost(b) - getBikeCost(a);
+                    case 'purchaseLow':
+                        return getBikeCost(a) - getBikeCost(b);
+                    case 'saleHigh':
+                        return getSaleValue(b) - getSaleValue(a);
+                    case 'saleLow':
+                        return getSaleValue(a) - getSaleValue(b);
+                    case 'profitHigh':
+                        return getProfitValue(b) - getProfitValue(a);
+                    case 'profitLow':
+                        return getProfitValue(a) - getProfitValue(b);
                     case 'dateDesc':
                     default:
                         return new Date(b.createdAt || b.purchaseDate) - new Date(a.createdAt || a.purchaseDate);
                 }
             });
-            
+
             if (filteredBikes.length === 0) {
                 bikeList.innerHTML = `<p class="text-gray-500 text-center mt-4">No bikes found.</p>`;
+                updateBikeBulkFooter();
                 return;
             }
-            
+
             bikeList.innerHTML = filteredBikes.map(bike => {
-                const totalCost = getBikeCost(bike);
-                
-                let statusHTML = '';
+                const insights = getInsights(bike);
+                const totalCost = insights.totalCost;
+                const badges = [];
                 let showLogPayment = false;
 
                 if (bike.sold) {
                     if (bike.paymentMode === 'cash') {
-                        statusHTML = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800">Paid</span>`;
+                        badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Paid</span>`);
                     } else if (bike.paymentMode === 'credit' && bike.creditInfo) {
-                        if (bike.creditInfo.remaining > EPSILON) {
-                            statusHTML = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">Credit: ${formatCurrency(bike.creditInfo.remaining)} due</span>`;
+                        if ((bike.creditInfo.remaining || 0) > EPSILON) {
+                            badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">Credit: ${formatCurrency(bike.creditInfo.remaining)} due</span>`);
                             showLogPayment = true;
                         } else {
-                            statusHTML = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800">Paid</span>`;
+                            badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Paid</span>`);
                         }
                     } else if (bike.paymentMode === 'emi' && bike.emiInfo) {
-                        if (bike.emiInfo.installmentsPaid < bike.emiInfo.totalInstallments) {
-                            statusHTML = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">EMI: ${bike.emiInfo.installmentsPaid}/${bike.emiInfo.totalInstallments} paid</span>`;
+                        if ((bike.emiInfo.installmentsPaid || 0) < (bike.emiInfo.totalInstallments || 0)) {
+                            badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">EMI: ${bike.emiInfo.installmentsPaid || 0}/${bike.emiInfo.totalInstallments || 0} paid</span>`);
                             showLogPayment = true;
                         } else {
-                            statusHTML = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800">Paid</span>`;
+                            badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Paid</span>`);
                         }
+                    } else {
+                        badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Sold</span>`);
                     }
                 } else {
-                     statusHTML = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">Unsold</span>`;
+                    badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">Unsold</span>`);
                 }
 
-                
-                return `
-                <div class="bg-white rounded-xl p-4 shadow-sm space-y-2" data-bike-id="${bike.id}">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="font-semibold text-lg text-gray-800">${bike.bikeName || bike.bikeNumberPlate}</span>
-                            <span class="font-medium text-sm text-gray-500 block">${bike.bikeNumberPlate}</span>
-                        </div>
-                        ${statusHTML}
-                    </div>
-                    <p class="text-gray-600 text-sm">Owner: ${bike.ownerName}</p>
-                    
-                    ${bike.sold ? `
-                        <div class="text-sm space-y-1 pt-2 border-t mt-2">
+                if (bike.clearanceSale) {
+                    badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Clearance</span>`);
+                }
+
+                if (bike.purchaseDate) {
+                    const purchaseDate = new Date(bike.purchaseDate);
+                    if (!Number.isNaN(purchaseDate.getTime())) {
+                        if (!bike.sold) {
+                            const diff = Math.max(0, Math.floor((Date.now() - purchaseDate.getTime()) / dayMs));
+                            badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">In stock ${diff}d</span>`);
+                        } else if (bike.soldDate) {
+                            const soldDate = new Date(bike.soldDate);
+                            if (!Number.isNaN(soldDate.getTime())) {
+                                const diff = Math.max(0, Math.floor((soldDate.getTime() - purchaseDate.getTime()) / dayMs));
+                                badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Sold in ${diff}d</span>`);
+                            }
+                        }
+                    }
+                }
+
+                badges.push(`<span class="text-xs font-semibold px-2 py-0.5 rounded-full ${insights.badgeClass}">${insights.isActual ? 'Actual Profit' : 'Profit Potential'}: ${formatCurrency(insights.profitValue)}</span>`);
+
+                const selection = state.ui.bikeBulkMode && !bike.sold
+                    ? `
+                        <label class="flex items-center gap-2 text-[11px] text-gray-600 mt-2">
+                            <input type="checkbox" class="bike-clearance-checkbox h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500" data-bike-id="${bike.id}" ${bikeBulkSelection.includes(bike.id) ? 'checked' : ''}>
+                            Mark for clearance
+                        </label>
+                    `
+                    : '';
+
+                const badgesBlock = badges.length
+                    ? `<div class="flex flex-wrap justify-end gap-2">${badges.join('')}</div>`
+                    : '';
+
+                const costBreakdown = bike.sold ? `
+                        <div class="text-sm space-y-1 pt-2 border-t border-gray-100 mt-2">
                             <p class="flex justify-between">
-                                <span>Sale: ${formatCurrency(bike.sellingPrice)}</span> 
-                                <span>Cost: ${formatCurrency(totalCost)}</span>
+                                <span>Sale:</span>
+                                <span>${formatCurrency(bike.sellingPrice)}</span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span>Cost:</span>
+                                <span>${formatCurrency(totalCost)}</span>
                             </p>
                             <p class="flex justify-between font-semibold">
-                                <span>Profit:</span> 
-                                <span class="${(getBikeProfit(bike)) >= 0 ? 'text-green-600' : 'text-red-600'}">
-                                    ${formatCurrency(getBikeProfit(bike))}
-                                </span>
+                                <span>Profit:</span>
+                                <span class="${insights.profitValue >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(insights.profitValue)}</span>
                             </p>
                         </div>
                     ` : `
-                        <div class="text-sm pt-2 border-t mt-2">
-                            <p class="flex justify-between"><span>Purchase: ${formatCurrency(bike.purchasePrice)}</span> <span>Repair: ${formatCurrency(bike.repairPrice)}</span></p>
-                            <p class="flex justify-between font-semibold"><span>Total Cost:</span> <span>${formatCurrency(totalCost)}</span></p>
+                        <div class="text-sm space-y-1 pt-2 border-t border-gray-100 mt-2">
+                            <p class="flex justify-between">
+                                <span>Purchase:</span>
+                                <span>${formatCurrency(bike.purchasePrice)}</span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span>Repair:</span>
+                                <span>${formatCurrency(bike.repairPrice)}</span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span>Total Cost:</span>
+                                <span>${formatCurrency(totalCost)}</span>
+                            </p>
+                            ${insights.saleValue > 0 ? `
+                                <p class="flex justify-between">
+                                    <span>Target Sale:</span>
+                                    <span>${formatCurrency(insights.saleValue)}</span>
+                                </p>
+                            ` : ''}
+                            <p class="flex justify-between font-semibold">
+                                <span>Potential Profit:</span>
+                                <span class="${insights.profitValue >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(insights.profitValue)}</span>
+                            </p>
                         </div>
-                    `}
+                    `;
 
-                    ${bike.referral ? `
-                        <div class="mt-2 pt-2 border-t text-xs text-gray-600">
+                const referralBlock = bike.referral ? `
+                        <div class="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
                             <p class="font-medium text-gray-700">Reference: ${bike.referral.name || 'N/A'}</p>
                             ${bike.referral.contact ? `<p>Contact: ${bike.referral.contact}</p>` : ''}
                             ${bike.referral.commission ? `<p>Commission Share: ${formatCurrency(bike.referral.commission)}</p>` : ''}
                         </div>
-                    ` : ''}
-                    
-                    <div class="flex justify-end gap-3 pt-2">
+                    ` : '';
+
+                const ownerPhone = sanitizePhone(bike.ownerContact || '');
+                const customerPhone = sanitizePhone(bike.customerContact || '');
+                const shareLines = [
+                    `Bike: ${bike.bikeName || bike.bikeNumberPlate}`,
+                    `Cost: ${formatCurrency(totalCost)}`,
+                    bike.sold
+                        ? `Sold @ ${formatCurrency(bike.sellingPrice || 0)}`
+                        : (insights.saleValue > 0 ? `Target @ ${formatCurrency(insights.saleValue)}` : ''),
+                    `${insights.isActual ? 'Actual' : 'Potential'} profit: ${formatCurrency(insights.profitValue)}`
+                ].filter(Boolean);
+                const shareRecipient = bike.sold ? customerPhone : '';
+                const shareHref = `https://wa.me/${shareRecipient}?text=${encodeURIComponent(shareLines.join('\n'))}`;
+
+                const quickActions = [
+                    ownerPhone ? `<a href="tel:${ownerPhone}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition">Call Owner</a>` : '',
+                    bike.sold && customerPhone ? `<a href="tel:${customerPhone}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition">Call Customer</a>` : '',
+                    `<a href="${shareHref}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition">Share on WhatsApp</a>`
+                ].filter(Boolean);
+
+                const quickActionsBlock = quickActions.length
+                    ? `<div class="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 mt-3">${quickActions.join('')}</div>`
+                    : '';
+
+                const similarBlock = buildSimilarSection(bike, insights);
+
+                const actionsBlock = `
+                    <div class="flex flex-wrap justify-end gap-3 pt-3">
                         ${!bike.sold ? `<button data-action="mark-sold" class="text-green-600 font-medium text-sm">Mark Sold</button>` : ''}
                         ${showLogPayment ? `<button data-action="log-payment" class="text-blue-600 font-medium text-sm">Log Payment</button>` : ''}
                         <button data-action="edit-bike" class="text-blue-500 font-medium text-sm">Edit</button>
                     </div>
-                </div>
+                `;
+
+                const cardClasses = `bg-white rounded-xl p-4 shadow-sm space-y-3 ${bike.clearanceSale ? 'border border-amber-300' : ''}`;
+
+                return `
+                    <div class="${cardClasses}" data-bike-id="${bike.id}">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-start gap-3">
+                                <div>
+                                    <span class="font-semibold text-lg text-gray-800">${bike.bikeName || bike.bikeNumberPlate}</span>
+                                    <span class="font-medium text-sm text-gray-500 block">${bike.bikeNumberPlate}</span>
+                                    <p class="text-gray-600 text-sm">Owner: ${bike.ownerName || 'N/A'}</p>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    ${badgesBlock}
+                                    ${selection}
+                                </div>
+                            </div>
+                            ${costBreakdown}
+                            ${referralBlock}
+                            ${similarBlock}
+                            ${quickActionsBlock}
+                            ${actionsBlock}
+                        </div>
+                    </div>
                 `;
             }).join('');
+
+            updateBikeBulkFooter();
             applyPendingHighlight();
         };
         
@@ -2789,6 +3245,11 @@
                 <div>
                     <label class="form-label" for="bike-repair-price">Repair Price</label>
                     <input type="number" id="bike-repair-price" class="form-input" placeholder="5000" value="${bike.repairPrice || ''}">
+                </div>
+                <div>
+                    <label class="form-label" for="bike-target-price">Target Selling Price</label>
+                    <input type="number" id="bike-target-price" class="form-input" placeholder="65000" value="${bike.targetSalePrice ?? ''}">
+                    <p class="text-xs text-gray-400 mt-1">Used to estimate profit potential and advanced filters.</p>
                 </div>
             </div>
 
@@ -4161,6 +4622,8 @@
                             repairPrice: parseFloat($('#bike-repair-price').value) || 0,
                             createdAt: new Date().toISOString(),
                             sold: false,
+                            targetSalePrice: parseFloat($('#bike-target-price').value) || null,
+                            clearanceSale: false,
                             referral: referralName ? {
                                 name: referralName,
                                 contact: referralContact,
@@ -4216,6 +4679,7 @@
                             purchaseDate: $('#bike-purchase-date').value,
                             purchasePrice: parseFloat($('#bike-purchase-price').value) || 0,
                             repairPrice: parseFloat($('#bike-repair-price').value) || 0,
+                            targetSalePrice: parseFloat($('#bike-target-price').value) || null,
                             referral: referralName ? {
                                 name: referralName,
                                 contact: referralContact,
@@ -4318,6 +4782,9 @@
                         }
                         
                         state.data.bikes[index] = { ...state.data.bikes[index], ...salesData };
+                        if (state.data.bikes[index].sold) {
+                            state.data.bikes[index].clearanceSale = false;
+                        }
                         
                         autoCreatePRContact({
                             name: purchaseData.ownerName,
@@ -5299,6 +5766,49 @@
                     renderBikesPage();
                 }
             });
+            bikeAdvancedToggle?.addEventListener('click', () => {
+                state.ui.showBikeAdvanced = !state.ui.showBikeAdvanced;
+                renderBikesPage();
+            });
+            bikeAdvancedReset?.addEventListener('click', () => {
+                state.ui.bikeAdvancedFilters = {
+                    profitMin: '',
+                    profitMax: '',
+                    dateFrom: '',
+                    dateTo: '',
+                    repairMin: '',
+                    repairMax: ''
+                };
+                renderBikesPage();
+            });
+
+            const advancedInputConfigs = [
+                { element: bikeFilterProfitMin, key: 'profitMin', event: 'input' },
+                { element: bikeFilterProfitMax, key: 'profitMax', event: 'input' },
+                { element: bikeFilterRepairMin, key: 'repairMin', event: 'input' },
+                { element: bikeFilterRepairMax, key: 'repairMax', event: 'input' },
+                { element: bikeFilterDateFrom, key: 'dateFrom', event: 'change' },
+                { element: bikeFilterDateTo, key: 'dateTo', event: 'change' }
+            ];
+
+            advancedInputConfigs.forEach(({ element, key, event }) => {
+                element?.addEventListener(event, (inputEvent) => {
+                    const nextValue = inputEvent.target.value;
+                    state.ui.bikeAdvancedFilters = {
+                        ...state.ui.bikeAdvancedFilters,
+                        [key]: nextValue
+                    };
+                    renderBikesPage();
+                });
+            });
+
+            bikeBulkToggle?.addEventListener('click', () => {
+                state.ui.bikeBulkMode = !state.ui.bikeBulkMode;
+                if (!state.ui.bikeBulkMode) {
+                    state.ui.bikeBulkSelection = [];
+                }
+                renderBikesPage();
+            });
             
             // Bike Page: List Clicks
             bikeList.addEventListener('click', (e) => {
@@ -5341,6 +5851,62 @@
                     openModal('logPayment', bike);
                 }
             });
+
+            bikeList.addEventListener('change', (e) => {
+                const checkbox = e.target.closest('.bike-clearance-checkbox');
+                if (!checkbox) return;
+                const bikeId = checkbox.dataset.bikeId;
+                if (!bikeId) return;
+                const selection = new Set(state.ui.bikeBulkSelection || []);
+                if (checkbox.checked) {
+                    selection.add(bikeId);
+                } else {
+                    selection.delete(bikeId);
+                }
+                state.ui.bikeBulkSelection = Array.from(selection);
+                updateBikeBulkFooter();
+            });
+
+            bikeClearanceCancel?.addEventListener('click', () => {
+                state.ui.bikeBulkMode = false;
+                state.ui.bikeBulkSelection = [];
+                renderBikesPage();
+            });
+
+            const applyClearanceSelection = (enable) => {
+                const selection = new Set(state.ui.bikeBulkSelection || []);
+                if (!selection.size) {
+                    showToast('Select at least one bike first.', true);
+                    return;
+                }
+
+                let updated = 0;
+                state.data.bikes.forEach((bike) => {
+                    if (!selection.has(bike.id) || bike.sold) {
+                        return;
+                    }
+                    if (!!bike.clearanceSale !== enable) {
+                        bike.clearanceSale = enable;
+                        updated += 1;
+                    }
+                });
+
+                if (updated > 0) {
+                    showToast(enable ? 'Marked selected bikes for clearance.' : 'Removed clearance flag.');
+                    saveData();
+                } else {
+                    showToast('No changes applied.', true);
+                }
+
+                state.ui.bikeBulkSelection = [];
+                if (!enable) {
+                    updateBikeBulkFooter();
+                }
+                renderBikesPage();
+            };
+
+            bikeClearanceMark?.addEventListener('click', () => applyClearanceSelection(true));
+            bikeClearanceRemove?.addEventListener('click', () => applyClearanceSelection(false));
 
             if (creditList) {
                 creditList.addEventListener('click', (e) => {
