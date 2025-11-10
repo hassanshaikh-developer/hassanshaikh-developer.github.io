@@ -2786,8 +2786,6 @@
                     `${insights.isActual ? 'Actual' : 'Potential'} profit: ${formatCurrency(insights.profitValue)}`
                 ].filter(Boolean);
                 const shareRecipient = bike.sold ? customerPhone : '';
-                const shareHref = `https://wa.me/${shareRecipient}?text=${encodeURIComponent(shareLines.join('\n'))}`;
-
                 const shareHref = esc(`https://wa.me/${shareRecipient}?text=${encodeURIComponent(shareLines.join('\n'))}`);
 
                 const quickActions = [
