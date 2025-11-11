@@ -1,3 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Manager</title>
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.452.0/dist/umd/lucide.min.js"></script>
+    <!-- jsPDF for PDF exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Base styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none; /* Prevents "pull-to-refresh" on mobile */
+        }
+        
+        /* iOS-style tap highlight color */
+        [data-page], button, [data-action] {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Active bottom navigation icon color */
+        .nav-item.active svg {
+            color: #0d6efd; /* Use a distinct blue */
+        }
+        .nav-item.active span {
+            color: #0d6efd;
+        }
+
+        /* iOS-style segmented control (filters) */
+        .segmented-control {
+            display: flex;
+            background-color: #e9e9eb; /* Light gray background */
+            border-radius: 9px;
+            padding: 2px;
+        }
+        .segmented-control button {
+            flex: 1;
+            padding: 5px 10px;
+            border: none;
+            background-color: transparent;
+            color: #555;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 7px;
+            transition: all 0.2s ease-in-out;
+        }
+        .segmented-control button.active {
+            background-color: #ffffff;
+            color: #000;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Custom scrollbar */
+        .page-content::-webkit-scrollbar,
+        #transaction-list::-webkit-scrollbar,
+        #dashboard-reminders::-webkit-scrollbar {
+            width: 4px;
+        }
+        .page-content::-webkit-scrollbar-thumb,
+        #transaction-list::-webkit-scrollbar-thumb,
+        #dashboard-reminders::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 4px;
+        }
+        .page-content::-webkit-scrollbar-track,
+        #transaction-list::-webkit-scrollbar-track,
+        #dashboard-reminders::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* Form input styling */
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            border-radius: 10px;
+            border: 1px solid #f3f4f6;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6; /* focus:ring-blue-500 */
+            background-color: #fff;
+            box-shadow: 0 0 0 2px #bfdbfe; /* focus:ring-2 */
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280; /* text-gray-500 */
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+        
+        /* Modal animation */
+        .modal-sheet {
+            transition: transform 0.3s ease-out;
+            transform: translateY(100%);
+        }
+        .modal-sheet.open {
+            transform: translateY(0);
+        }
+        @media (min-width: 1024px) {
+            .modal-sheet {
+                position: static !important;
+                transform: none !important;
+                max-height: 90vh;
+                margin: 0 auto;
+            }
+            .modal-sheet.open {
+                transform: none !important;
+            }
+        }
+        .modal-overlay {
+            transition: opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+        }
+
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        /* Sensitive data masking */
+        .sensitive-mask {
+            filter: blur(6px);
+            opacity: 0.5;
+            pointer-events: none;
+            user-select: none;
+        }
+        .sensitive-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .lock-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(219, 234, 254, 0.6);
+            color: #2563eb;
+            font-size: 14px;
+            transition: all 0.2s ease-in-out;
+        }
+        .lock-button:hover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+        .lock-button.locked {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.35);
+            color: #dc2626;
+        }
+        .analytics-locked {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1rem;
+            border-radius: 1rem;
+            border: 1px dashed rgba(59, 130, 246, 0.4);
+            background: rgba(219, 234, 254, 0.35);
+            color: #1d4ed8;
+            text-align: center;
+            gap: 1.5rem;
+        }
+
+        /* Lucide icon sizing */
+        .lucide {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke-width: 1.8;
+        }
+
+        .highlight-pulse {
+            position: relative;
+            animation: highlightFade 2.5s ease-out;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+        }
+
+        @keyframes highlightFade {
+            0% {
+                box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.45);
+            }
+            40% {
+                box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+            }
+            80% {
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+            }
+            100% {
+                box-shadow: none;
+            }
+        }
+
+        .pr-action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 9999px;
+            background: rgba(59, 130, 246, 0.08);
+            color: #2563eb;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .pr-action-button:hover {
+            background: rgba(59, 130, 246, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .pr-bike-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(37, 99, 235, 0.08);
+            color: #1d4ed8;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .pr-bike-chip:hover {
+            background: rgba(37, 99, 235, 0.16);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-200">
+
+    <!-- App Header (Dynamic Title) -->
+    <header class="bg-white/90 backdrop-blur-sm border-b border-gray-200 fixed inset-x-0 top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 lg:px-8 py-4 flex flex-wrap gap-3 justify-between items-center">
+            <h1 id="page-title" class="text-xl lg:text-2xl font-bold text-gray-900">Dashboard</h1>
+            <!-- Add Button (context-aware) -->
+            <div class="flex items-center gap-3">
+                <button id="pwa-install-button" class="px-3 py-2 rounded-lg bg-blue-500 text-white text-xs sm:text-sm font-semibold shadow-sm hover:bg-blue-600 transition hidden" type="button">
+                    Install App
+                </button>
+                <button id="sensitive-toggle" class="lock-button locked" title="Unlock sensitive data" aria-pressed="false">
+                    <i data-lucide="lock"></i>
+                </button>
+                <button id="add-button" class="text-blue-500 hidden" title="Add new item">
+                    <i data-lucide="plus" class="w-7 h-7"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 
+      Main App Wrapper
+      Simulates a mobile phone screen, centered on desktop.
+    -->
+    <div id="app-wrapper" class="w-full max-w-6xl mx-auto min-h-screen bg-gray-100 shadow-xl lg:rounded-3xl overflow-hidden hidden flex flex-col">
+
+        <div class="flex-1 flex flex-col">
+            <!-- 
+              Content Area
+              Pages will be swapped here.
+            -->
+            <main class="flex-1 overflow-y-auto page-content lg:px-8 pt-24 pb-28">
+            
+            <!-- Page: Dashboard (Home) -->
+            <div id="page-dashboard" class="page p-4 lg:p-6 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm">
+                        <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
+                        <div class="sensitive-wrapper mt-1">
+                            <div id="dashboard-cash" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm">
+                        <span class="text-sm font-medium text-gray-500">Total Revenue</span>
+                        <div class="sensitive-wrapper mt-1">
+                            <div id="dashboard-revenue" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm">
+                        <span class="text-sm font-medium text-gray-500">Total Profit</span>
+                        <div class="sensitive-wrapper mt-1">
+                            <div id="dashboard-profit" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm">
+                        <span class="text-sm font-medium text-gray-500">Brand New Earnings</span>
+                        <div class="sensitive-wrapper mt-1">
+                            <div id="dashboard-brand" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm">
+                        <span class="text-sm font-medium text-gray-500">Unsold Investment</span>
+                        <div id="metric-investment" class="text-2xl font-bold text-gray-900 mt-1">₹0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm">
+                        <span class="text-sm font-medium text-gray-500">Inventory (S/U)</span>
+                        <div id="metric-inventory" class="text-2xl font-bold text-gray-900 mt-1">0 / 0</div>
+                    </div>
+                </div>
+
+                <!-- Payment Reminders -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm">
+                    <h2 class="text-lg font-semibold mb-2">Next Payment Reminder</h2>
+                    <div id="dashboard-reminders" class="max-h-40 overflow-y-auto space-y-3 pr-2">
+                        <!-- Reminders injected here -->
+                    </div>
+                </div>
+
+                <!-- Recent Unsold -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-lg font-semibold">Unsold Bikes</h2>
+                        <select id="dashboard-sort" class="form-input !p-2 !py-1 !text-sm !w-auto !rounded-lg !bg-gray-200 border-none focus:ring-0 focus:border-none">
+                            <option value="recent">Recent</option>
+                            <option value="high_price">High Price</option>
+                            <option value="low_price">Low Price</option>
+                        </select>
+                    </div>
+                    <div id="dashboard-recent-bikes" class="space-y-2">
+                        <!-- Recent bikes injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Bikes -->
+            <div id="page-bikes" class="page p-4 lg:p-6 space-y-4 hidden">
+                <!-- Filters -->
+                <div class="sticky top-0 bg-gray-100 py-2 space-y-3">
+                    <input type="search" id="bike-search" placeholder="Search by name, plate, or owner..." class="form-input">
+                    <div class="segmented-control" id="bike-type-toggle">
+                        <button data-type="second_hand" class="active">Second Hand</button>
+                        <button data-type="brand_new">Brand New</button>
+                    </div>
+                    <div class="segmented-control" id="bike-filter">
+                        <button data-filter="all" class="active">All</button>
+                        <button data-filter="unsold">Unsold</button>
+                        <button data-filter="sold">Sold</button>
+                    </div>
+                    <!-- NEW: Sort Dropdown -->
+                    <div class="relative">
+                        <button id="bike-sort-trigger" class="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <span id="bike-sort-label" class="font-medium">Sort: Recent</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 ml-2 text-gray-500"></i>
+                        </button>
+                        <div id="bike-sort-menu" class="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg hidden">
+                            <ul class="py-1 text-sm text-gray-700">
+                                <li data-sort="dateDesc" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Recent</li>
+                                <li data-sort="az" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">A-Z</li>
+                                <li data-sort="za" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Z-A</li>
+                                <li data-sort="purchaseHigh" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Purchase (High)</li>
+                                <li data-sort="purchaseLow" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Purchase (Low)</li>
+                                <li data-sort="saleHigh" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Sales (High)</li>
+                                <li data-sort="saleLow" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Sales (Low)</li>
+                                <li data-sort="profitHigh" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Profit (High)</li>
+                                <li data-sort="profitLow" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Profit (Low)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button id="bike-advanced-toggle" class="px-3 py-2 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition">
+                            Show Advanced Filters
+                        </button>
+                        <button id="bike-advanced-reset" class="px-3 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition">
+                            Reset Filters
+                        </button>
+                        <button id="bike-bulk-toggle" class="px-3 py-2 text-xs font-semibold text-amber-600 bg-amber-100/70 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
+                            Select for Clearance
+                        </button>
+                    </div>
+                    <div id="bike-advanced-panel" class="hidden bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label" for="bike-filter-profit-min">Profit Range (₹)</label>
+                                <div class="flex gap-2">
+                                    <input type="number" id="bike-filter-profit-min" class="form-input" placeholder="Min">
+                                    <input type="number" id="bike-filter-profit-max" class="form-input" placeholder="Max">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label" for="bike-filter-date-from">Purchase Date</label>
+                                <div class="flex gap-2">
+                                    <input type="date" id="bike-filter-date-from" class="form-input">
+                                    <input type="date" id="bike-filter-date-to" class="form-input">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label" for="bike-filter-repair-min">Repair Cost (₹)</label>
+                                <div class="flex gap-2">
+                                    <input type="number" id="bike-filter-repair-min" class="form-input" placeholder="Min">
+                                    <input type="number" id="bike-filter-repair-max" class="form-input" placeholder="Max">
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            Advanced filters apply to both sold and unsold bikes. Profit for unsold bikes uses the target or similar sale averages.
+                        </p>
+                    </div>
+                </div>
+                <!-- Bike List -->
+                <div id="bike-list" class="space-y-3">
+                    <!-- Bike card template -->
+                </div>
+                <div id="bike-clearance-footer" class="hidden fixed inset-x-0 bottom-24 z-30 px-4">
+                    <div class="max-w-2xl mx-auto bg-white shadow-xl border border-amber-200 rounded-2xl p-4 space-y-3">
+                        <div class="flex flex-wrap justify-between items-center gap-3 text-sm">
+                            <span id="bike-clearance-count" class="font-semibold text-gray-800">0 bikes selected</span>
+                            <button id="bike-clearance-cancel" class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition">
+                                Cancel
+                            </button>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="bike-clearance-mark" class="flex-1 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition">
+                                Mark as Clearance
+                            </button>
+                            <button id="bike-clearance-remove" class="flex-1 py-2 bg-white border border-amber-300 text-amber-600 rounded-lg font-semibold hover:bg-amber-100 transition">
+                                Remove Clearance
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Credit -->
+            <div id="page-credit" class="page p-4 lg:p-6 space-y-4 hidden">
+                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div class="bg-blue-50 rounded-xl p-3">
+                            <p class="text-xs text-blue-600 font-medium uppercase tracking-wide">Total Credit Given</p>
+                            <p id="credit-total" class="text-xl font-bold text-blue-900 mt-1">₹0</p>
+                        </div>
+                        <div class="bg-green-50 rounded-xl p-3">
+                            <p class="text-xs text-green-600 font-medium uppercase tracking-wide">Collected</p>
+                            <p id="credit-collected" class="text-xl font-bold text-green-900 mt-1">₹0</p>
+                        </div>
+                        <div class="bg-orange-50 rounded-xl p-3">
+                            <p class="text-xs text-amber-600 font-medium uppercase tracking-wide">Pending</p>
+                            <p id="credit-pending" class="text-xl font-bold text-amber-900 mt-1">₹0</p>
+                        </div>
+                        <div class="bg-purple-50 rounded-xl p-3">
+                            <p class="text-xs text-purple-600 font-medium uppercase tracking-wide">Active Customers</p>
+                            <p id="credit-active" class="text-xl font-bold text-purple-900 mt-1">0</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="credit-export" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Export Credit Data</button>
+                        <button id="credit-bulk-toggle" class="w-full py-3 bg-white border border-blue-200 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition">Start Bulk Collection</button>
+                    </div>
+                </div>
+                <div id="credit-list" class="space-y-3">
+                    <!-- Credit cards injected here -->
+                </div>
+                <div id="credit-bulk-footer" class="hidden fixed inset-x-0 bottom-24 z-30 px-4">
+                    <div class="max-w-2xl mx-auto bg-blue-600 text-white rounded-2xl shadow-xl p-4 space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span id="credit-bulk-count">0 customers selected</span>
+                            <span id="credit-bulk-total" class="font-semibold">₹0</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="credit-bulk-cancel" class="w-1/3 py-2 bg-white/20 rounded-lg font-semibold text-white hover:bg-white/30 transition">Cancel</button>
+                            <button id="credit-bulk-confirm" class="flex-1 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition">Record Payments</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Analytics -->
+            <div id="page-analytics" class="page p-4 lg:p-6 space-y-4 hidden">
+                <div id="analytics-locked-state" class="hidden analytics-locked">
+                    <div class="text-lg font-semibold">Sensitive analytics locked</div>
+                    <p class="text-sm text-blue-700">Unlock with your PIN to review financial analytics.</p>
+                    <button id="analytics-unlock" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Unlock Analytics</button>
+                </div>
+                <div id="analytics-content" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
+                            <div class="sensitive-wrapper mt-1">
+                                <div id="analytics-cash" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <span class="text-sm font-medium text-gray-500">Total Profit</span>
+                            <div class="sensitive-wrapper mt-1">
+                                <div id="analytics-profit" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <span class="text-sm font-medium text-gray-500">Realized Profit</span>
+                            <div class="sensitive-wrapper mt-1">
+                                <div id="analytics-realized" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <span class="text-sm font-medium text-gray-500">This Month</span>
+                            <div class="sensitive-wrapper mt-1">
+                                <div id="analytics-month" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <span class="text-sm font-medium text-gray-500">Total Cash Inflow</span>
+                            <div class="sensitive-wrapper mt-1">
+                                <div id="analytics-inflow" class="text-2xl font-bold text-green-600 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm">
+                            <span class="text-sm font-medium text-gray-500">Total Cash Outflow</span>
+                            <div class="sensitive-wrapper mt-1">
+                                <div id="analytics-outflow" class="text-2xl font-bold text-red-600 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-4 shadow-sm">
+                        <h2 class="text-lg font-semibold mb-2">Cash Transaction Log</h2>
+                        <div id="analytics-transaction-list" class="max-h-60 overflow-y-auto space-y-2 pr-2">
+                            <!-- Transactions injected here -->
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-lg font-semibold">Expenses</h2>
+                            <span id="analytics-expense-total" class="text-sm font-medium text-gray-500">₹0</span>
+                        </div>
+                        <div id="analytics-expense-list" class="space-y-2">
+                            <!-- Expenses summary -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Expenses -->
+            <div id="page-expenses" class="page p-4 lg:p-6 space-y-3 hidden">
+                <div id="expense-list" class="space-y-3">
+                    <!-- Expense card template -->
+                </div>
+            </div>
+
+            <!-- Page: PR (Personal Relationship) -->
+            <div id="page-pr" class="page p-4 lg:p-6 space-y-4 hidden">
+                <!-- Filters -->
+                <div class="sticky top-0 bg-gray-100 py-2">
+                    <input type="search" id="pr-search" placeholder="Search by name, contact, or bike..." class="form-input mb-2">
+                    <div class="segmented-control flex-wrap gap-2" id="pr-filter">
+                        <button data-filter="all" class="active">All</button>
+                        <button data-filter="Buyer">Buyers</button>
+                        <button data-filter="Owner">Owners</button>
+                        <button data-filter="Supplier">Suppliers</button>
+                    </div>
+                </div>
+                <!-- PR List -->
+                <div id="pr-list" class="space-y-3">
+                    <!-- PR card template -->
+                </div>
+            </div>
+
+            <!-- Page: Settings -->
+            <div id="page-settings" class="page p-4 lg:p-6 space-y-4">
+                <!-- Cash Adjustments -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm">
+                    <h2 class="text-lg font-semibold mb-2">Cash Adjustments</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="form-label" for="cash-adj-amount">Amount *</label>
+                            <input type="number" id="cash-adj-amount" placeholder="50000" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="cash-adj-desc">Description *</label>
+                            <input type="text" id="cash-adj-desc" placeholder="e.g., Initial Investment, Salary" class="form-input">
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="cash-adj-remove" class="w-full py-3 bg-red-500 text-white rounded-lg font-semibold transition hover:bg-red-600">
+                                Remove Cash (-)
+                            </button>
+                            <button id="cash-adj-add" class="w-full py-3 bg-green-500 text-white rounded-lg font-semibold transition hover:bg-green-600">
+                                Add Cash (+)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Security Settings -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                    <h2 class="text-lg font-semibold">Security</h2>
+                    <p id="pin-status" class="text-sm text-gray-600">
+                        Sensitive data is currently <span class="font-medium">locked</span>.
+                    </p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="form-label" for="pin-current">Current PIN *</label>
+                            <input type="password" id="pin-current" class="form-input" placeholder="Enter current PIN" maxlength="6" inputmode="numeric">
+                        </div>
+                        <div>
+                            <label class="form-label" for="pin-new">New PIN *</label>
+                            <input type="password" id="pin-new" class="form-input" placeholder="Choose 4-6 digit PIN" maxlength="6" inputmode="numeric">
+                        </div>
+                        <button id="pin-update" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                            Update PIN
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- NEW: Backup & Restore Section -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                    <h2 class="text-lg font-semibold">Backup & Restore</h2>
+                    <button id="setting-backup" class="w-full text-left px-3 py-2 bg-blue-100 rounded-lg text-blue-700 font-medium">Backup Data</button>
+                    <button id="setting-restore" class="w-full text-left px-3 py-2 bg-green-100 rounded-lg text-green-700 font-medium">Restore Data</button>
+                    <input type="file" id="restore-file-input" accept=".json" class="hidden">
+                    <p class="text-xs text-gray-500 text-center mt-1">
+                        Current Mode: <span id="backup-mode-display" class="font-medium">Local</span>
+                    </p>
+                </div>
+                
+                <!-- Data Management -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+                    <h2 class="text-lg font-semibold">Data Management</h2>
+                    <button id="setting-logout" class="w-full text-left px-3 py-2 bg-gray-100 rounded-lg text-blue-600 font-medium">Log Out / Change Sync</button>
+                    <button id="setting-reset" class="w-full text-left px-3 py-2 bg-red-100 rounded-lg text-red-600 font-medium">Reset All Data</button>
+                </div>
+            </div>
+
+        </main>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed inset-x-0 bottom-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 z-30">
+        <div class="max-w-6xl mx-auto flex justify-around items-center h-16 px-2 sm:px-4">
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500 active" data-page="dashboard">
+                <i data-lucide="layout-dashboard"></i>
+                <span class="text-xs lg:text-sm font-medium">Home</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="bikes">
+                <i data-lucide="bike"></i>
+                <span class="text-xs lg:text-sm font-medium">Bikes</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="credit">
+                <i data-lucide="wallet"></i>
+                <span class="text-xs lg:text-sm font-medium">Credit</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="analytics">
+                <i data-lucide="line-chart"></i>
+                <span class="text-xs lg:text-sm font-medium">Analytics</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="expenses">
+                <i data-lucide="receipt"></i>
+                <span class="text-xs lg:text-sm font-medium">Expenses</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="pr">
+                <i data-lucide="users"></i>
+                <span class="text-xs lg:text-sm font-medium">PR</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="settings">
+                <i data-lucide="settings"></i>
+                <span class="text-xs lg:text-sm font-medium">Settings</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 
+      PAT Authentication Modal
+    -->
+    <div id="pat-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-100 p-4 hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg">
+            <h2 class="text-xl font-bold text-center mb-2">GitHub Access</h2>
+            <p class="text-sm text-gray-600 text-center mb-4">
+                Enter a GitHub PAT with <code class="text-xs bg-gray-200 px-1 py-0.5 rounded">gist</code> permissions to sync data.
+            </p>
+            <div class="space-y-3">
+                <label for="pat-input" class="form-label">Personal Access Token</label>
+                <input type="password" id="pat-input" class="form-input" placeholder="ghp_...">
+                <button id="pat-save" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                    Connect & Load Data
+                </button>
+                <button id="pat-skip" class="w-full py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition">
+                    Skip & Use Locally
+                </button>
+            </div>
+            <p id="pat-error" class="text-red-500 text-sm text-center mt-3"></p>
+        </div>
+    </div>
+    
+    <!-- 
+      Global Loading Overlay
+    -->
+    <div id="loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-white/70 backdrop-blur-sm hidden">
+        <i data-lucide="loader-2" class="animate-spin h-8 w-8 text-blue-500"></i>
+    </div>
+    
+    <!-- 
+      Global Confirmation Modal
+    -->
+    <div id="confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg z-10">
+            <h2 id="confirm-title" class="text-lg font-semibold text-center mb-2">Are you sure?</h2>
+            <p id="confirm-message" class="text-sm text-gray-600 text-center mb-5">This action cannot be undone.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button id="confirm-cancel" class="w-full py-3 bg-gray-200 text-gray-800 rounded-lg font-medium">Cancel</button>
+                <button id="confirm-ok" class="w-full py-3 bg-red-500 text-white rounded-lg font-medium">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 
+      PIN Verification Modal
+    -->
+    <div id="pin-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
+        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg z-10 space-y-4">
+            <div class="space-y-1 text-center">
+                <h2 class="text-xl font-bold text-gray-900">Unlock Sensitive Data</h2>
+                <p class="text-sm text-gray-600" id="pin-modal-message">Enter your 4-digit PIN to continue.</p>
+            </div>
+            <div class="space-y-3">
+                <input type="password" maxlength="6" inputmode="numeric" id="pin-input" class="form-input text-center tracking-widest text-lg" placeholder="••••">
+                <p id="pin-error" class="text-xs text-red-500 text-center"></p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button id="pin-cancel" class="w-full py-3 bg-gray-200 text-gray-800 rounded-lg font-medium">Cancel</button>
+                <button id="pin-submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition">Unlock</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 
+      Main Form Modal (Sheet style)
+    -->
+    <div id="form-modal" class="fixed inset-0 z-40 hidden lg:flex lg:items-center lg:justify-center">
+        <!-- Overlay -->
+        <div id="modal-overlay" class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
+        
+        <!-- Sheet Content -->
+        <div id="modal-sheet" class="modal-sheet fixed bottom-0 left-0 right-0 max-w-md sm:max-w-xl lg:max-w-3xl mx-auto z-50 bg-gray-100 rounded-t-2xl shadow-t-lg lg:rounded-3xl">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b border-gray-200">
+                <button id="modal-close" class="text-blue-500 font-medium">Cancel</button>
+                <h2 id="modal-title" class="text-lg font-semibold">Modal Title</h2>
+                <button id="modal-save" class="text-blue-500 font-bold">Save</button>
+            </div>
+            
+            <!-- Modal Body (Dynamic) -->
+            <div id="modal-body" class="p-4 h-[75dvh] overflow-y-auto space-y-4">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
         // --- DOM Elements ---
         const $ = (selector) => document.querySelector(selector);
         
@@ -5263,3 +6047,6 @@
 
         document.addEventListener('DOMContentLoaded', init);
 
+    </script>
+</body>
+</html>
