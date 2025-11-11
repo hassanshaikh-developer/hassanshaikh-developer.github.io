@@ -1,14 +1,12 @@
-const CACHE_NAME = 'bike-manager-cache-v2';
+const CACHE_NAME = 'bike-manager-cache-v3';
+const APP_VERSION = '3.0.0';
 
 const APP_SHELL_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  'https://cdn.tailwindcss.com',
-  'https://cdn.jsdelivr.net/npm/lucide@0.452.0/dist/umd/lucide.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -47,49 +45,57 @@ self.addEventListener('fetch', (event) => {
   }
 
   const requestUrl = new URL(event.request.url);
-  const isGithubAPI = requestUrl.origin === 'https://api.github.com';
   const isNavigate = event.request.mode === 'navigate';
 
-  if (isGithubAPI) {
-    event.respondWith(fetch(event.request).catch(() => new Response(JSON.stringify({ error: 'offline' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    })));
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
+  // Network-first for index.html
+  if (isNavigate || requestUrl.pathname === '/index.html' || requestUrl.pathname === '/') {
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
-          const shouldCache =
-            response.ok &&
-            (requestUrl.origin === self.location.origin ||
-              APP_SHELL_ASSETS.includes(event.request.url));
-
-          if (shouldCache) {
+          if (response.ok) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone)).catch(() => {});
           }
-
           return response;
         })
         .catch(async () => {
-          if (isNavigate) {
-            const fallback =
-              (await caches.match('./index.html')) ||
-              (await caches.match('./BikeMaanager.html'));
-            if (fallback) {
-              return fallback;
-            }
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          const fallback = await caches.match('./index.html');
+          return fallback || Response.error();
+        })
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for other assets
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request)
+        .then((response) => {
+          if (response.ok && requestUrl.origin === self.location.origin) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone)).catch(() => {});
           }
-          return Response.error();
-        });
+          return response;
+        })
+        .catch(() => cachedResponse || Response.error());
+
+      return cachedResponse || fetchPromise;
     })
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data === 'UPDATE_AVAILABLE') {
+    self.clients.matchAll().then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({ type: 'UPDATE_AVAILABLE', version: APP_VERSION });
+      });
+    });
+  }
 });
 

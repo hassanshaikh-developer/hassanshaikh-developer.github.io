@@ -2,7 +2,7 @@
   "name": "Bike Manager",
   "short_name": "BikeMgr",
   "description": "Track bike sales, payments, credit, and analytics from any device.",
-  "start_url": "./index.html?source=pwa",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f4c81",
   "theme_color": "#2563eb",
