@@ -3,7 +3,6 @@
         
         // App containers
         const appWrapper = $('#app-wrapper');
-        const patModal = $('#pat-modal');
         const loader = $('#loader');
         const formModal = $('#form-modal');
         const modalOverlay = $('#modal-overlay');
@@ -216,7 +215,6 @@
         const cashAdjDesc = $('#cash-adj-desc');
         const cashAdjAdd = $('#cash-adj-add');
         const cashAdjRemove = $('#cash-adj-remove');
-        const settingLogout = $('#setting-logout');
         const settingReset = $('#setting-reset');
         const pinStatus = $('#pin-status');
         const pinCurrentInput = $('#pin-current');
@@ -230,10 +228,6 @@
         const backupModeDisplay = $('#backup-mode-display');
         
         // PAT Modal
-        const patInput = $('#pat-input');
-        const patSave = $('#pat-save');
-        const patSkip = $('#pat-skip');
-        const patError = $('#pat-error');
         
         // Form Modal
         const modalTitle = $('#modal-title');
@@ -255,10 +249,11 @@
         const pinError = $('#pin-error');
         const pinModalMessage = $('#pin-modal-message');
 
-        // --- Gist API Constants ---
-        const GIST_API_URL = 'https://api.github.com/gists';
-        const GIST_FILENAME = 'secondHandBikeManager.data.json';
+        // --- Persistence Constants ---
         const LOCAL_STORAGE_KEY = 'bikeManagerData';
+        const DB_NAME = 'bikeManager';
+        const DB_VERSION = 1;
+        const DB_STORE = 'appState';
         
         const renderBrandNewBikes = () => {
             const search = (state.ui.currentBikeSearch || '').toLowerCase();
@@ -383,9 +378,6 @@
         
         // --- App State ---
         let state = {
-            storageMode: null, // 'gist' or 'local'
-            githubPAT: null,
-            gistId: null,
             data: {
                 bikes: [],
                 expenses: [],
@@ -426,7 +418,7 @@
                     type: null,
                     data: null
                 },
-                isGistSaving: false,
+                isSaving: false,
                 pendingHighlight: null,
             },
             security: {
@@ -448,6 +440,103 @@
                 totalCashOutflow: 0, // NEW
                 pendingReceivables: 0,
                 creditCustomers: 0,
+            }
+        };
+
+        // --- Persistence Helpers ---
+
+        let dbPromise = null;
+
+        const openDatabase = () => {
+            if (dbPromise) return dbPromise;
+            dbPromise = new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onupgradeneeded = () => {
+                    const db = request.result;
+                    if (!db.objectStoreNames.contains(DB_STORE)) {
+                        db.createObjectStore(DB_STORE);
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+            });
+            return dbPromise;
+        };
+
+        const loadStateFromDB = async () => {
+            try {
+                const db = await openDatabase();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(DB_STORE, 'readonly');
+                    const store = tx.objectStore(DB_STORE);
+                    const request = store.get('app');
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve(request.result || null);
+                });
+            } catch (error) {
+                console.warn('IndexedDB read failed; falling back to localStorage.', error);
+                return null;
+            }
+        };
+
+        const saveStateToDB = async (data) => {
+            try {
+                const db = await openDatabase();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(DB_STORE, 'readwrite');
+                    const store = tx.objectStore(DB_STORE);
+                    const request = store.put(data, 'app');
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve();
+                });
+                return true;
+            } catch (error) {
+                console.warn('IndexedDB write failed; falling back to localStorage.', error);
+                return false;
+            }
+        };
+
+        const persistence = {
+            async load() {
+                const fromDB = await loadStateFromDB();
+                if (fromDB) {
+                    return fromDB;
+                }
+                try {
+                    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    return raw ? JSON.parse(raw) : null;
+                } catch (error) {
+                    console.error('localStorage read failed', error);
+                    return null;
+                }
+            },
+            async save(data) {
+                const cloned = JSON.parse(JSON.stringify(data));
+                const savedToDB = await saveStateToDB(cloned);
+                if (!savedToDB) {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cloned));
+                } else {
+                    try {
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cloned));
+                    } catch (error) {
+                        console.warn('localStorage backup failed', error);
+                    }
+                }
+            },
+            export(data) {
+                return JSON.stringify({
+                    version: DB_VERSION,
+                    exportedAt: new Date().toISOString(),
+                    payload: data,
+                }, null, 2);
+            },
+            async import(json) {
+                await saveStateToDB(json);
+                try {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json));
+                } catch (error) {
+                    console.warn('localStorage backup save failed', error);
+                }
             }
         };
 
@@ -1036,141 +1125,20 @@
             }
         };
 
-        // --- Gist API Service ---
-
-        const getHeaders = () => {
-            if (!state.githubPAT) throw new Error('GitHub PAT is not set.');
-            return {
-                'Authorization': `token ${state.githubPAT}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'X-GitHub-Api-Version': '2022-11-28'
-            };
-        };
-
-        const findGist = async () => {
-            patError.textContent = '';
-            let page = 1;
-            try {
-                while (true) {
-                    const res = await fetch(`${GIST_API_URL}?page=${page}&per_page=100`, {
-                        headers: getHeaders()
-                    });
-                    
-                    if (!res.ok) {
-                        if (res.status === 401) throw new Error('Invalid or expired token.');
-                        throw new Error(`Failed to fetch gists (Status ${res.status}).`);
-                    }
-                    
-                    const gists = await res.json();
-                    if (gists.length === 0) return null;
-
-                    const dataGist = gists.find(gist => gist.files[GIST_FILENAME]);
-                    
-                    if (dataGist) {
-                        const gistRes = await fetch(`${GIST_API_URL}/${dataGist.id}`, { headers: getHeaders() });
-                        if (!gistRes.ok) throw new Error('Found Gist but failed to fetch content.');
-                        
-                        const fullGist = await gistRes.json();
-                        const content = fullGist.files[GIST_FILENAME].content;
-                        return { id: dataGist.id, content: JSON.parse(content) };
-                    }
-                    page++;
-                }
-            } catch (error) {
-                console.error('Error finding Gist:', error);
-                patError.textContent = error.message;
-                return null;
-            }
-        };
-
-        const createGist = async () => {
-            patError.textContent = '';
-            try {
-                const res = await fetch(GIST_API_URL, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify({
-                        description: 'Second Hand Bike Manager Data',
-                        public: false,
-                        files: {
-                            [GIST_FILENAME]: {
-                                content: JSON.stringify(state.data)
-                            }
-                        }
-                    })
-                });
-                
-                if (!res.ok) throw new Error('Failed to create Gist.');
-                
-                const newGist = await res.json();
-                return { id: newGist.id, content: state.data };
-                
-            } catch (error) {
-                console.error('Error creating Gist:', error);
-                patError.textContent = error.message;
-                return null;
-            }
-        };
-
         let saveTimeout;
         const saveData = () => {
-            if (!state.storageMode) return;
             clearTimeout(saveTimeout);
-            
-            if (state.storageMode === 'local') {
-                saveTimeout = setTimeout(() => {
-                    try {
-                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.data));
-                        // Quieter local save, no toast on every save
-                        // showToast('Data saved locally.'); 
-                    } catch (error) {
-                        console.error('Error saving to localStorage:', error);
-                        showToast('Failed to save data locally.', true);
-                    }
-                }, 500);
-
-            } else if (state.storageMode === 'gist') {
-                if (state.ui.isGistSaving) return;
-                
-                saveTimeout = setTimeout(async () => {
-                    state.ui.isGistSaving = true;
-                    // Quieter Gist save, only show loader on manual backup
-                    // showLoader(); 
-                    
-                    try {
-                        const res = await fetch(`${GIST_API_URL}/${state.gistId}`, {
-                            method: 'PATCH',
-                            headers: getHeaders(),
-                            body: JSON.stringify({
-                                files: {
-                                    [GIST_FILENAME]: {
-                                        content: JSON.stringify(state.data)
-                                    }
-                                }
-                            })
-                        });
-                        
-                        if (!res.ok) {
-                            if (res.status === 401) {
-                                showToast('Token expired. Please log out and log back in.', true);
-                                logout();
-                            } else {
-                                throw new Error(`Failed to save data (Status ${res.status})`);
-                            }
-                        } else {
-                            // Quieter Gist save, no toast on autosave
-                            // showToast('Data synced successfully!');
-                        }
-
-                    } catch (error) {
-                        console.error('Error saving data:', error);
-                        showToast(`Sync failed: ${error.message}`, true);
-                    } finally {
-                        state.ui.isGistSaving = false;
-                        // hideLoader();
-                    }
-                }, 1000);
-            }
+            saveTimeout = setTimeout(async () => {
+                try {
+                    state.ui.isSaving = true;
+                    await persistence.save(state.data);
+                } catch (error) {
+                    console.error('Failed to persist data:', error);
+                    showToast('Failed to save data locally.', true);
+                } finally {
+                    state.ui.isSaving = false;
+                }
+            }, 400);
         };
 
         // --- Core App Logic ---
@@ -2183,8 +2151,9 @@
             }
 
             // NEW: Update backup mode display
-            const backupMode = state.storageMode === 'gist' ? 'GitHub Gist' : 'Local File';
-            backupModeDisplay.textContent = backupMode;
+            if (backupModeDisplay) {
+                backupModeDisplay.textContent = 'Local Backup (Offline)';
+            }
         };
 
         // --- Modal & Form Handling ---
@@ -4292,7 +4261,7 @@
 
         const backupToLocalFile = () => {
             try {
-                const dataStr = JSON.stringify(state.data, null, 2);
+                const dataStr = persistence.export(state.data);
                 const blob = new Blob([dataStr], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 
@@ -4311,88 +4280,24 @@
             }
         };
         
-        const backupToGist = async () => {
-            if (state.ui.isGistSaving) {
-                showToast('Sync already in progress.');
-                return;
-            }
-            state.ui.isGistSaving = true;
-            showLoader();
-            try {
-                const res = await fetch(`${GIST_API_URL}/${state.gistId}`, {
-                    method: 'PATCH',
-                    headers: getHeaders(),
-                    body: JSON.stringify({
-                        files: { [GIST_FILENAME]: { content: JSON.stringify(state.data) } }
-                    })
-                });
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        showToast('Token expired. Please log out.', true);
-                        logout();
-                    } else {
-                        throw new Error(`Failed to save data (Status ${res.status})`);
-                    }
-                } else {
-                    showToast('Data backed up to Gist!');
-                }
-            } catch (error) {
-                console.error('Gist backup error:', error);
-                showToast(`Gist backup failed: ${error.message}`, true);
-            } finally {
-                state.ui.isGistSaving = false;
-                hideLoader();
-            }
-        };
-
-        const restoreFromGist = async () => {
-            const confirmed = await showConfirm(
-                'Restore from Gist?',
-                'This will overwrite local changes with the data currently saved on GitHub. Are you sure?'
-            );
-            if (!confirmed) return;
-            
-            showLoader();
-            try {
-                const res = await fetch(`${GIST_API_URL}/${state.gistId}`, { headers: getHeaders() });
-                if (!res.ok) {
-                    if (res.status === 401 || res.status === 404) {
-                        throw new Error('Invalid token or Gist not found.');
-                    }
-                    throw new Error(`Failed to load data (Status ${res.status})`);
-                }
-                const gist = await res.json();
-                const restoredData = JSON.parse(gist.files[GIST_FILENAME].content);
-
-                state.data = restoredData; 
-                runDataMigration(); // Ensure data structure is up-to-date
-                saveData(); // Re-save this restored data
-                render();
-                showToast('Data restored from Gist.');
-
-            } catch (err) {
-                console.error(err);
-                showToast(`Gist restore failed: ${err.message}`, true);
-            } finally {
-                hideLoader();
-            }
-        };
+        
         
         const handleLocalFileRestore = (file) => {
             showLoader();
             const reader = new FileReader();
             
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
                 try {
                     const parsedData = JSON.parse(event.target.result);
+                    const payload = parsedData?.payload ?? parsedData;
                     
-                    if (typeof parsedData.bikes === 'undefined' || typeof parsedData.expenses === 'undefined') {
+                    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.bikes) || !Array.isArray(payload.expenses)) {
                         throw new Error('Invalid backup file.');
                     }
                     
-                    state.data = parsedData;
+                    state.data = payload;
                     runDataMigration(); // Ensure data structure
-                    saveData(); // Save this new data to local storage
+                    await persistence.import(state.data);
                     render();   
                     
                     showToast('Data restored successfully.');
@@ -4629,68 +4534,6 @@
                 });
             }
 
-            // PAT Modal Save
-            patSave.addEventListener('click', async () => {
-                const token = patInput.value;
-                if (!token) {
-                    patError.textContent = 'Please enter a token.';
-                    return;
-                }
-                
-                showLoader();
-                state.githubPAT = token;
-                state.storageMode = 'gist';
-                
-                const gist = await findGist();
-                
-                if (gist) {
-                    state.gistId = gist.id;
-                    state.data = gist.content;
-                    showToast('Data loaded successfully!');
-                } else if (!patError.textContent) {
-                    const newGist = await createGist();
-                    if (newGist) {
-                        state.gistId = newGist.id;
-                        state.data = newGist.content;
-                        showToast('New data store created!');
-                    } else {
-                        hideLoader();
-                        return;
-                    }
-                } else {
-                    hideLoader();
-                    return;
-                }
-                
-                sessionStorage.setItem('githubPAT', state.githubPAT);
-                sessionStorage.setItem('gistId', state.gistId);
-                
-                runDataMigration();
-                state.security.isUnlocked = false;
-                lockSensitiveData();
-                updateSensitiveToggle();
-
-                const needsPinSetup = (state.data?.settings?.pin || '1111') === '1111';
-                
-                hideLoader();
-                patModal.classList.add('hidden');
-                appWrapper.classList.remove('hidden');
-                
-                renderPage('dashboard');
-
-                if (needsPinSetup) {
-                    await requirePinSetup('Set a new 4–6 digit PIN to secure your data.');
-                }
-            });
-            
-            // PAT Modal Skip
-            patSkip.addEventListener('click', async () => {
-                const needsPin = loadLocalData();
-                if (needsPin) {
-                    await requirePinSetup('Set a new 4–6 digit PIN to get started.');
-                }
-            });
-
             // Bottom Navigation
             navBar.addEventListener('click', (e) => {
                 const navItem = e.target.closest('.nav-item');
@@ -4752,11 +4595,6 @@
                 });
             }
             
-            // Settings: Logout
-            settingLogout.addEventListener('click', () => {
-                logout();
-            });
-            
             // Settings: Reset Data
             settingReset.addEventListener('click', async () => {
                 const confirmed = await showConfirm(
@@ -4777,20 +4615,11 @@
             // --- NEW: Backup & Restore Listeners ---
             
             settingBackup.addEventListener('click', () => {
-                if (state.storageMode === 'gist') {
-                    backupToGist();
-                } else {
-                    backupToLocalFile();
-                }
+                backupToLocalFile();
             });
             
             settingRestore.addEventListener('click', () => {
-                if (state.storageMode === 'gist') {
-                    restoreFromGist();
-                } else {
-                    // Trigger local file input
-                    restoreFileInput.click();
-                }
+                restoreFileInput.click();
             });
 
             if (creditExport) {
@@ -5178,35 +5007,26 @@
             });
         };
         
-        const logout = () => {
-            sessionStorage.clear();
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-            location.reload();
-        };
-
         // --- App Initialization ---
         
-        const loadLocalData = () => {
-            state.storageMode = 'local';
-            let localData = null;
+        const loadAppData = async () => {
+            showLoader();
+            let persisted = null;
             try {
-                const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (raw) {
-                    localData = JSON.parse(raw);
-                }
+                persisted = await persistence.load();
             } catch (error) {
-                console.error('Failed to read local data. Resetting to defaults.', error);
+                console.error('Failed to load persisted data:', error);
             }
 
-            if (!localData) {
-                localData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            if (!persisted) {
+                persisted = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                await persistence.save(persisted);
             }
 
-            state.data = localData;
+            state.data = persisted;
             runDataMigration();
             state.security.isUnlocked = false;
             updateSensitiveToggle();
-            patModal?.classList.add('hidden');
             hideLoader();
             appWrapper.classList.remove('hidden');
             renderPage('dashboard');
@@ -5216,46 +5036,7 @@
         const init = async () => {
             setupPWAInstall();
             addEventListeners();
-            const pat = sessionStorage.getItem('githubPAT');
-            const gistId = sessionStorage.getItem('gistId');
-            
-            if (pat && gistId) {
-                state.githubPAT = pat;
-                state.gistId = gistId;
-                state.storageMode = 'gist';
-                
-                showLoader();
-                try {
-                    const res = await fetch(`${GIST_API_URL}/${gistId}`, { headers: getHeaders() });
-                    if (!res.ok) {
-                        if (res.status === 401 || res.status === 404) {
-                            throw new Error('Invalid token or Gist not found. Please log in again.');
-                        }
-                        throw new Error(`Failed to load data (Status ${res.status})`);
-                    }
-                    const gist = await res.json();
-                    state.data = JSON.parse(gist.files[GIST_FILENAME].content);
-                    runDataMigration();
-                    state.security.isUnlocked = false;
-                    updateSensitiveToggle();
-                    appWrapper.classList.remove('hidden');
-                    renderPage('dashboard');
-                    const needsPinSetup = (state.data?.settings?.pin || '1111') === '1111';
-                    if (needsPinSetup) {
-                        await requirePinSetup('Set a new 4–6 digit PIN to secure your data.');
-                    }
-                } catch (err) {
-                    console.error(err);
-                    sessionStorage.clear();
-                    patModal?.classList.remove('hidden');
-                    patError.textContent = err.message;
-                } finally {
-                    hideLoader();
-                }
-                return;
-            }
-            
-            const needsPinSetup = loadLocalData();
+            const needsPinSetup = await loadAppData();
             if (needsPinSetup) {
                 await requirePinSetup('Set a new 4–6 digit PIN to get started.');
             }
