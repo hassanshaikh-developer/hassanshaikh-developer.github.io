@@ -1,23 +1,25 @@
 {
-  "name": "Bike Manager",
-  "short_name": "BikeMgr",
-  "description": "Track bike sales, payments, credit, and analytics from any device.",
-  "start_url": "./index.html?source=pwa",
-  "display": "standalone",
-  "background_color": "#0f4c81",
-  "theme_color": "#2563eb",
-  "scope": "./",
-  "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+"name":"Bike Manager",
+"short_name":"BikeMgr",
+"description":"Track bike sales, payments, credit, and analytics securely offline",
+"start_url":"./",
+"scope":"./",
+"display":"standalone",
+"orientation":"portrait-primary",
+"background_color":"#0f4c81",
+"theme_color":"#2563eb",
+"icons":[
+{
+"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%230f4c81' width='192' height='192'/%3E%3Crect x='29' y='29' width='134' height='134' rx='16' fill='%232563eb'/%3E%3Ccircle cx='96' cy='96' r='40' fill='%23fff'/%3E%3C/svg%3E",
+"sizes":"192x192",
+"type":"image/svg+xml",
+"purpose":"any maskable"
+},
+{
+"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%230f4c81' width='512' height='512'/%3E%3Crect x='77' y='77' width='358' height='358' rx='42' fill='%232563eb'/%3E%3Ccircle cx='256' cy='256' r='108' fill='%23fff'/%3E%3C/svg%3E",
+"sizes":"512x512",
+"type":"image/svg+xml",
+"purpose":"any maskable"
 }
-
+]
+}

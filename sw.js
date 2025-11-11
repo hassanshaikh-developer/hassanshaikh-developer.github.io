@@ -1,95 +1,56 @@
-const CACHE_NAME = 'bike-manager-cache-v2';
+const VERSION='1.0.0';
+const CACHE=`bike-manager-v${VERSION}`;
+const ASSETS=['./','./index.html','./manifest.webmanifest'];
 
-const APP_SHELL_ASSETS = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  'https://cdn.tailwindcss.com',
-  'https://cdn.jsdelivr.net/npm/lucide@0.452.0/dist/umd/lucide.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
-];
-
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await Promise.all(
-        APP_SHELL_ASSETS.map(async (asset) => {
-          try {
-            await cache.add(asset);
-          } catch (error) {
-            console.warn('[SW] Failed to cache asset:', asset, error);
-          }
-        })
-      );
-    })()
-  );
+self.addEventListener('install',e=>{
+self.skipWaiting();
+e.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS).catch(err=>console.warn('Cache:',err))));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    (async () => {
-      const cacheKeys = await caches.keys();
-      await Promise.all(
-        cacheKeys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : Promise.resolve()))
-      );
-      await self.clients.claim();
-    })()
-  );
+self.addEventListener('activate',e=>{
+e.waitUntil((async()=>{
+const keys=await caches.keys();
+await Promise.all(keys.map(k=>k!==CACHE?caches.delete(k):Promise.resolve()));
+await self.clients.claim();
+})());
 });
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  const requestUrl = new URL(event.request.url);
-  const isGithubAPI = requestUrl.origin === 'https://api.github.com';
-  const isNavigate = event.request.mode === 'navigate';
-
-  if (isGithubAPI) {
-    event.respondWith(fetch(event.request).catch(() => new Response(JSON.stringify({ error: 'offline' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    })));
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
-        .then((response) => {
-          const shouldCache =
-            response.ok &&
-            (requestUrl.origin === self.location.origin ||
-              APP_SHELL_ASSETS.includes(event.request.url));
-
-          if (shouldCache) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone)).catch(() => {});
-          }
-
-          return response;
-        })
-        .catch(async () => {
-          if (isNavigate) {
-            const fallback =
-              (await caches.match('./index.html')) ||
-              (await caches.match('./BikeMaanager.html'));
-            if (fallback) {
-              return fallback;
-            }
-          }
-          return Response.error();
-        });
-    })
-  );
+self.addEventListener('fetch',e=>{
+if(e.request.method!=='GET')return;
+const url=new URL(e.request.url);
+const isNav=e.request.mode==='navigate';
+const isSameOrigin=url.origin===self.location.origin;
+if(!isSameOrigin)return e.respondWith(fetch(e.request));
+e.respondWith((async()=>{
+if(isNav||url.pathname.endsWith('index.html')||url.pathname==='/'){
+try{
+const res=await fetch(e.request,{cache:'no-cache'});
+if(res.ok){
+const cache=await caches.open(CACHE);
+cache.put(e.request,res.clone());
+return res;
+}
+}catch(err){}
+return(await caches.match('./index.html'))||Response.error();
+}
+const cached=await caches.match(e.request);
+if(cached)return cached;
+try{
+const res=await fetch(e.request);
+if(res.ok){
+const cache=await caches.open(CACHE);
+cache.put(e.request,res.clone());
+}
+return res;
+}catch(err){
+return Response.error();
+}
+})());
 });
 
+self.addEventListener('message',e=>{
+if(e.data==='SKIP_WAITING')self.skipWaiting();
+if(e.data==='CHECK_UPDATE'){
+caches.open(CACHE).then(()=>e.ports[0].postMessage({version:VERSION}));
+}
+});
