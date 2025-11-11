@@ -1,1005 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Manager</title>
-    <meta name="theme-color" content="#2563eb">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; connect-src 'self';">
-    <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
-    <link rel="apple-touch-icon" href="./icons/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="mobile-web-app-capable" content="yes">
-    <!-- CDN dependencies removed - using inline alternatives -->
-
-    <style>
-        /* Base styling */
-        body {
-            font-family: 'Inter', sans-serif;
-            overscroll-behavior: none; /* Prevents "pull-to-refresh" on mobile */
-        }
-        
-        /* iOS-style tap highlight color */
-        [data-page], button, [data-action] {
-            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-        }
-
-        /* Active bottom navigation icon color */
-        .nav-item.active svg {
-            color: #0d6efd; /* Use a distinct blue */
-        }
-        .nav-item.active span {
-            color: #0d6efd;
-        }
-
-        /* iOS-style segmented control (filters) */
-        .segmented-control {
-            display: flex;
-            background-color: #e9e9eb; /* Light gray background */
-            border-radius: 9px;
-            padding: 2px;
-        }
-        .segmented-control button {
-            flex: 1;
-            padding: 5px 10px;
-            border: none;
-            background-color: transparent;
-            color: #555;
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: 7px;
-            transition: all 0.2s ease-in-out;
-        }
-        .segmented-control button.active {
-            background-color: #ffffff;
-            color: #000;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Custom scrollbar */
-        .page-content::-webkit-scrollbar,
-        #transaction-list::-webkit-scrollbar,
-        #dashboard-reminders::-webkit-scrollbar {
-            width: 4px;
-        }
-        .page-content::-webkit-scrollbar-thumb,
-        #transaction-list::-webkit-scrollbar-thumb,
-        #dashboard-reminders::-webkit-scrollbar-thumb {
-            background: #ddd;
-            border-radius: 4px;
-        }
-        .page-content::-webkit-scrollbar-track,
-        #transaction-list::-webkit-scrollbar-track,
-        #dashboard-reminders::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        /* Form input styling */
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            background-color: #f3f4f6; /* bg-gray-100 */
-            border-radius: 10px;
-            border: 1px solid #f3f4f6;
-            font-size: 16px;
-            transition: all 0.2s ease;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: #3b82f6; /* focus:ring-blue-500 */
-            background-color: #fff;
-            box-shadow: 0 0 0 2px #bfdbfe; /* focus:ring-2 */
-        }
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: #6b7280; /* text-gray-500 */
-            margin-bottom: 6px;
-            padding-left: 4px;
-        }
-        
-        /* Modal animation */
-        .modal-sheet {
-            transition: transform 0.3s ease-out;
-            transform: translateY(100%);
-        }
-        .modal-sheet.open {
-            transform: translateY(0);
-        }
-        @media (min-width: 1024px) {
-            .modal-sheet {
-                position: static !important;
-                transform: none !important;
-                max-height: 90vh;
-                margin: 0 auto;
-            }
-            .modal-sheet.open {
-                transform: none !important;
-            }
-        }
-        .modal-overlay {
-            transition: opacity 0.3s ease-out;
-            opacity: 0;
-        }
-        .modal-overlay.open {
-            opacity: 1;
-        }
-
-        /* Hide number input arrows */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-            appearance: textfield;
-        }
-
-        /* Sensitive data masking */
-        .sensitive-mask {
-            filter: blur(6px);
-            opacity: 0.5;
-            pointer-events: none;
-            user-select: none;
-        }
-        .sensitive-wrapper {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-        .lock-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 9999px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            background: rgba(219, 234, 254, 0.6);
-            color: #2563eb;
-            font-size: 14px;
-            transition: all 0.2s ease-in-out;
-        }
-        .lock-button:hover {
-            background: rgba(37, 99, 235, 0.1);
-        }
-        .lock-button.locked {
-            background: rgba(248, 113, 113, 0.15);
-            border-color: rgba(248, 113, 113, 0.35);
-            color: #dc2626;
-        }
-        .analytics-locked {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 3rem 1rem;
-            border-radius: 1rem;
-            border: 1px dashed rgba(59, 130, 246, 0.4);
-            background: rgba(219, 234, 254, 0.35);
-            color: #1d4ed8;
-            text-align: center;
-            gap: 1.5rem;
-        }
-
-        /* Lucide icon sizing */
-        .lucide {
-            width: 1.5rem;
-            height: 1.5rem;
-            stroke-width: 1.8;
-        }
-
-        .highlight-pulse {
-            position: relative;
-            animation: highlightFade 2.5s ease-out;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
-        }
-
-        @keyframes highlightFade {
-            0% {
-                box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.45);
-            }
-            40% {
-                box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
-            }
-            80% {
-                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-            }
-            100% {
-                box-shadow: none;
-            }
-        }
-
-        .pr-action-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 9999px;
-            background: rgba(59, 130, 246, 0.08);
-            color: #2563eb;
-            transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .pr-action-button:hover {
-            background: rgba(59, 130, 246, 0.18);
-            transform: translateY(-1px);
-        }
-
-        .pr-bike-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.35rem 0.75rem;
-            border-radius: 9999px;
-            background: rgba(37, 99, 235, 0.08);
-            color: #1d4ed8;
-            font-size: 0.75rem;
-            font-weight: 600;
-            transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .pr-bike-chip:hover {
-            background: rgba(37, 99, 235, 0.16);
-            transform: translateY(-1px);
-        }
-    </style>
-</head>
-
-<body class="bg-gray-200">
-
-    <!-- App Header (Dynamic Title) -->
-    <header class="bg-white/90 backdrop-blur-sm border-b border-gray-200 fixed inset-x-0 top-0 z-30">
-        <div class="max-w-6xl mx-auto px-4 lg:px-8 py-4 flex flex-wrap gap-3 justify-between items-center">
-            <h1 id="page-title" class="text-xl lg:text-2xl font-bold text-gray-900">Dashboard</h1>
-            <!-- Add Button (context-aware) -->
-            <div class="flex items-center gap-3">
-                <button id="pwa-install-button" class="px-3 py-2 rounded-lg bg-blue-500 text-white text-xs sm:text-sm font-semibold shadow-sm hover:bg-blue-600 transition hidden" type="button">
-                    Install App
-                </button>
-                <button id="sensitive-toggle" class="lock-button locked" title="Unlock sensitive data" aria-pressed="false">
-                    <i data-lucide="lock"></i>
-                </button>
-                <button id="add-button" class="text-blue-500 hidden" title="Add new item">
-                    <i data-lucide="plus" class="w-7 h-7"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- 
-      Main App Wrapper
-      Simulates a mobile phone screen, centered on desktop.
-    -->
-    <div id="app-wrapper" class="w-full max-w-6xl mx-auto min-h-screen bg-gray-100 shadow-xl lg:rounded-3xl overflow-hidden hidden flex flex-col">
-
-        <div class="flex-1 flex flex-col">
-            <!-- 
-              Content Area
-              Pages will be swapped here.
-            -->
-            <main class="flex-1 overflow-y-auto page-content lg:px-8 pt-24 pb-28">
-            
-            <!-- Page: Dashboard (Home) -->
-            <div id="page-dashboard" class="page p-4 lg:p-6 space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-cash" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Total Revenue</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-revenue" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Total Profit</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-profit" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Brand New Earnings</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-brand" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Unsold Investment</span>
-                        <div id="metric-investment" class="text-2xl font-bold text-gray-900 mt-1">₹0</div>
-                    </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Inventory (S/U)</span>
-                        <div id="metric-inventory" class="text-2xl font-bold text-gray-900 mt-1">0 / 0</div>
-                    </div>
-                </div>
-
-                <!-- Payment Reminders -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm">
-                    <h2 class="text-lg font-semibold mb-2">Next Payment Reminder</h2>
-                    <div id="dashboard-reminders" class="max-h-40 overflow-y-auto space-y-3 pr-2">
-                        <!-- Reminders injected here -->
-                    </div>
-                </div>
-
-                <!-- Recent Unsold -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm">
-                    <div class="flex justify-between items-center mb-2">
-                        <h2 class="text-lg font-semibold">Unsold Bikes</h2>
-                        <select id="dashboard-sort" class="form-input !p-2 !py-1 !text-sm !w-auto !rounded-lg !bg-gray-200 border-none focus:ring-0 focus:border-none">
-                            <option value="recent">Recent</option>
-                            <option value="high_price">High Price</option>
-                            <option value="low_price">Low Price</option>
-                        </select>
-                    </div>
-                    <div id="dashboard-recent-bikes" class="space-y-2">
-                        <!-- Recent bikes injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Page: Bikes -->
-            <div id="page-bikes" class="page p-4 lg:p-6 space-y-4 hidden">
-                <!-- Filters -->
-                <div class="sticky top-0 bg-gray-100 py-2 space-y-3">
-                    <input type="search" id="bike-search" placeholder="Search by name, plate, or owner..." class="form-input">
-                    <div class="segmented-control" id="bike-type-toggle">
-                        <button data-type="second_hand" class="active">Second Hand</button>
-                        <button data-type="brand_new">Brand New</button>
-                    </div>
-                    <div class="segmented-control" id="bike-filter">
-                        <button data-filter="all" class="active">All</button>
-                        <button data-filter="unsold">Unsold</button>
-                        <button data-filter="sold">Sold</button>
-                    </div>
-                    <!-- NEW: Sort Dropdown -->
-                    <div class="relative">
-                        <button id="bike-sort-trigger" class="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm">
-                            <span id="bike-sort-label" class="font-medium">Sort: Recent</span>
-                            <i data-lucide="chevron-down" class="w-4 h-4 ml-2 text-gray-500"></i>
-                        </button>
-                        <div id="bike-sort-menu" class="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg hidden">
-                            <ul class="py-1 text-sm text-gray-700">
-                                <li data-sort="dateDesc" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Recent</li>
-                                <li data-sort="az" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">A-Z</li>
-                                <li data-sort="za" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Z-A</li>
-                                <li data-sort="purchaseHigh" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Purchase (High)</li>
-                                <li data-sort="purchaseLow" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Purchase (Low)</li>
-                                <li data-sort="saleHigh" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Sales (High)</li>
-                                <li data-sort="saleLow" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Sales (Low)</li>
-                                <li data-sort="profitHigh" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Profit (High)</li>
-                                <li data-sort="profitLow" class="bike-sort-item px-4 py-2 hover:bg-gray-100 cursor-pointer">Profit (Low)</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 items-center">
-                        <button id="bike-advanced-toggle" class="px-3 py-2 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition">
-                            Show Advanced Filters
-                        </button>
-                        <button id="bike-advanced-reset" class="px-3 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition">
-                            Reset Filters
-                        </button>
-                        <button id="bike-bulk-toggle" class="px-3 py-2 text-xs font-semibold text-amber-600 bg-amber-100/70 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
-                            Select for Clearance
-                        </button>
-                    </div>
-                    <div id="bike-advanced-panel" class="hidden bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="form-label" for="bike-filter-profit-min">Profit Range (₹)</label>
-                                <div class="flex gap-2">
-                                    <input type="number" id="bike-filter-profit-min" class="form-input" placeholder="Min">
-                                    <input type="number" id="bike-filter-profit-max" class="form-input" placeholder="Max">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="form-label" for="bike-filter-date-from">Purchase Date</label>
-                                <div class="flex gap-2">
-                                    <input type="date" id="bike-filter-date-from" class="form-input">
-                                    <input type="date" id="bike-filter-date-to" class="form-input">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="form-label" for="bike-filter-repair-min">Repair Cost (₹)</label>
-                                <div class="flex gap-2">
-                                    <input type="number" id="bike-filter-repair-min" class="form-input" placeholder="Min">
-                                    <input type="number" id="bike-filter-repair-max" class="form-input" placeholder="Max">
-                                </div>
-                            </div>
-                        </div>
-                        <p class="text-xs text-gray-500">
-                            Advanced filters apply to both sold and unsold bikes. Profit for unsold bikes uses the target or similar sale averages.
-                        </p>
-                    </div>
-                </div>
-                <!-- Bike List -->
-                <div id="bike-list" class="space-y-3">
-                    <!-- Bike card template -->
-                </div>
-                <div id="bike-clearance-footer" class="hidden fixed inset-x-0 bottom-24 z-30 px-4">
-                    <div class="max-w-2xl mx-auto bg-white shadow-xl border border-amber-200 rounded-2xl p-4 space-y-3">
-                        <div class="flex flex-wrap justify-between items-center gap-3 text-sm">
-                            <span id="bike-clearance-count" class="font-semibold text-gray-800">0 bikes selected</span>
-                            <button id="bike-clearance-cancel" class="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition">
-                                Cancel
-                            </button>
-                        </div>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button id="bike-clearance-mark" class="flex-1 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition">
-                                Mark as Clearance
-                            </button>
-                            <button id="bike-clearance-remove" class="flex-1 py-2 bg-white border border-amber-300 text-amber-600 rounded-lg font-semibold hover:bg-amber-100 transition">
-                                Remove Clearance
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Page: Credit -->
-            <div id="page-credit" class="page p-4 lg:p-6 space-y-4 hidden">
-                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                        <div class="bg-blue-50 rounded-xl p-3">
-                            <p class="text-xs text-blue-600 font-medium uppercase tracking-wide">Total Credit Given</p>
-                            <p id="credit-total" class="text-xl font-bold text-blue-900 mt-1">₹0</p>
-                        </div>
-                        <div class="bg-green-50 rounded-xl p-3">
-                            <p class="text-xs text-green-600 font-medium uppercase tracking-wide">Collected</p>
-                            <p id="credit-collected" class="text-xl font-bold text-green-900 mt-1">₹0</p>
-                        </div>
-                        <div class="bg-orange-50 rounded-xl p-3">
-                            <p class="text-xs text-amber-600 font-medium uppercase tracking-wide">Pending</p>
-                            <p id="credit-pending" class="text-xl font-bold text-amber-900 mt-1">₹0</p>
-                        </div>
-                        <div class="bg-purple-50 rounded-xl p-3">
-                            <p class="text-xs text-purple-600 font-medium uppercase tracking-wide">Active Customers</p>
-                            <p id="credit-active" class="text-xl font-bold text-purple-900 mt-1">0</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <button id="credit-export" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Export Credit Data</button>
-                        <button id="credit-bulk-toggle" class="w-full py-3 bg-white border border-blue-200 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition">Start Bulk Collection</button>
-                    </div>
-                </div>
-                <div id="credit-list" class="space-y-3">
-                    <!-- Credit cards injected here -->
-                </div>
-                <div id="credit-bulk-footer" class="hidden fixed inset-x-0 bottom-24 z-30 px-4">
-                    <div class="max-w-2xl mx-auto bg-blue-600 text-white rounded-2xl shadow-xl p-4 space-y-3">
-                        <div class="flex justify-between items-center text-sm">
-                            <span id="credit-bulk-count">0 customers selected</span>
-                            <span id="credit-bulk-total" class="font-semibold">₹0</span>
-                        </div>
-                        <div class="flex gap-3">
-                            <button id="credit-bulk-cancel" class="w-1/3 py-2 bg-white/20 rounded-lg font-semibold text-white hover:bg-white/30 transition">Cancel</button>
-                            <button id="credit-bulk-confirm" class="flex-1 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition">Record Payments</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Page: Analytics -->
-            <div id="page-analytics" class="page p-4 lg:p-6 space-y-4 hidden">
-                <div id="analytics-locked-state" class="hidden analytics-locked">
-                    <div class="text-lg font-semibold">Sensitive analytics locked</div>
-                    <p class="text-sm text-blue-700">Unlock with your PIN to review financial analytics.</p>
-                    <button id="analytics-unlock" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Unlock Analytics</button>
-                </div>
-                <div id="analytics-content" class="space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-cash" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Total Profit</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-profit" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Realized Profit</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-realized" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">This Month</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-month" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Total Cash Inflow</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-inflow" class="text-2xl font-bold text-green-600 sensitive-mask" data-sensitive="currency">••••</div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Total Cash Outflow</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-outflow" class="text-2xl font-bold text-red-600 sensitive-mask" data-sensitive="currency">••••</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <h2 class="text-lg font-semibold mb-2">Cash Transaction Log</h2>
-                        <div id="analytics-transaction-list" class="max-h-60 overflow-y-auto space-y-2 pr-2">
-                            <!-- Transactions injected here -->
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-semibold">Expenses</h2>
-                            <span id="analytics-expense-total" class="text-sm font-medium text-gray-500">₹0</span>
-                        </div>
-                        <div id="analytics-expense-list" class="space-y-2">
-                            <!-- Expenses summary -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Page: Expenses -->
-            <div id="page-expenses" class="page p-4 lg:p-6 space-y-3 hidden">
-                <div id="expense-list" class="space-y-3">
-                    <!-- Expense card template -->
-                </div>
-            </div>
-
-            <!-- Page: PR (Personal Relationship) -->
-            <div id="page-pr" class="page p-4 lg:p-6 space-y-4 hidden">
-                <!-- Filters -->
-                <div class="sticky top-0 bg-gray-100 py-2">
-                    <input type="search" id="pr-search" placeholder="Search by name, contact, or bike..." class="form-input mb-2">
-                    <div class="segmented-control flex-wrap gap-2" id="pr-filter">
-                        <button data-filter="all" class="active">All</button>
-                        <button data-filter="Buyer">Buyers</button>
-                        <button data-filter="Owner">Owners</button>
-                        <button data-filter="Supplier">Suppliers</button>
-                    </div>
-                </div>
-                <!-- PR List -->
-                <div id="pr-list" class="space-y-3">
-                    <!-- PR card template -->
-                </div>
-            </div>
-
-            <!-- Page: Settings -->
-            <div id="page-settings" class="page p-4 lg:p-6 space-y-4">
-                <!-- Cash Adjustments -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm">
-                    <h2 class="text-lg font-semibold mb-2">Cash Adjustments</h2>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="form-label" for="cash-adj-amount">Amount *</label>
-                            <input type="number" id="cash-adj-amount" placeholder="50000" class="form-input">
-                        </div>
-                        <div>
-                            <label class="form-label" for="cash-adj-desc">Description *</label>
-                            <input type="text" id="cash-adj-desc" placeholder="e.g., Initial Investment, Salary" class="form-input">
-                        </div>
-                        <div class="flex gap-3">
-                            <button id="cash-adj-remove" class="w-full py-3 bg-red-500 text-white rounded-lg font-semibold transition hover:bg-red-600">
-                                Remove Cash (-)
-                            </button>
-                            <button id="cash-adj-add" class="w-full py-3 bg-green-500 text-white rounded-lg font-semibold transition hover:bg-green-600">
-                                Add Cash (+)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Security Settings -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                    <h2 class="text-lg font-semibold">Security</h2>
-                    <p id="pin-status" class="text-sm text-gray-600">
-                        Sensitive data is currently <span class="font-medium">locked</span>.
-                    </p>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="form-label" for="pin-current">Current PIN *</label>
-                            <input type="password" id="pin-current" class="form-input" placeholder="Enter current PIN" maxlength="6" inputmode="numeric">
-                        </div>
-                        <div>
-                            <label class="form-label" for="pin-new">New PIN *</label>
-                            <input type="password" id="pin-new" class="form-input" placeholder="Choose 4-6 digit PIN" maxlength="6" inputmode="numeric">
-                        </div>
-                        <button id="pin-update" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
-                            Update PIN
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- NEW: Backup & Restore Section -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                    <h2 class="text-lg font-semibold">Backup & Restore</h2>
-                    <button id="setting-backup" class="w-full text-left px-3 py-2 bg-blue-100 rounded-lg text-blue-700 font-medium">Backup Data</button>
-                    <button id="setting-restore" class="w-full text-left px-3 py-2 bg-green-100 rounded-lg text-green-700 font-medium">Restore Data</button>
-                    <input type="file" id="restore-file-input" accept=".json" class="hidden">
-                    <p class="text-xs text-gray-500 text-center mt-1">
-                        Current Mode: <span id="backup-mode-display" class="font-medium">Local</span>
-                    </p>
-                </div>
-                
-                <!-- Data Management -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                    <h2 class="text-lg font-semibold">Data Management</h2>
-                    <button id="setting-logout" class="w-full text-left px-3 py-2 bg-gray-100 rounded-lg text-blue-600 font-medium">Log Out / Change Sync</button>
-                    <button id="setting-reset" class="w-full text-left px-3 py-2 bg-red-100 rounded-lg text-red-600 font-medium">Reset All Data</button>
-                </div>
-            </div>
-
-        </main>
-        </div>
-    </div>
-
-    <!-- Navigation -->
-    <nav class="fixed inset-x-0 bottom-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 z-30">
-        <div class="max-w-6xl mx-auto flex justify-around items-center h-16 px-2 sm:px-4">
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500 active" data-page="dashboard">
-                <i data-lucide="layout-dashboard"></i>
-                <span class="text-xs lg:text-sm font-medium">Home</span>
-            </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="bikes">
-                <i data-lucide="bike"></i>
-                <span class="text-xs lg:text-sm font-medium">Bikes</span>
-            </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="credit">
-                <i data-lucide="wallet"></i>
-                <span class="text-xs lg:text-sm font-medium">Credit</span>
-            </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="analytics">
-                <i data-lucide="line-chart"></i>
-                <span class="text-xs lg:text-sm font-medium">Analytics</span>
-            </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="expenses">
-                <i data-lucide="receipt"></i>
-                <span class="text-xs lg:text-sm font-medium">Expenses</span>
-            </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="pr">
-                <i data-lucide="users"></i>
-                <span class="text-xs lg:text-sm font-medium">PR</span>
-            </button>
-            <button class="nav-item flex flex-col items-center justify-center text-gray-500" data-page="settings">
-                <i data-lucide="settings"></i>
-                <span class="text-xs lg:text-sm font-medium">Settings</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- PAT Modal removed - using local IndexedDB only -->
-    <!-- 
-      Global Loading Overlay
-    -->
-    <div id="loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-white/70 backdrop-blur-sm hidden">
-        <i data-lucide="loader-2" class="animate-spin h-8 w-8 text-blue-500"></i>
-    </div>
-    
-    <!-- 
-      Global Confirmation Modal
-    -->
-    <div id="confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 hidden">
-        <div class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg z-10">
-            <h2 id="confirm-title" class="text-lg font-semibold text-center mb-2">Are you sure?</h2>
-            <p id="confirm-message" class="text-sm text-gray-600 text-center mb-5">This action cannot be undone.</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button id="confirm-cancel" class="w-full py-3 bg-gray-200 text-gray-800 rounded-lg font-medium">Cancel</button>
-                <button id="confirm-ok" class="w-full py-3 bg-red-500 text-white rounded-lg font-medium">Confirm</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 
-      PIN Verification Modal
-    -->
-    <div id="pin-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 hidden">
-        <div class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
-        <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg z-10 space-y-4">
-            <div class="space-y-1 text-center">
-                <h2 class="text-xl font-bold text-gray-900">Unlock Sensitive Data</h2>
-                <p class="text-sm text-gray-600" id="pin-modal-message">Enter your 4-digit PIN to continue.</p>
-            </div>
-            <div class="space-y-3">
-                <input type="password" maxlength="6" inputmode="numeric" id="pin-input" class="form-input text-center tracking-widest text-lg" placeholder="••••">
-                <p id="pin-error" class="text-xs text-red-500 text-center"></p>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button id="pin-cancel" class="w-full py-3 bg-gray-200 text-gray-800 rounded-lg font-medium">Cancel</button>
-                <button id="pin-submit" class="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition">Unlock</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 
-      Main Form Modal (Sheet style)
-    -->
-    <div id="form-modal" class="fixed inset-0 z-40 hidden lg:flex lg:items-center lg:justify-center">
-        <!-- Overlay -->
-        <div id="modal-overlay" class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
-        
-        <!-- Sheet Content -->
-        <div id="modal-sheet" class="modal-sheet fixed bottom-0 left-0 right-0 max-w-md sm:max-w-xl lg:max-w-3xl mx-auto z-50 bg-gray-100 rounded-t-2xl shadow-t-lg lg:rounded-3xl">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center p-4 border-b border-gray-200">
-                <button id="modal-close" class="text-blue-500 font-medium">Cancel</button>
-                <h2 id="modal-title" class="text-lg font-semibold">Modal Title</h2>
-                <button id="modal-save" class="text-blue-500 font-bold">Save</button>
-            </div>
-            
-            <!-- Modal Body (Dynamic) -->
-            <div id="modal-body" class="p-4 h-[75dvh] overflow-y-auto space-y-4">
-                <!-- Content injected by JS -->
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
-        // ============================================
-        // CORE MODULES: IndexedDB, Crypto, Auth, Camera, Backup
-        // ============================================
-        
-        // --- IndexedDB Module ---
-        const DB_NAME = 'bikeManagerDB';
-        const DB_VERSION = 1;
-        let db = null;
-        
-        const initDB = () => {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => { db = request.result; resolve(db); };
-                request.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains('entries')) {
-                        db.createObjectStore('entries', { keyPath: 'id' });
-                    }
-                    if (!db.objectStoreNames.contains('images')) {
-                        db.createObjectStore('images', { keyPath: 'id' });
-                    }
-                    if (!db.objectStoreNames.contains('settings')) {
-                        db.createObjectStore('settings', { keyPath: 'key' });
-                    }
-                    if (!db.objectStoreNames.contains('auth')) {
-                        db.createObjectStore('auth', { keyPath: 'key' });
-                    }
-                };
-            });
-        };
-        
-        const dbGet = (store, key) => {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([store], 'readonly');
-                const req = tx.objectStore(store).get(key);
-                req.onsuccess = () => resolve(req.result?.value);
-                req.onerror = () => reject(req.error);
-            });
-        };
-        
-        const dbSet = (store, key, value) => {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([store], 'readwrite');
-                const req = tx.objectStore(store).put({ key, value });
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        };
-        
-        const dbGetAll = (store) => {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([store], 'readonly');
-                const req = tx.objectStore(store).getAll();
-                req.onsuccess = () => resolve(req.result.map(r => r.value));
-                req.onerror = () => reject(req.error);
-            });
-        };
-        
-        const dbDelete = (store, key) => {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction([store], 'readwrite');
-                const req = tx.objectStore(store).delete(key);
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        };
-        
-        // --- Crypto Module (PBKDF2 + AES-GCM) ---
-        const PBKDF2_ITERATIONS = 250000;
-        const deriveKey = async (password, salt) => {
-            const encoder = new TextEncoder();
-            const keyMaterial = await crypto.subtle.importKey(
-                'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits', 'deriveKey']
-            );
-            return crypto.subtle.deriveKey(
-                { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-                keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-            );
-        };
-        
-        const encrypt = async (data, key) => {
-            const encoder = new TextEncoder();
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            const encrypted = await crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv }, key, encoder.encode(JSON.stringify(data))
-            );
-            return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
-        };
-        
-        const decrypt = async (encrypted, key) => {
-            const decoder = new TextDecoder();
-            const decrypted = await crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv: new Uint8Array(encrypted.iv) },
-                key, new Uint8Array(encrypted.data)
-            );
-            return JSON.parse(decoder.decode(decrypted));
-        };
-        
-        // --- Biometric Auth Module (WebAuthn) ---
-        const BIOMETRIC_RP_ID = window.location.hostname.replace(/^www\./, '');
-        let sessionKey = null; // Session-only wrapped key (never persisted)
-        
-        const registerBiometric = async () => {
-            if (!window.PublicKeyCredential) return null;
-            try {
-                const cred = await navigator.credentials.create({
-                    publicKey: {
-                        challenge: crypto.getRandomValues(new Uint8Array(32)),
-                        rp: { id: BIOMETRIC_RP_ID, name: 'Bike Manager' },
-                        user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'user', displayName: 'User' },
-                        pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
-                        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
-                        timeout: 60000
-                    }
-                });
-                await dbSet('auth', 'biometricId', Array.from(new Uint8Array(cred.rawId)));
-                return cred;
-            } catch (e) {
-                console.warn('Biometric registration failed:', e);
-                return null;
-            }
-        };
-        
-        const authenticateBiometric = async () => {
-            if (!window.PublicKeyCredential) return false;
-            const biometricId = await dbGet('auth', 'biometricId');
-            if (!biometricId) return false;
-            try {
-                await navigator.credentials.get({
-                    publicKey: {
-                        challenge: crypto.getRandomValues(new Uint8Array(32)),
-                        allowCredentials: [{ id: new Uint8Array(biometricId), type: 'public-key', transports: ['internal'] }],
-                        userVerification: 'required',
-                        timeout: 60000
-                    }
-                });
-                return true;
-            } catch (e) {
-                return false;
-            }
-        };
-        
-        // --- Camera Module ---
-        let cameraStream = null;
-        const openCamera = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                cameraStream = stream;
-                return stream;
-            } catch (e) {
-                throw new Error('Camera access denied or unavailable');
-            }
-        };
-        
-        const captureImage = async (video) => {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-            return new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.85));
-        };
-        
-        const closeCamera = () => {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(t => t.stop());
-                cameraStream = null;
-            }
-        };
-        
-        // --- Backup/Restore Module (Encrypted) ---
-        const exportBackup = async (data, pin) => {
-            const salt = crypto.getRandomValues(new Uint8Array(16));
-            const key = await deriveKey(pin, salt);
-            const encrypted = await encrypt(data, key);
-            const backup = {
-                version: 1,
-                kdf: 'PBKDF2-HMAC-SHA-256',
-                iterations: PBKDF2_ITERATIONS,
-                salt_b64: btoa(String.fromCharCode(...salt)),
-                iv_b64: btoa(String.fromCharCode(...encrypted.iv)),
-                cipher: 'AES-GCM',
-                payload_b64: btoa(String.fromCharCode(...encrypted.data)),
-                auth_tag_included: true
-            };
-            if (window.CompressionStream) {
-                const jsonStr = JSON.stringify(backup);
-                const stream = new Blob([jsonStr]).stream().pipeThrough(new CompressionStream('gzip'));
-                const compressed = await new Response(stream).blob();
-                backup.payload_gzip_b64 = await new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(btoa(reader.result));
-                    reader.readAsBinaryString(compressed);
-                });
-            }
-            return backup;
-        };
-        
-        const importBackup = async (backupData, pin) => {
-            const salt = Uint8Array.from(atob(backupData.salt_b64), c => c.charCodeAt(0));
-            const key = await deriveKey(pin, salt);
-            let payload = backupData.payload_gzip_b64 
-                ? await (async () => {
-                    const compressed = Uint8Array.from(atob(backupData.payload_gzip_b64), c => c.charCodeAt(0));
-                    const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
-                    return JSON.parse(await new Response(stream).text());
-                })()
-                : JSON.parse(atob(backupData.payload_b64));
-            const encrypted = { iv: Uint8Array.from(atob(backupData.iv_b64), c => c.charCodeAt(0)), data: payload };
-            return await decrypt(encrypted, key);
-        };
-        
-        // --- Icon System (replacing Lucide) ---
-        const iconMap = {
-            'lock': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-            'unlock': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
-            'plus': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
-            'layout-dashboard': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
-            'bike': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>',
-            'wallet': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16"/></svg>',
-            'line-chart': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 3 7 9 11 7 15 11 21 3"/><polyline points="21 3 21 21 3 21"/></svg>',
-            'receipt': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2H4z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg>',
-            'users': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-            'settings': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.364 6.364l-4.243-4.243m-4.242 0L5.636 18.364m12.728 0l-4.243-4.243m-4.242 0L5.636 5.636"/></svg>',
-            'loader-2': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>',
-            'chevron-down': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'
-        };
-        
-        const renderIcons = () => {
-            document.querySelectorAll('[data-lucide]').forEach(el => {
-                const name = el.getAttribute('data-lucide');
-                if (iconMap[name]) {
-                    el.innerHTML = iconMap[name];
-                    el.classList.add('lucide');
-                }
-            });
-        };
-        
-        // ============================================
-        // DOM Elements & App State
-        // ============================================
-        
         // --- DOM Elements ---
         const $ = (selector) => document.querySelector(selector);
         
         // App containers
         const appWrapper = $('#app-wrapper');
+        const patModal = $('#pat-modal');
         const loader = $('#loader');
         const formModal = $('#form-modal');
         const modalOverlay = $('#modal-overlay');
@@ -1225,7 +229,11 @@
         const restoreFileInput = $('#restore-file-input');
         const backupModeDisplay = $('#backup-mode-display');
         
-        // PAT Modal elements removed - using local storage only
+        // PAT Modal
+        const patInput = $('#pat-input');
+        const patSave = $('#pat-save');
+        const patSkip = $('#pat-skip');
+        const patError = $('#pat-error');
         
         // Form Modal
         const modalTitle = $('#modal-title');
@@ -1247,7 +255,10 @@
         const pinError = $('#pin-error');
         const pinModalMessage = $('#pin-modal-message');
 
-        // Removed GitHub Gist sync - using local IndexedDB only
+        // --- Gist API Constants ---
+        const GIST_API_URL = 'https://api.github.com/gists';
+        const GIST_FILENAME = 'secondHandBikeManager.data.json';
+        const LOCAL_STORAGE_KEY = 'bikeManagerData';
         
         const renderBrandNewBikes = () => {
             const search = (state.ui.currentBikeSearch || '').toLowerCase();
@@ -1372,6 +383,9 @@
         
         // --- App State ---
         let state = {
+            storageMode: null, // 'gist' or 'local'
+            githubPAT: null,
+            gistId: null,
             data: {
                 bikes: [],
                 expenses: [],
@@ -1380,6 +394,7 @@
                 payments: [],
                 brandNewDeliveries: [],
                 settings: {
+                    baseInvestment: 0, // Deprecated
                     pin: '1111'
                 }
             },
@@ -2023,35 +1038,139 @@
 
         // --- Gist API Service ---
 
-        // GitHub sync functions removed - using local IndexedDB only
-        
-        let saveTimeout;
-        const saveData = async () => {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(async () => {
-                try {
-                    // Save to IndexedDB
-                    await dbSet('entries', 'data', state.data);
-                    // Encrypt sensitive data if locked
-                    if (!state.security.isUnlocked && state.data.settings?.pin) {
-                        const pin = state.data.settings.pin;
-                        const salt = await dbGet('auth', 'pinSalt') || crypto.getRandomValues(new Uint8Array(16));
-                        await dbSet('auth', 'pinSalt', Array.from(salt));
-                        const key = await deriveKey(pin, new Uint8Array(salt));
-                        // Encrypt sensitive fields
-                        const sensitiveData = {
-                            bikes: state.data.bikes.map(b => ({ ...b, sellingPrice: b.sellingPrice ? 'encrypted' : undefined })),
-                            cashEntries: state.data.cashEntries,
-                            payments: state.data.payments
-                        };
-                        const encrypted = await encrypt(sensitiveData, key);
-                        await dbSet('auth', 'encryptedData', encrypted);
+        const getHeaders = () => {
+            if (!state.githubPAT) throw new Error('GitHub PAT is not set.');
+            return {
+                'Authorization': `token ${state.githubPAT}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            };
+        };
+
+        const findGist = async () => {
+            patError.textContent = '';
+            let page = 1;
+            try {
+                while (true) {
+                    const res = await fetch(`${GIST_API_URL}?page=${page}&per_page=100`, {
+                        headers: getHeaders()
+                    });
+                    
+                    if (!res.ok) {
+                        if (res.status === 401) throw new Error('Invalid or expired token.');
+                        throw new Error(`Failed to fetch gists (Status ${res.status}).`);
                     }
-                } catch (error) {
-                    console.error('Error saving to IndexedDB:', error);
-                    showToast('Failed to save data.', true);
+                    
+                    const gists = await res.json();
+                    if (gists.length === 0) return null;
+
+                    const dataGist = gists.find(gist => gist.files[GIST_FILENAME]);
+                    
+                    if (dataGist) {
+                        const gistRes = await fetch(`${GIST_API_URL}/${dataGist.id}`, { headers: getHeaders() });
+                        if (!gistRes.ok) throw new Error('Found Gist but failed to fetch content.');
+                        
+                        const fullGist = await gistRes.json();
+                        const content = fullGist.files[GIST_FILENAME].content;
+                        return { id: dataGist.id, content: JSON.parse(content) };
+                    }
+                    page++;
                 }
-            }, 500);
+            } catch (error) {
+                console.error('Error finding Gist:', error);
+                patError.textContent = error.message;
+                return null;
+            }
+        };
+
+        const createGist = async () => {
+            patError.textContent = '';
+            try {
+                const res = await fetch(GIST_API_URL, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        description: 'Second Hand Bike Manager Data',
+                        public: false,
+                        files: {
+                            [GIST_FILENAME]: {
+                                content: JSON.stringify(state.data)
+                            }
+                        }
+                    })
+                });
+                
+                if (!res.ok) throw new Error('Failed to create Gist.');
+                
+                const newGist = await res.json();
+                return { id: newGist.id, content: state.data };
+                
+            } catch (error) {
+                console.error('Error creating Gist:', error);
+                patError.textContent = error.message;
+                return null;
+            }
+        };
+
+        let saveTimeout;
+        const saveData = () => {
+            if (!state.storageMode) return;
+            clearTimeout(saveTimeout);
+            
+            if (state.storageMode === 'local') {
+                saveTimeout = setTimeout(() => {
+                    try {
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.data));
+                        // Quieter local save, no toast on every save
+                        // showToast('Data saved locally.'); 
+                    } catch (error) {
+                        console.error('Error saving to localStorage:', error);
+                        showToast('Failed to save data locally.', true);
+                    }
+                }, 500);
+
+            } else if (state.storageMode === 'gist') {
+                if (state.ui.isGistSaving) return;
+                
+                saveTimeout = setTimeout(async () => {
+                    state.ui.isGistSaving = true;
+                    // Quieter Gist save, only show loader on manual backup
+                    // showLoader(); 
+                    
+                    try {
+                        const res = await fetch(`${GIST_API_URL}/${state.gistId}`, {
+                            method: 'PATCH',
+                            headers: getHeaders(),
+                            body: JSON.stringify({
+                                files: {
+                                    [GIST_FILENAME]: {
+                                        content: JSON.stringify(state.data)
+                                    }
+                                }
+                            })
+                        });
+                        
+                        if (!res.ok) {
+                            if (res.status === 401) {
+                                showToast('Token expired. Please log out and log back in.', true);
+                                logout();
+                            } else {
+                                throw new Error(`Failed to save data (Status ${res.status})`);
+                            }
+                        } else {
+                            // Quieter Gist save, no toast on autosave
+                            // showToast('Data synced successfully!');
+                        }
+
+                    } catch (error) {
+                        console.error('Error saving data:', error);
+                        showToast(`Sync failed: ${error.message}`, true);
+                    } finally {
+                        state.ui.isGistSaving = false;
+                        // hideLoader();
+                    }
+                }, 1000);
+            }
         };
 
         // --- Core App Logic ---
@@ -3062,9 +2181,10 @@
                 const color = state.security.isUnlocked ? 'text-green-600' : 'text-amber-600';
                 pinStatus.innerHTML = `Sensitive data is currently <span class="font-medium ${color}">${lockState}</span>.`;
             }
-            if (backupModeDisplay) {
-                backupModeDisplay.textContent = 'Local (Encrypted)';
-            }
+
+            // NEW: Update backup mode display
+            const backupMode = state.storageMode === 'gist' ? 'GitHub Gist' : 'Local File';
+            backupModeDisplay.textContent = backupMode;
         };
 
         // --- Modal & Form Handling ---
@@ -4516,63 +3636,16 @@
             }
         };
 
-        const requestPinUnlock = async (message = 'Enter your PIN to unlock sensitive data.') => {
+        const requestPinUnlock = (message = 'Enter your PIN to unlock sensitive data.') => {
             if (state.security.isUnlocked) {
-                return true;
+                return Promise.resolve(true);
             }
-            // Try biometric first
-            const biometricSuccess = await authenticateBiometric();
-            if (biometricSuccess) {
-                state.security.isUnlocked = true;
-                updateSensitiveToggle();
-                render();
-                showToast('Unlocked with biometric.');
-                return true;
-            }
-            // Fallback to PIN
             if (state.security.pendingResolve) {
                 rejectPinRequest('replaced');
             }
             return new Promise((resolve, reject) => {
                 state.security.pendingResolve = { resolve, reject };
                 openPinModal(message, { mode: 'unlock', showCancel: true });
-            });
-        };
-        
-        const getPinForBackup = async () => {
-            if (state.security.isUnlocked && state.data?.settings?.pin) {
-                return state.data.settings.pin;
-            }
-            return new Promise((resolve) => {
-                const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 z-[80] flex items-center justify-center p-4';
-                modal.innerHTML = `
-                    <div class="modal-overlay fixed inset-0 bg-black/40"></div>
-                    <div class="bg-white p-6 rounded-2xl shadow-lg z-10 space-y-4">
-                        <h2 class="text-xl font-bold">Enter PIN for Backup</h2>
-                        <input type="password" id="backup-pin-input" class="form-input text-center" maxlength="6" inputmode="numeric" placeholder="••••">
-                        <div class="flex gap-3">
-                            <button id="backup-pin-cancel" class="flex-1 py-2 bg-gray-200 rounded-lg">Cancel</button>
-                            <button id="backup-pin-submit" class="flex-1 py-2 bg-blue-500 text-white rounded-lg">Confirm</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-                const input = $('#backup-pin-input');
-                const submit = $('#backup-pin-submit');
-                const cancel = $('#backup-pin-cancel');
-                submit.onclick = () => {
-                    const pin = input.value.trim();
-                    if (/^\d{4,6}$/.test(pin)) {
-                        document.body.removeChild(modal);
-                        resolve(pin);
-                    }
-                };
-                cancel.onclick = () => {
-                    document.body.removeChild(modal);
-                    resolve(null);
-                };
-                input.focus();
             });
         };
 
@@ -5217,51 +4290,128 @@
         
         // --- NEW: Backup & Restore Functions ---
 
-        const backupToLocalFile = async () => {
+        const backupToLocalFile = () => {
             try {
-                const pin = await getPinForBackup();
-                if (!pin) return;
-                const backup = await exportBackup(state.data, pin);
-                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const dataStr = JSON.stringify(state.data, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
+                
                 const a = document.createElement('a');
                 a.href = url;
-                const dateStr = new Date().toISOString().split('T')[0];
-                a.download = `bike-manager-backup-${dateStr}.enc.json`;
+                a.download = `bike-manager-backup-${new Date().toISOString().split('T')[0]}.json`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showToast('Encrypted backup downloaded.');
+                
+                showToast('Data backup downloaded.');
             } catch (error) {
-                console.error('Backup failed:', error);
-                showToast('Backup failed.', true);
+                console.error('Local backup failed:', error);
+                showToast('Local backup failed.', true);
             }
         };
         
-        const handleLocalFileRestore = async (file) => {
+        const backupToGist = async () => {
+            if (state.ui.isGistSaving) {
+                showToast('Sync already in progress.');
+                return;
+            }
+            state.ui.isGistSaving = true;
             showLoader();
             try {
-                const text = await file.text();
-                const backupData = JSON.parse(text);
-                const pin = await getPinForBackup();
-                if (!pin) { hideLoader(); return; }
-                const restoredData = await importBackup(backupData, pin);
-                if (typeof restoredData.bikes === 'undefined' || typeof restoredData.expenses === 'undefined') {
-                    throw new Error('Invalid backup file.');
+                const res = await fetch(`${GIST_API_URL}/${state.gistId}`, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        files: { [GIST_FILENAME]: { content: JSON.stringify(state.data) } }
+                    })
+                });
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        showToast('Token expired. Please log out.', true);
+                        logout();
+                    } else {
+                        throw new Error(`Failed to save data (Status ${res.status})`);
+                    }
+                } else {
+                    showToast('Data backed up to Gist!');
                 }
-                state.data = restoredData;
-                runDataMigration();
-                await saveData();
-                render();
-                showToast('Data restored successfully.');
             } catch (error) {
-                console.error('Restore failed:', error);
-                showToast(`Restore failed: ${error.message}`, true);
+                console.error('Gist backup error:', error);
+                showToast(`Gist backup failed: ${error.message}`, true);
+            } finally {
+                state.ui.isGistSaving = false;
+                hideLoader();
+            }
+        };
+
+        const restoreFromGist = async () => {
+            const confirmed = await showConfirm(
+                'Restore from Gist?',
+                'This will overwrite local changes with the data currently saved on GitHub. Are you sure?'
+            );
+            if (!confirmed) return;
+            
+            showLoader();
+            try {
+                const res = await fetch(`${GIST_API_URL}/${state.gistId}`, { headers: getHeaders() });
+                if (!res.ok) {
+                    if (res.status === 401 || res.status === 404) {
+                        throw new Error('Invalid token or Gist not found.');
+                    }
+                    throw new Error(`Failed to load data (Status ${res.status})`);
+                }
+                const gist = await res.json();
+                const restoredData = JSON.parse(gist.files[GIST_FILENAME].content);
+
+                state.data = restoredData; 
+                runDataMigration(); // Ensure data structure is up-to-date
+                saveData(); // Re-save this restored data
+                render();
+                showToast('Data restored from Gist.');
+
+            } catch (err) {
+                console.error(err);
+                showToast(`Gist restore failed: ${err.message}`, true);
             } finally {
                 hideLoader();
-                restoreFileInput.value = null;
             }
+        };
+        
+        const handleLocalFileRestore = (file) => {
+            showLoader();
+            const reader = new FileReader();
+            
+            reader.onload = (event) => {
+                try {
+                    const parsedData = JSON.parse(event.target.result);
+                    
+                    if (typeof parsedData.bikes === 'undefined' || typeof parsedData.expenses === 'undefined') {
+                        throw new Error('Invalid backup file.');
+                    }
+                    
+                    state.data = parsedData;
+                    runDataMigration(); // Ensure data structure
+                    saveData(); // Save this new data to local storage
+                    render();   
+                    
+                    showToast('Data restored successfully.');
+                } catch (error) {
+                    console.error('Restore failed:', error);
+                    showToast(`Restore failed: ${error.message}`, true);
+                } finally {
+                    hideLoader();
+                    restoreFileInput.value = null; // Reset file input
+                }
+            };
+            
+            reader.onerror = () => {
+                showToast('Failed to read file.', true);
+                hideLoader();
+                restoreFileInput.value = null;
+            };
+            
+            reader.readAsText(file);
         };
 
         const csvEscape = (value) => {
@@ -5479,7 +4629,67 @@
                 });
             }
 
-            // PAT Modal listeners removed - using local IndexedDB only
+            // PAT Modal Save
+            patSave.addEventListener('click', async () => {
+                const token = patInput.value;
+                if (!token) {
+                    patError.textContent = 'Please enter a token.';
+                    return;
+                }
+                
+                showLoader();
+                state.githubPAT = token;
+                state.storageMode = 'gist';
+                
+                const gist = await findGist();
+                
+                if (gist) {
+                    state.gistId = gist.id;
+                    state.data = gist.content;
+                    showToast('Data loaded successfully!');
+                } else if (!patError.textContent) {
+                    const newGist = await createGist();
+                    if (newGist) {
+                        state.gistId = newGist.id;
+                        state.data = newGist.content;
+                        showToast('New data store created!');
+                    } else {
+                        hideLoader();
+                        return;
+                    }
+                } else {
+                    hideLoader();
+                    return;
+                }
+                
+                sessionStorage.setItem('githubPAT', state.githubPAT);
+                sessionStorage.setItem('gistId', state.gistId);
+                
+                runDataMigration();
+                state.security.isUnlocked = false;
+                lockSensitiveData();
+                updateSensitiveToggle();
+
+                const needsPinSetup = (state.data?.settings?.pin || '1111') === '1111';
+                
+                hideLoader();
+                patModal.classList.add('hidden');
+                appWrapper.classList.remove('hidden');
+                
+                renderPage('dashboard');
+
+                if (needsPinSetup) {
+                    await requirePinSetup('Set a new 4–6 digit PIN to secure your data.');
+                }
+            });
+            
+            // PAT Modal Skip
+            patSkip.addEventListener('click', async () => {
+                const needsPin = loadLocalData();
+                if (needsPin) {
+                    await requirePinSetup('Set a new 4–6 digit PIN to get started.');
+                }
+            });
 
             // Bottom Navigation
             navBar.addEventListener('click', (e) => {
@@ -5567,11 +4777,20 @@
             // --- NEW: Backup & Restore Listeners ---
             
             settingBackup.addEventListener('click', () => {
-                backupToLocalFile();
+                if (state.storageMode === 'gist') {
+                    backupToGist();
+                } else {
+                    backupToLocalFile();
+                }
             });
             
             settingRestore.addEventListener('click', () => {
-                restoreFileInput.click();
+                if (state.storageMode === 'gist') {
+                    restoreFromGist();
+                } else {
+                    // Trigger local file input
+                    restoreFileInput.click();
+                }
             });
 
             if (creditExport) {
@@ -5960,48 +5179,83 @@
         };
         
         const logout = () => {
-            // Clear IndexedDB and reload
-            indexedDB.deleteDatabase(DB_NAME).then(() => {
-                location.reload();
-            }).catch(() => {
-                location.reload();
-            });
+            sessionStorage.clear();
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            location.reload();
         };
 
         // --- App Initialization ---
         
-        const loadLocalData = async () => {
+        const loadLocalData = () => {
+            state.storageMode = 'local';
+            let localData = null;
             try {
-                const data = await dbGet('entries', 'data');
-                if (data) {
-                    state.data = data;
-                } else {
-                    // Migrate from localStorage if exists
-                    const oldData = localStorage.getItem('bikeManagerData');
-                    if (oldData) {
-                        state.data = JSON.parse(oldData);
-                        await dbSet('entries', 'data', state.data);
-                        localStorage.removeItem('bikeManagerData');
-                    }
+                const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (raw) {
+                    localData = JSON.parse(raw);
                 }
-                runDataMigration();
-                state.security.isUnlocked = false;
-                updateSensitiveToggle();
-                appWrapper.classList.remove('hidden');
-                renderPage('dashboard');
-                return (state.data?.settings?.pin || '1111') === '1111';
             } catch (error) {
-                console.error('Failed to load data:', error);
-                state.data = { bikes: [], expenses: [], pr: [], cashEntries: [], payments: [], brandNewDeliveries: [], settings: { pin: '1111' } };
-                return true;
+                console.error('Failed to read local data. Resetting to defaults.', error);
             }
+
+            if (!localData) {
+                localData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            }
+
+            state.data = localData;
+            runDataMigration();
+            state.security.isUnlocked = false;
+            updateSensitiveToggle();
+            patModal?.classList.add('hidden');
+            hideLoader();
+            appWrapper.classList.remove('hidden');
+            renderPage('dashboard');
+            return (state.data?.settings?.pin || '1111') === '1111';
         };
 
         const init = async () => {
-            await initDB();
             setupPWAInstall();
             addEventListeners();
-            const needsPinSetup = await loadLocalData();
+            const pat = sessionStorage.getItem('githubPAT');
+            const gistId = sessionStorage.getItem('gistId');
+            
+            if (pat && gistId) {
+                state.githubPAT = pat;
+                state.gistId = gistId;
+                state.storageMode = 'gist';
+                
+                showLoader();
+                try {
+                    const res = await fetch(`${GIST_API_URL}/${gistId}`, { headers: getHeaders() });
+                    if (!res.ok) {
+                        if (res.status === 401 || res.status === 404) {
+                            throw new Error('Invalid token or Gist not found. Please log in again.');
+                        }
+                        throw new Error(`Failed to load data (Status ${res.status})`);
+                    }
+                    const gist = await res.json();
+                    state.data = JSON.parse(gist.files[GIST_FILENAME].content);
+                    runDataMigration();
+                    state.security.isUnlocked = false;
+                    updateSensitiveToggle();
+                    appWrapper.classList.remove('hidden');
+                    renderPage('dashboard');
+                    const needsPinSetup = (state.data?.settings?.pin || '1111') === '1111';
+                    if (needsPinSetup) {
+                        await requirePinSetup('Set a new 4–6 digit PIN to secure your data.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    sessionStorage.clear();
+                    patModal?.classList.remove('hidden');
+                    patError.textContent = err.message;
+                } finally {
+                    hideLoader();
+                }
+                return;
+            }
+            
+            const needsPinSetup = loadLocalData();
             if (needsPinSetup) {
                 await requirePinSetup('Set a new 4–6 digit PIN to get started.');
             }
@@ -6009,6 +5263,3 @@
 
         document.addEventListener('DOMContentLoaded', init);
 
-    </script>
-</body>
-</html>
