@@ -1,23 +1,40 @@
 {
   "name": "Bike Manager",
   "short_name": "BikeMgr",
-  "description": "Track bike sales, payments, credit, and analytics from any device.",
-  "start_url": "./index.html?source=pwa",
+  "description": "Track bike sales, payments, credit, and analytics from any device",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#0f4c81",
   "theme_color": "#2563eb",
-  "scope": "./",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Add Bike",
+      "short_name": "Add",
+      "description": "Quickly add a new bike",
+      "url": "./?action=add",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
-
