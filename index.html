@@ -781,7 +781,7 @@
         </div>
     </div>
 
-    <script type="module">
+    <script>
         // --- DOM Elements ---
         const $ = (selector) => document.querySelector(selector);
         
@@ -897,80 +897,10 @@
                 pwaInstallButton.disabled = true;
             }
         };
-
         const setupPWAInstall = () => {
+            // Service worker disabled - running as full web app without PWA
             if (!pwaInstallButton) return;
-
-            updateInstallButtonState();
-
-            const canUseServiceWorker = (window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname));
-            if ('serviceWorker' in navigator && canUseServiceWorker) {
-                navigator.serviceWorker.register('./sw.js', { scope: './' }).catch((error) => {
-                    console.error('Service worker registration failed:', error);
-                });
-            } else if (!canUseServiceWorker) {
-                console.warn('Service workers require HTTPS. PWA features may be limited.');
-                pwaInstallButton.classList.remove('hidden');
-                pwaInstallButton.disabled = true;
-                pwaInstallButton.setAttribute('aria-disabled', 'true');
-                pwaInstallButton.textContent = 'Install App';
-                pwaInstallButton.title = 'Install requires HTTPS or serving from localhost.';
-                pwaInstallButton.classList.add('opacity-60', 'cursor-not-allowed');
-            }
-
-            window.addEventListener('beforeinstallprompt', (event) => {
-                event.preventDefault();
-                deferredInstallPrompt = event;
-                updateInstallButtonState();
-            });
-
-            pwaInstallButton.addEventListener('click', async () => {
-                if (pwaInstallButton.disabled) {
-                    if (typeof showToast === 'function') {
-                        showToast(getInstallSupportMessage(), true);
-                    }
-                    return;
-                }
-                if (!deferredInstallPrompt) {
-                    if (typeof showToast === 'function') {
-                        showToast(getInstallSupportMessage(), true);
-                    }
-                    updateInstallButtonState();
-                    return;
-                }
-                try {
-                    deferredInstallPrompt.prompt();
-                    const choice = await deferredInstallPrompt.userChoice;
-                    deferredInstallPrompt = null;
-                    if (choice.outcome === 'accepted') {
-                        if (typeof showToast === 'function') {
-                            showToast('Installation started. Check your device for the app icon.');
-                        }
-                    }
-                } catch (error) {
-                    console.error('Install prompt failed:', error);
-                } finally {
-                    updateInstallButtonState();
-                }
-            });
-
-            window.addEventListener('appinstalled', () => {
-                deferredInstallPrompt = null;
-                if (typeof showToast === 'function') {
-                    showToast('App installed! You can launch it from your device.');
-                }
-                updateInstallButtonState();
-            });
-
-            const standaloneMedia = window.matchMedia('(display-mode: standalone)');
-            const handleStandaloneChange = () => updateInstallButtonState();
-            if (standaloneMedia.addEventListener) {
-                standaloneMedia.addEventListener('change', handleStandaloneChange);
-            } else if (standaloneMedia.addListener) {
-                standaloneMedia.addListener(handleStandaloneChange);
-            }
-
-            updateInstallButtonState();
+            pwaInstallButton.classList.add('hidden');
         };
 
         // Expenses Page
