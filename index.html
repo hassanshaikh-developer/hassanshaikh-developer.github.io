@@ -13,6 +13,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- DaisyUI - Professional component library built on Tailwind -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <!-- Lucide Icons -->
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.452.0/dist/umd/lucide.min.js"></script>
     <!-- jsPDF for PDF exports -->
@@ -256,6 +258,209 @@
             background: rgba(37, 99, 235, 0.16);
             transform: translateY(-1px);
         }
+
+        /* Professional Card Animations with Golden Ratio Spacing */
+        .card {
+            border-radius: 0.75rem;
+            animation: slideInUp 0.4s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(1.618rem);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* DaisyUI Card Hover Enhancement */
+        .card:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Standardize card body padding */
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-body {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .card-body {
+                padding: 1.75rem;
+            }
+        }
+
+        /* Professional Button States */
+        .btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Select/Input Focus Enhancement */
+        .select:focus, .input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            border-color: #2563eb;
+            transition: all 0.2s ease;
+        }
+
+        /* Number Highlighting - Fade in for financial data */
+        @keyframes numberFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .card-body div[id*="dashboard-"], .card-body div[id*="analytics-"] {
+            animation: numberFadeIn 0.3s ease-out;
+        }
+
+        /* Stagger animation for metric cards */
+        #page-dashboard .card:nth-child(1) { animation-delay: 0.05s; }
+        #page-dashboard .card:nth-child(2) { animation-delay: 0.1s; }
+        #page-dashboard .card:nth-child(3) { animation-delay: 0.15s; }
+        #page-dashboard .card:nth-child(4) { animation-delay: 0.2s; }
+        #page-dashboard .card:nth-child(5) { animation-delay: 0.25s; }
+        #page-dashboard .card:nth-child(6) { animation-delay: 0.3s; }
+
+        /* Color-coded text emphasis */
+        .text-emerald-600 { font-weight: 600; }
+        .text-green-600 { font-weight: 600; }
+        .text-red-600 { font-weight: 600; }
+
+        /* Badge styling */
+        .badge {
+            animation: slideInLeft 0.3s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Page transitions */
+        .page {
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Form Controls - Professional styling */
+        .form-input, .select {
+            border-radius: 0.5rem;
+            border-color: #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:hover, .select:hover {
+            border-color: #d1d5db;
+            background-color: #fafafa;
+        }
+
+        /* Bento Grid Layout */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            auto-rows: minmax(200px, auto);
+        }
+
+        @media (min-width: 768px) {
+            .bento-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1.25rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .bento-grid {
+                gap: 1.5rem;
+            }
+        }
+
+        /* Bento card variations */
+        .bento-card {
+            grid-column: span 1;
+            grid-row: span 1;
+        }
+
+        @media (min-width: 768px) {
+            /* Large cards - span 2 columns */
+            .bento-card.lg {
+                grid-column: span 2;
+                grid-row: span 1;
+            }
+
+            /* Extra large cards - span 2x2 */
+            .bento-card.xl {
+                grid-column: span 2;
+                grid-row: span 2;
+            }
+        }
+
+        /* Dashboard bento pattern */
+        #page-dashboard .bento-grid > .card:nth-child(1) { grid-column: span 2; } /* Cash in Hand - large */
+        #page-dashboard .bento-grid > .card:nth-child(2) { grid-column: span 2; } /* Total Revenue - large */
+        #page-dashboard .bento-grid > .card:nth-child(3) { grid-column: span 1; } /* Total Profit */
+        #page-dashboard .bento-grid > .card:nth-child(4) { grid-column: span 1; } /* Brand New */
+        #page-dashboard .bento-grid > .card:nth-child(5) { grid-column: span 1; } /* Unsold Investment */
+        #page-dashboard .bento-grid > .card:nth-child(6) { grid-column: span 1; } /* Inventory */
+
+        /* Analytics bento pattern */
+        #page-analytics .bento-grid > .card:nth-child(1) { grid-column: span 2; grid-row: span 1; } /* Cash */
+        #page-analytics .bento-grid > .card:nth-child(2) { grid-column: span 1; grid-row: span 1; } /* Profit */
+        #page-analytics .bento-grid > .card:nth-child(3) { grid-column: span 1; grid-row: span 1; } /* Realized */
+        #page-analytics .bento-grid > .card:nth-child(4) { grid-column: span 1; grid-row: span 1; } /* This Month */
+        #page-analytics .bento-grid > .card:nth-child(5) { grid-column: span 2; grid-row: span 1; } /* Inflow - large */
+        #page-analytics .bento-grid > .card:nth-child(6) { grid-column: span 2; grid-row: span 1; } /* Outflow - large */
+
+        @media (max-width: 767px) {
+            .bento-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            #page-dashboard .bento-grid > .card,
+            #page-analytics .bento-grid > .card {
+                grid-column: span 1 !important;
+                grid-row: span 1 !important;
+            }
+        }
     </style>
 </head>
 
@@ -284,7 +489,7 @@
       Main App Wrapper
       Simulates a mobile phone screen, centered on desktop.
     -->
-    <div id="app-wrapper" class="w-full max-w-6xl mx-auto min-h-screen bg-gray-100 shadow-xl lg:rounded-3xl overflow-hidden hidden flex flex-col">
+    <div id="app-wrapper" class="w-full max-w-6xl mx-auto min-h-screen bg-gray-100 shadow-xl lg:rounded-3xl overflow-hidden flex flex-col">
 
         <div class="flex-1 flex flex-col">
             <!-- 
@@ -294,71 +499,90 @@
             <main class="flex-1 overflow-y-auto page-content lg:px-8 pt-24 pb-28">
             
             <!-- Page: Dashboard (Home) -->
-            <div id="page-dashboard" class="page p-4 lg:p-6 space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-cash" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+            <div id="page-dashboard" class="page p-4 md:p-5 lg:p-6 space-y-5">
+                <!-- Key Metrics Grid - Bento Layout -->
+                <div class="bento-grid">
+                    <!-- Row 1 -->
+                    <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200">
+                        <div class="card-body">
+                            <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Cash in Hand</span>
+                            <div class="sensitive-wrapper mt-4">
+                                <div id="dashboard-cash" class="text-4xl font-bold text-blue-600 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Total Revenue</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-revenue" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                    <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200">
+                        <div class="card-body">
+                            <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Revenue</span>
+                            <div class="sensitive-wrapper mt-4">
+                                <div id="dashboard-revenue" class="text-4xl font-bold text-green-600 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Total Profit</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-profit" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                    
+                    <!-- Row 2 -->
+                    <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200">
+                        <div class="card-body">
+                            <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Profit</span>
+                            <div class="sensitive-wrapper mt-4">
+                                <div id="dashboard-profit" class="text-4xl font-bold text-emerald-600 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Brand New Earnings</span>
-                        <div class="sensitive-wrapper mt-1">
-                            <div id="dashboard-brand" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                    <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200">
+                        <div class="card-body">
+                            <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Brand New Earnings</span>
+                            <div class="sensitive-wrapper mt-4">
+                                <div id="dashboard-brand" class="text-4xl font-bold text-amber-600 sensitive-mask" data-sensitive="currency">••••</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Unsold Investment</span>
-                        <div id="metric-investment" class="text-2xl font-bold text-gray-900 mt-1">₹0</div>
+                    
+                    <!-- Row 3 -->
+                    <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200">
+                        <div class="card-body">
+                            <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Unsold Investment</span>
+                            <div id="metric-investment" class="text-4xl font-bold text-purple-600 mt-4">₹0</div>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <span class="text-sm font-medium text-gray-500">Inventory (S/U)</span>
-                        <div id="metric-inventory" class="text-2xl font-bold text-gray-900 mt-1">0 / 0</div>
+                    <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200">
+                        <div class="card-body">
+                            <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Inventory (Sold/Unsold)</span>
+                            <div id="metric-inventory" class="text-4xl font-bold text-indigo-600 mt-4">0 / 0</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Payment Reminders -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm">
-                    <h2 class="text-lg font-semibold mb-2">Next Payment Reminder</h2>
-                    <div id="dashboard-reminders" class="max-h-40 overflow-y-auto space-y-3 pr-2">
-                        <!-- Reminders injected here -->
+                <div class="card bg-white shadow-md">
+                    <div class="card-body">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Next Payment Reminder</h2>
+                        <div id="dashboard-reminders" class="max-h-40 overflow-y-auto space-y-3 pr-2">
+                            <!-- Reminders injected here -->
+                        </div>
                     </div>
                 </div>
 
                 <!-- Recent Unsold -->
-                <div class="bg-white rounded-2xl p-4 shadow-sm">
-                    <div class="flex justify-between items-center mb-2">
-                        <h2 class="text-lg font-semibold">Unsold Bikes</h2>
-                        <select id="dashboard-sort" class="form-input !p-2 !py-1 !text-sm !w-auto !rounded-lg !bg-gray-200 border-none focus:ring-0 focus:border-none">
-                            <option value="recent">Recent</option>
-                            <option value="high_price">High Price</option>
-                            <option value="low_price">Low Price</option>
-                        </select>
-                    </div>
-                    <div id="dashboard-recent-bikes" class="space-y-2">
-                        <!-- Recent bikes injected here -->
+                <div class="card bg-white shadow-md">
+                    <div class="card-body">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Unsold Bikes</h2>
+                            <select id="dashboard-sort" class="select select-sm select-bordered w-auto">
+                                <option value="recent">Recent</option>
+                                <option value="high_price">High Price</option>
+                                <option value="low_price">Low Price</option>
+                            </select>
+                        </div>
+                        <div id="dashboard-recent-bikes" class="space-y-2">
+                            <!-- Recent bikes injected here -->
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Page: Bikes -->
-            <div id="page-bikes" class="page p-4 lg:p-6 space-y-4 hidden">
+            <div id="page-bikes" class="page p-4 md:p-5 lg:p-6 space-y-5 hidden">
                 <!-- Filters -->
                 <div class="sticky top-0 bg-gray-100 py-2 space-y-3">
                     <input type="search" id="bike-search" placeholder="Search by name, plate, or owner..." class="form-input">
@@ -456,7 +680,7 @@
             </div>
 
             <!-- Page: Credit -->
-            <div id="page-credit" class="page p-4 lg:p-6 space-y-4 hidden">
+            <div id="page-credit" class="page p-4 md:p-5 lg:p-6 space-y-5 hidden">
                 <div class="bg-white rounded-2xl p-4 shadow-sm space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         <div class="bg-blue-50 rounded-xl p-3">
@@ -499,80 +723,105 @@
             </div>
 
             <!-- Page: Analytics -->
-            <div id="page-analytics" class="page p-4 lg:p-6 space-y-4 hidden">
+            <div id="page-analytics" class="page p-4 md:p-5 lg:p-6 space-y-5 hidden">
                 <div id="analytics-locked-state" class="hidden analytics-locked">
-                    <div class="text-lg font-semibold">Sensitive analytics locked</div>
-                    <p class="text-sm text-blue-700">Unlock with your PIN to review financial analytics.</p>
-                    <button id="analytics-unlock" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">Unlock Analytics</button>
+                    <div class="alert alert-info">
+                        <span>Sensitive analytics locked. Unlock with your PIN to review financial analytics.</span>
+                    </div>
+                    <button id="analytics-unlock" class="btn btn-primary mt-3">Unlock Analytics</button>
                 </div>
-                <div id="analytics-content" class="space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Cash in Hand</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-cash" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                <div id="analytics-content" class="space-y-5">
+                    <!-- Financial Metrics Grid - Bento Layout -->
+                    <div class="bento-grid">
+                        <!-- Row 1 -->
+                        <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200 border border-blue-100">
+                            <div class="card-body">
+                                <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Cash in Hand</span>
+                                <div class="sensitive-wrapper mt-4">
+                                    <div id="analytics-cash" class="text-4xl font-bold text-blue-600 sensitive-mask" data-sensitive="currency">••••</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Total Profit</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-profit" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                        <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200 border border-emerald-100">
+                            <div class="card-body">
+                                <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Profit</span>
+                                <div class="sensitive-wrapper mt-4">
+                                    <div id="analytics-profit" class="text-4xl font-bold text-emerald-600 sensitive-mask" data-sensitive="currency">••••</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Realized Profit</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-realized" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                        
+                        <!-- Row 2 -->
+                        <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200 border border-green-100">
+                            <div class="card-body">
+                                <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Realized Profit</span>
+                                <div class="sensitive-wrapper mt-4">
+                                    <div id="analytics-realized" class="text-4xl font-bold text-green-600 sensitive-mask" data-sensitive="currency">••••</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">This Month</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-month" class="text-2xl font-bold text-gray-900 sensitive-mask" data-sensitive="currency">••••</div>
+                        <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200 border border-amber-100">
+                            <div class="card-body">
+                                <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">This Month Profit</span>
+                                <div class="sensitive-wrapper mt-4">
+                                    <div id="analytics-month" class="text-4xl font-bold text-amber-600 sensitive-mask" data-sensitive="currency">••••</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Total Cash Inflow</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-inflow" class="text-2xl font-bold text-green-600 sensitive-mask" data-sensitive="currency">••••</div>
+                        
+                        <!-- Row 3 -->
+                        <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200 border border-green-200">
+                            <div class="card-body">
+                                <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Cash Inflow</span>
+                                <p class="text-xs text-green-600 font-medium mt-1">↑ Income</p>
+                                <div class="sensitive-wrapper mt-3">
+                                    <div id="analytics-inflow" class="text-4xl font-bold text-green-600 sensitive-mask" data-sensitive="currency">••••</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="bg-white rounded-2xl p-4 shadow-sm">
-                            <span class="text-sm font-medium text-gray-500">Total Cash Outflow</span>
-                            <div class="sensitive-wrapper mt-1">
-                                <div id="analytics-outflow" class="text-2xl font-bold text-red-600 sensitive-mask" data-sensitive="currency">••••</div>
+                        <div class="card bg-white shadow-md hover:shadow-lg transition-shadow duration-200 border border-red-200">
+                            <div class="card-body">
+                                <span class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Cash Outflow</span>
+                                <p class="text-xs text-red-600 font-medium mt-1">↓ Expenses</p>
+                                <div class="sensitive-wrapper mt-3">
+                                    <div id="analytics-outflow" class="text-4xl font-bold text-red-600 sensitive-mask" data-sensitive="currency">••••</div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-4 shadow-sm">
-                        <h2 class="text-lg font-semibold mb-2">Cash Transaction Log</h2>
-                        <div id="analytics-transaction-list" class="max-h-60 overflow-y-auto space-y-2 pr-2">
-                            <!-- Transactions injected here -->
+                    <div class="card bg-white shadow-md">
+                        <div class="card-body">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Cash Transaction Log</h2>
+                            <div id="analytics-transaction-list" class="max-h-60 overflow-y-auto space-y-2 pr-2">
+                                <!-- Transactions injected here -->
+                            </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-semibold">Expenses</h2>
-                            <span id="analytics-expense-total" class="text-sm font-medium text-gray-500">₹0</span>
-                        </div>
-                        <div id="analytics-expense-list" class="space-y-2">
-                            <!-- Expenses summary -->
+                    <div class="card bg-white shadow-md">
+                        <div class="card-body">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-semibold text-gray-900">Expenses Summary</h2>
+                                <span id="analytics-expense-total" class="badge badge-lg badge-secondary">₹0</span>
+                            </div>
+                            <div id="analytics-expense-list" class="space-y-2">
+                                <!-- Expenses summary -->
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Page: Expenses -->
-            <div id="page-expenses" class="page p-4 lg:p-6 space-y-3 hidden">
+            <div id="page-expenses" class="page p-4 md:p-5 lg:p-6 space-y-5 hidden">
                 <div id="expense-list" class="space-y-3">
                     <!-- Expense card template -->
                 </div>
             </div>
 
             <!-- Page: PR (Personal Relationship) -->
-            <div id="page-pr" class="page p-4 lg:p-6 space-y-4 hidden">
+            <div id="page-pr" class="page p-4 md:p-5 lg:p-6 space-y-5 hidden">
                 <!-- Filters -->
                 <div class="sticky top-0 bg-gray-100 py-2">
                     <input type="search" id="pr-search" placeholder="Search by name, contact, or bike..." class="form-input mb-2">
@@ -590,7 +839,7 @@
             </div>
 
             <!-- Page: Settings -->
-            <div id="page-settings" class="page p-4 lg:p-6 space-y-4">
+            <div id="page-settings" class="page p-4 md:p-5 lg:p-6 space-y-5 hidden">
                 <!-- Cash Adjustments -->
                 <div class="bg-white rounded-2xl p-4 shadow-sm">
                     <h2 class="text-lg font-semibold mb-2">Cash Adjustments</h2>
@@ -719,7 +968,7 @@
       Global Loading Overlay
     -->
     <div id="loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-white/70 backdrop-blur-sm hidden">
-        <i data-lucide="loader-2" class="animate-spin h-8 w-8 text-blue-500"></i>
+        <i data-lucide="loader" class="animate-spin h-8 w-8 text-blue-500"></i>
     </div>
     
     <!-- 
@@ -781,7 +1030,7 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         // --- DOM Elements ---
         const $ = (selector) => document.querySelector(selector);
         
@@ -5388,7 +5637,6 @@
                 
                 hideLoader();
                 patModal.classList.add('hidden');
-                appWrapper.classList.remove('hidden');
                 
                 renderPage('dashboard');
 
@@ -5558,11 +5806,13 @@
                     e.target.classList.add('active');
                     state.ui.currentBikeFilter = e.target.dataset.filter;
                     renderBikesPage();
+                    refreshIcons();
                 }
             });
             bikeSearch.addEventListener('input', (e) => {
                 state.ui.currentBikeSearch = e.target.value;
                 renderBikesPage();
+                refreshIcons();
             });
             if (bikeTypeToggle) {
                 bikeTypeToggle.addEventListener('click', (e) => {
@@ -5571,6 +5821,7 @@
                         e.target.classList.add('active');
                         state.ui.currentBikeType = e.target.dataset.type;
                         renderBikesPage();
+                        refreshIcons();
                     }
                 });
             }
@@ -5587,11 +5838,13 @@
                     bikeSortLabel.textContent = `Sort: ${item.textContent}`;
                     bikeSortMenu.classList.add('hidden');
                     renderBikesPage();
+                    refreshIcons();
                 }
             });
             bikeAdvancedToggle?.addEventListener('click', () => {
                 state.ui.showBikeAdvanced = !state.ui.showBikeAdvanced;
                 renderBikesPage();
+                refreshIcons();
             });
             bikeAdvancedReset?.addEventListener('click', () => {
                 state.ui.bikeAdvancedFilters = {
@@ -5603,6 +5856,7 @@
                     repairMax: ''
                 };
                 renderBikesPage();
+                refreshIcons();
             });
 
             const advancedInputConfigs = [
@@ -5622,6 +5876,7 @@
                         [key]: nextValue
                     };
                     renderBikesPage();
+                    refreshIcons();
                 });
             });
 
@@ -5631,6 +5886,7 @@
                     state.ui.bikeBulkSelection = [];
                 }
                 renderBikesPage();
+                refreshIcons();
             });
             
             // Bike Page: List Clicks
@@ -5694,6 +5950,7 @@
                 state.ui.bikeBulkMode = false;
                 state.ui.bikeBulkSelection = [];
                 renderBikesPage();
+                refreshIcons();
             });
 
             const applyClearanceSelection = (enable) => {
@@ -5726,6 +5983,7 @@
                     updateBikeBulkFooter();
                 }
                 renderBikesPage();
+                refreshIcons();
             };
 
             bikeClearanceMark?.addEventListener('click', () => applyClearanceSelection(true));
@@ -5810,11 +6068,13 @@
                     e.target.classList.add('active');
                     state.ui.currentPRFilter = e.target.dataset.filter;
                     renderPRPage();
+                    refreshIcons();
                 }
             });
             prSearch.addEventListener('input', (e) => {
                 state.ui.currentPRSearch = e.target.value;
                 renderPRPage();
+                refreshIcons();
             });
             
             // PR Page: List Clicks
@@ -5922,7 +6182,6 @@
             updateSensitiveToggle();
             patModal?.classList.add('hidden');
             hideLoader();
-            appWrapper.classList.remove('hidden');
             renderPage('dashboard');
             return (state.data?.settings?.pin || '1111') === '1111';
         };
@@ -5930,6 +6189,7 @@
         const init = async () => {
             setupPWAInstall();
             addEventListeners();
+            refreshIcons();  // Initialize static icons on page load
             const pat = sessionStorage.getItem('githubPAT');
             const gistId = sessionStorage.getItem('gistId');
             
@@ -5952,7 +6212,6 @@
                     runDataMigration();
                     state.security.isUnlocked = false;
                     updateSensitiveToggle();
-                    appWrapper.classList.remove('hidden');
                     renderPage('dashboard');
                     const needsPinSetup = (state.data?.settings?.pin || '1111') === '1111';
                     if (needsPinSetup) {
